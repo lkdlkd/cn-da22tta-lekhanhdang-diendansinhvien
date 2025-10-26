@@ -43,14 +43,12 @@ export default function Layout({ children }) {
             getProfile(token),
             getCategories(),
             getFeaturedPosts(),
-            getAllPosts(),
             fetchActiveUsers(),
             fetchDocuments()
-        ]).then(([userData, categoriesData, postsData, allPostsData, usersData, docsData]) => {
+        ]).then(([userData, categoriesData, postsData, usersData, docsData]) => {
             setUser(userData.user);
             setCategories(categoriesData);
             setFeaturedPosts(postsData);
-            setAllPosts(allPostsData);
             setActiveUsers(usersData);
             setDocuments(docsData);
             setLoading(false);
@@ -64,7 +62,7 @@ export default function Layout({ children }) {
             <div className="pc-container">
                 <div className="pc-content">
                     {/* Truyền dữ liệu qua Outlet */}
-                    <Outlet context={{ allPosts, user, categories, featuredPosts, activeUsers, documents }} />
+                    <Outlet context={{ user, categories, featuredPosts, activeUsers, documents }} />
                 </div>
             </div>
             <footer className="pc-footer">

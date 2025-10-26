@@ -93,6 +93,8 @@ exports.register = async (req, res) => {
     }
     // Kiểm tra xem đã có admin chưa
     const isAdminExists = await User.findOne({ role: "admin" });
+
+    const avatarUrl = 'https://www.gravatar.com/avatar/' + require('crypto').createHash('md5').update(email).digest('hex') + '?d=identicon';
     // Tạo người dùng mới
     const user = new User({
       username,
@@ -103,7 +105,8 @@ exports.register = async (req, res) => {
       faculty,
       class: userClass,
       bio: bio || '',
-      role: isAdminExists ? "student" : "admin"
+      role: isAdminExists ? "student" : "admin",
+      avatarUrl: avatarUrl
     });
     await user.save();
     return res.status(201).json({
@@ -152,7 +155,13 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user._id;
-    const updates = req.body;
+    let updates = req.body;
+    // Nếu có file avatar upload lên
+    if (req.file) {
+      // Lưu đường dẫn file avatar vào trường avatar
+      // Đường dẫn có thể là /uploads/ + tên file
+      updates.avatar = `/uploads/${req.file.filename}`;
+    }
     const user = await User.findByIdAndUpdate(userId, updates, { new: true }).select('-password');
     if (!user) {
       return res.status(404).json({ error: "Người dùng không tồn tại" });

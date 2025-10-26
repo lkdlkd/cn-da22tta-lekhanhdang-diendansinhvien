@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 
 const UserSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true, trim: true },
-  avatarUrl: { type: String, default: '' },
+  avatarUrl: { type: String, default: 'https://avatar.iran.liara.run/public' },
   email: { type: String, unique: true, required: true, trim: true },
   phone: { type: String },
   password: { type: String, required: true, select: false },

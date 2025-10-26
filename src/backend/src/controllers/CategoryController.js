@@ -55,13 +55,3 @@ exports.deleteCategory = async (req, res) => {
 	}
 };
 
-// Lấy bài viết theo danh mục
-exports.getPostsByCategory = async (req, res) => {
-    try {
-        const categoryId = req.params.id;
-        const posts = await Post.find({ categoryId }).populate('authorId categoryId');
-        res.json(posts);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-};

@@ -5,12 +5,12 @@ import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import { getAllPosts, deletePost } from "../../../Utils/api";
 
-const PostDashboard = ({ token }) => {
+const PostDashboard = () => {
 	const [posts, setPosts] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [showModal, setShowModal] = useState(false);
 	const [selectedPost, setSelectedPost] = useState(null);
-
+	const token = localStorage.getItem("token");
 	// Fetch posts
 	const fetchPosts = async () => {
 		setLoading(true);

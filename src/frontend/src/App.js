@@ -11,7 +11,8 @@ import AdminDashboard from "./Pages/Admin/AdminDashboard/AdminDashboard";
 import CategoryAdmin from "./Pages/Admin/AdminDashboard/CategoryDashboard";
 import UserAdmin from "./Pages/Admin/AdminDashboard/UserAdmin"; 
 import PostAdmin from "./Pages/Admin/AdminDashboard/PostDashboard";
-import PostDetail from "./Pages/PostDetail";
+import PostDetail from "./Components/PostDetail";
+import Profile from "./Pages/Profile/Profile";
 function App() {
   return (
     <AuthProvider>
@@ -21,12 +22,13 @@ function App() {
           {/* Routes không có Layout */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/" element={<Home />} />
+          {/* <Route path="/" element={<Home />} /> */}
 
 
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="/post/:slug" element={<PostDetail />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
 
 

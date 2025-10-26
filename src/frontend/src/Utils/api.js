@@ -1,3 +1,14 @@
+// Tạo bình luận cho bài viết
+export const createComment = async (token, data) => {
+  const isFormData = data instanceof FormData;
+  const headers = withNoStore(isFormData ? { Authorization: `Bearer ${token}` } : { "Content-Type": "application/json", Authorization: `Bearer ${token}` });
+  const response = await fetch(`${API_BASE}/comments`, {
+    method: "POST",
+    headers,
+    body: isFormData ? data : JSON.stringify(data),
+  });
+  return handleResponse(response);
+};
 const API_BASE = `${process.env.REACT_APP_API_BASE}/api`;
 // Helper để thêm header Cache-Control
 const withNoStore = (headers = {}) => ({
@@ -124,13 +135,12 @@ export const getFeaturedPosts = async () => {
   return handleResponse(response);
 };
 export const createPost = async (token, data) => {
+  const isFormData = data instanceof FormData;
+  const headers = withNoStore(isFormData ? { Authorization: `Bearer ${token}` } : { "Content-Type": "application/json", Authorization: `Bearer ${token}` });
   const response = await fetch(`${API_BASE}/posts`, {
-    method: "POST", 
-    headers: withNoStore({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    }),
-    body: JSON.stringify(data),
+    method: "POST",
+    headers,
+    body: isFormData ? data : JSON.stringify(data),
   });
   return handleResponse(response);
 };
