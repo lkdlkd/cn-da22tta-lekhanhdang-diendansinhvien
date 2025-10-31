@@ -1,10 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import PostItem from "./PostItem";
+import EditPostModal from "./EditPostModal";
+import { AuthContext } from "../Context/AuthContext";
+import * as api from "../Utils/api";
+import { toast } from "react-toastify";
+import Swal from "sweetalert2";
+const PostList = ({ posts, loadingpost, onPostUpdate }) => {
+    const { auth } = useContext(AuthContext);
+    const token = auth.token || localStorage.getItem('token');
 
-const PostList = ({ posts, loadingpost }) => {
+    // Decode token để lấy user ID
+    let currentUserId = null;
+    if (token) {
+        try {
+            const decoded = JSON.parse(atob(token.split(".")[1]));
+            currentUserId = decoded._id || decoded.userId || decoded.id;
+        } catch (error) {
+            console.error("Token decode error:", error);
+        }
+    }
+
     const [replyTo, setReplyTo] = useState({});
     const [replyTexts, setReplyTexts] = useState({});
     const [replyAttachments, setReplyAttachments] = useState({});
+    
+    // State for edit modal
+    const [editingPost, setEditingPost] = useState(null);
 
     const handleReplyChange = (commentId, value) => {
         setReplyTexts(prev => ({ ...prev, [commentId]: value }));
@@ -68,16 +89,139 @@ const PostList = ({ posts, loadingpost }) => {
     const [commentTexts, setCommentTexts] = useState({});
     const [commentAttachments, setCommentAttachments] = useState({});
 
-    const handleLike = (postId) => {
-        setLikedPosts(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(postId)) {
-                newSet.delete(postId);
-            } else {
-                newSet.add(postId);
+    // Load liked posts từ server hoặc localStorage
+    useEffect(() => {
+        // TODO: Fetch liked posts from server
+        // For now, load from localStorage
+        const savedLikes = localStorage.getItem('likedPosts');
+        if (savedLikes) {
+            try {
+                const likesArray = JSON.parse(savedLikes);
+                setLikedPosts(new Set(likesArray));
+            } catch (error) {
+                console.error("Error loading liked posts:", error);
             }
-            return newSet;
+        }
+    }, []);
+
+    // Sync liked posts with posts data when posts load
+    useEffect(() => {
+        if (posts && posts.length > 0 && currentUserId) {
+            const newLikedPosts = new Set(likedPosts);
+
+            posts.forEach(post => {
+                if (post.likes && Array.isArray(post.likes)) {
+                    // Check if current user liked this post
+                    const userLiked = post.likes.some(like =>
+                        String(like.userId?._id || like.userId) === String(currentUserId)
+                    );
+
+                    if (userLiked) {
+                        newLikedPosts.add(post._id);
+                    } else {
+                        newLikedPosts.delete(post._id);
+                    }
+                }
+            });
+
+            setLikedPosts(newLikedPosts);
+        }
+    }, [posts, currentUserId]); // Run when posts data changes
+
+    // Save liked posts to localStorage
+    useEffect(() => {
+        localStorage.setItem('likedPosts', JSON.stringify([...likedPosts]));
+    }, [likedPosts]);
+
+    const handleLike = async (postId) => {
+        if (!token) {
+            toast.info("Vui lòng đăng nhập để thích bài viết!");
+            return;
+        }
+
+        try {
+            const isLiked = likedPosts.has(postId);
+
+            if (isLiked) {
+                await api.unlikePost(token, postId);
+                setLikedPosts(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(postId);
+                    return newSet;
+                });
+            } else {
+                await api.likePost(token, postId);
+                setLikedPosts(prev => {
+                    const newSet = new Set(prev);
+                    newSet.add(postId);
+                    return newSet;
+                });
+            }
+
+            // Reload posts để cập nhật like count
+            if (onPostUpdate) {
+                onPostUpdate();
+            }
+        } catch (error) {
+            console.error("Error liking/unliking post:", error);
+            // Nếu API chưa implement, vẫn cho phép toggle UI
+            setLikedPosts(prev => {
+                const newSet = new Set(prev);
+                if (newSet.has(postId)) {
+                    newSet.delete(postId);
+                } else {
+                    newSet.add(postId);
+                }
+                return newSet;
+            });
+        }
+    };
+
+    const handleDeletePost = async (postId) => {
+
+        Swal.fire({
+            title: 'Bạn có chắc muốn xóa bài viết này?',
+            text: "Hành động này không thể hoàn tác!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Xóa',
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const result = await api.deletePost(token, postId);
+                    if (result.success) {
+                        toast.success("Đã xóa bài viết thành công!");
+                        if (onPostUpdate) {
+                            onPostUpdate();
+                        }
+                    } else {
+                        toast.error(result.error || "Lỗi xóa bài viết");
+                    }
+                } catch (error) {
+                    console.error("Error deleting post:", error);
+                    toast.error(error.message || "Lỗi xóa bài viết");
+                }
+            }
         });
+    };
+
+    const handleEditPost = (postId) => {
+        const postToEdit = posts.find(p => p._id === postId);
+        if (postToEdit) {
+            setEditingPost(postToEdit);
+        }
+    };
+
+    const handleCloseEditModal = () => {
+        setEditingPost(null);
+    };
+
+    const handleUpdateSuccess = () => {
+        if (onPostUpdate) {
+            onPostUpdate();
+        }
     };
 
     const toggleComments = (postId) => {
@@ -191,12 +335,12 @@ const PostList = ({ posts, loadingpost }) => {
     const organizeComments = (comments) => {
         const commentMap = {};
         const rootComments = [];
-        
+
         // Tạo map của tất cả comments
         comments.forEach(comment => {
             commentMap[comment._id] = { ...comment, replies: [] };
         });
-        
+
         // Phân loại thành root comments và replies
         comments.forEach(comment => {
             if (comment.parentId && commentMap[comment.parentId]) {
@@ -205,7 +349,7 @@ const PostList = ({ posts, loadingpost }) => {
                 rootComments.push(commentMap[comment._id]);
             }
         });
-        
+
         return rootComments;
     };
 
@@ -299,6 +443,7 @@ const PostList = ({ posts, loadingpost }) => {
                 <PostItem
                     key={post._id}
                     post={post}
+                    currentUserId={currentUserId}
                     isLiked={likedPosts.has(post._id)}
                     isCommentsExpanded={expandedComments.has(post._id)}
                     commentTexts={commentTexts}
@@ -307,6 +452,8 @@ const PostList = ({ posts, loadingpost }) => {
                     replyTexts={replyTexts}
                     replyAttachments={replyAttachments}
                     handleLike={handleLike}
+                    handleDeletePost={handleDeletePost}
+                    handleEditPost={handleEditPost}
                     toggleComments={toggleComments}
                     handleCommentChange={handleCommentChange}
                     handleAttachmentChange={handleAttachmentChange}
@@ -322,6 +469,15 @@ const PostList = ({ posts, loadingpost }) => {
                     handleSubmitReply={handleSubmitReply}
                 />
             ))}
+
+            {/* Edit Post Modal */}
+            {editingPost && (
+                <EditPostModal
+                    post={editingPost}
+                    onClose={handleCloseEditModal}
+                    onUpdate={handleUpdateSuccess}
+                />
+            )}
         </div>
     );
 };

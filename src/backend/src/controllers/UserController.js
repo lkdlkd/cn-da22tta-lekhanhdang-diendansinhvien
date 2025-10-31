@@ -2,6 +2,8 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const Notification = require('../models/Notification');
 const Message = require('../models/Message');
+const fs = require('fs');
+const path = require('path');
 
 exports.login = async (req, res) => {
   try {
@@ -134,13 +136,13 @@ exports.getProfile = async (req, res) => {
   try {
     const userId = req.user._id;
     let user = await User.findById(userId).select('-password');
-    const notifications = await Notification.find({ user: userId });
+    // const notifications = await Notification.find({ userId });
     // Lấy các cuộc trò chuyện có user tham gia, sắp xếp theo lastMessageAt
-    const messages = await Message.find({ participants: userId })
-      .sort({ lastMessageAt: -1 })
-      .populate('participants', 'username displayName avatar')
-      .populate('messages.senderId', 'username displayName avatar');
-    user = { ...user.toObject(), notifications, messages };
+    // const messages = await Message.find({ participants: userId })
+      // .sort({ lastMessageAt: -1 })
+      // .populate('participants', 'username displayName avatar')
+      // .populate('messages.senderId', 'username displayName avatar');
+    // user = { ...user.toObject(), notifications, messages };
 
     if (!user) {
       return res.status(404).json({ error: "Người dùng không tồn tại" });
@@ -156,16 +158,42 @@ exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user._id;
     let updates = req.body;
+    
     // Nếu có file avatar upload lên
     if (req.file) {
-      // Lưu đường dẫn file avatar vào trường avatar
-      // Đường dẫn có thể là /uploads/ + tên file
-      updates.avatar = `/uploads/${req.file.filename}`;
+      // Lấy thông tin user cũ để xóa avatar cũ
+      const oldUser = await User.findById(userId);
+      
+      // Xóa file avatar cũ nếu tồn tại và không phải avatar mặc định (gravatar)
+      if (oldUser && oldUser.avatarUrl && !oldUser.avatarUrl.includes('gravatar.com')) {
+        try {
+          // Lấy tên file từ URL
+          const oldFileName = oldUser.avatarUrl.split('/').pop();
+          const oldFilePath = path.join(__dirname, '../../src/uploads/user', oldFileName);
+          
+          // Kiểm tra file tồn tại rồi mới xóa
+          if (fs.existsSync(oldFilePath)) {
+            fs.unlinkSync(oldFilePath);
+            console.log('Đã xóa avatar cũ:', oldFileName);
+          }
+        } catch (error) {
+          console.error('Lỗi khi xóa avatar cũ:', error);
+          // Không throw error, vẫn tiếp tục update avatar mới
+        }
+      }
+      
+      // Đường dẫn backend để lưu URL
+      const backendUrl = `${req.protocol}://${req.get('host')}`;
+      // Lưu đường dẫn file avatar vào trường avatarUrl
+      updates.avatarUrl = `${backendUrl}/uploads/user/${req.file.filename}`;
     }
+    
     const user = await User.findByIdAndUpdate(userId, updates, { new: true }).select('-password');
+    
     if (!user) {
       return res.status(404).json({ error: "Người dùng không tồn tại" });
     }
+    
     return res.status(200).json({ success: true, user });
   } catch (error) {
     console.error("Cập nhật thông tin người dùng lỗi:", error);
@@ -223,5 +251,102 @@ exports.deleteUser = async (req, res) => {
   } catch (error) {
     console.error("Xóa người dùng lỗi:", error);
     return res.status(500).json({ error: "Có lỗi xảy ra khi xóa người dùng" });
+  }
+};
+
+exports.getActiveUsers = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const onlineOnly = req.query.onlineOnly === 'true';
+    
+    // Match condition
+    const matchCondition = { 
+      isBanned: { $ne: true },
+      role: { $ne: 'admin' }
+    };
+    
+    // Nếu chỉ lấy user online
+    if (onlineOnly) {
+      matchCondition.isOnline = true;
+    }
+    
+    // Lấy danh sách user có nhiều bài viết nhất
+    const activeUsers = await User.aggregate([
+      {
+        $match: matchCondition
+      },
+      {
+        $lookup: {
+          from: 'posts',
+          localField: '_id',
+          foreignField: 'authorId',
+          as: 'posts'
+        }
+      },
+      {
+        $addFields: {
+          postsCount: { $size: '$posts' }
+        }
+      },
+      {
+        $match: {
+          postsCount: { $gt: 0 } // Chỉ lấy user có ít nhất 1 bài viết
+        }
+      },
+      {
+        $sort: { 
+          isOnline: -1, // Online users trước
+          postsCount: -1 // Sau đó sort theo số bài viết
+        }
+      },
+      {
+        $limit: limit
+      },
+      {
+        $project: {
+          _id: 1,
+          username: 1,
+          displayName: 1,
+          avatar: 1,
+          avatarUrl: 1,
+          postsCount: 1,
+          isOnline: 1,
+          lastSeen: 1,
+          createdAt: 1
+        }
+      }
+    ]);
+
+    return res.status(200).json({ 
+      success: true, 
+      users: activeUsers 
+    });
+  } catch (error) {
+    console.error("Lấy danh sách thành viên tích cực lỗi:", error);
+    return res.status(500).json({ error: "Có lỗi xảy ra khi lấy danh sách thành viên tích cực" });
+  }
+};
+
+// API mới: Lấy chỉ user đang online
+exports.getOnlineUsers = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    
+    const onlineUsers = await User.find({
+      isOnline: true,
+      isBanned: { $ne: true }
+    })
+    .select('_id username displayName avatar avatarUrl isOnline lastSeen')
+    .limit(limit)
+    .sort({ lastSeen: -1 });
+
+    return res.status(200).json({ 
+      success: true, 
+      count: onlineUsers.length,
+      users: onlineUsers 
+    });
+  } catch (error) {
+    console.error("Lấy danh sách user online lỗi:", error);
+    return res.status(500).json({ error: "Có lỗi xảy ra khi lấy danh sách user online" });
   }
 };

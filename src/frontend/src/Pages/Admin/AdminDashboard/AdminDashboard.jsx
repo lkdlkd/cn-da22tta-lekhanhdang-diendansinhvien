@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getAllUsers, getAllPosts, getCategories, deleteUser } from "../../../Utils/api";
 import CategoryDashboard from "./CategoryDashboard";
-
+import { Link } from "react-router-dom";
 export default function AdminDashboard() {
     const [stats, setStats] = useState({
         usersCount: 0,
@@ -70,9 +70,9 @@ export default function AdminDashboard() {
                     </ul>
                 </nav>
                 <div className="p-3 border-top">
-                    <a href="/" className="btn btn-outline-primary w-100">
+                    <Link to="/" className="btn btn-outline-primary w-100">
                         <i className="bi bi-arrow-left me-2"></i>Về trang chính
-                    </a>
+                    </Link>
                 </div>
             </aside>
 

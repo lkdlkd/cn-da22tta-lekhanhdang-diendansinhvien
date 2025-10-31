@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getProfile, updateProfile } from "../../Utils/api";
 import { useOutletContext } from "react-router-dom";
+
 const Profile = () => {
   const [profile, setProfile] = useState(null);
   const [editMode, setEditMode] = useState(false);
@@ -35,8 +36,19 @@ const Profile = () => {
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Kích thước ảnh không được vượt quá 5MB");
+        return;
+      }
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError("Vui lòng chọn file ảnh");
+        return;
+      }
       setAvatarFile(file);
       setAvatarPreview(URL.createObjectURL(file));
+      setError("");
     }
   };
 
@@ -46,104 +58,469 @@ const Profile = () => {
     setError("");
     setSuccess("");
     const token = localStorage.getItem("token");
+    
     try {
       let submitData;
       if (avatarFile) {
         submitData = new FormData();
         Object.keys(form).forEach((key) => {
-          submitData.append(key, form[key]);
+          if (key !== 'avatarUrl') { // Không gửi avatarUrl cũ
+            submitData.append(key, form[key]);
+          }
         });
         submitData.append("avatar", avatarFile);
       } else {
         submitData = form;
       }
+      
       const res = await updateProfile(token, submitData);
       setProfile(res);
+      setForm({
+        displayName: res.displayName || "",
+        email: res.email || "",
+        phone: res.phone || "",
+        faculty: res.faculty || "",
+        class: res.class || "",
+        bio: res.bio || "",
+        avatarUrl: res.avatarUrl || res.avatar || ""
+      });
+      setAvatarPreview(res.avatarUrl || res.avatar || "");
       setEditMode(false);
       setSuccess("Cập nhật thành công!");
+      
       if (avatarFile && avatarPreview) {
         URL.revokeObjectURL(avatarPreview);
       }
       setAvatarFile(null);
+      
+      // Reload page sau 1.5s để cập nhật avatar ở header
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (err) {
-      setError("Cập nhật thất bại");
+      setError(err.message || "Cập nhật thất bại");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return <div>Đang tải...</div>;
-  if (!profile) return <div>Không có thông tin cá nhân</div>;
+  const handleCancel = () => {
+    setEditMode(false);
+    setError("");
+    setSuccess("");
+    // Reset form về giá trị ban đầu
+    if (user) {
+      setForm({
+        displayName: user.displayName || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        faculty: user.faculty || "",
+        class: user.class || "",
+        bio: user.bio || "",
+        avatarUrl: user.avatarUrl || user.avatar || ""
+      });
+      setAvatarPreview(user.avatarUrl || user.avatar || "");
+      setAvatarFile(null);
+    }
+  };
 
-  return (
-    <div style={{ maxWidth: 500, margin: "40px auto", background: "#fff", borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.08)", padding: 32 }}>
-      <h2 style={{ marginBottom: 24 }}>Thông tin cá nhân</h2>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 24 }}>
-        <div style={{ position: "relative", width: 96, height: 96 }}>
-          <img
-            src={avatarPreview || "/default-avatar.png"}
-            alt="Avatar"
-            style={{ width: 96, height: 96, borderRadius: "50%", objectFit: "cover", border: "2px solid #e4e6eb" }}
-          />
-          {editMode && (
-            <label style={{
-              position: "absolute",
-              bottom: 0,
-              right: 0,
-              background: "#1877f2",
-              color: "#fff",
-              borderRadius: "50%",
-              width: 32,
-              height: 32,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-              border: "2px solid #fff"
-            }}>
-              <span style={{ fontSize: 18 }}>📷</span>
-              <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatarChange} />
-            </label>
-          )}
+  if (!profile) {
+    return (
+      <div className="container mt-5">
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-3 text-muted">Đang tải thông tin...</p>
         </div>
       </div>
-      {error && <div style={{ color: "red", marginBottom: 12 }}>{error}</div>}
-      {success && <div style={{ color: "green", marginBottom: 12 }}>{success}</div>}
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 16 }}>
-          <label>Tên hiển thị</label>
-          <input name="displayName" value={form.displayName} onChange={handleChange} disabled={!editMode} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #ddd" }} />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label>Email</label>
-          <input name="email" value={form.email} onChange={handleChange} disabled={!editMode} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #ddd" }} />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label>Số điện thoại</label>
-          <input name="phone" value={form.phone} onChange={handleChange} disabled={!editMode} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #ddd" }} />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label>Khoa</label>
-          <input name="faculty" value={form.faculty} onChange={handleChange} disabled={!editMode} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #ddd" }} />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label>Lớp</label>
-          <input name="class" value={form.class} onChange={handleChange} disabled={!editMode} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #ddd" }} />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label>Tiểu sử</label>
-          <textarea name="bio" value={form.bio} onChange={handleChange} disabled={!editMode} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #ddd" }} />
-        </div>
-        {editMode ? (
-          <div style={{ display: "flex", gap: 12 }}>
-            <button type="submit" style={{ background: "#1877f2", color: "#fff", border: "none", borderRadius: 6, padding: "8px 20px", fontWeight: 600 }}>Lưu</button>
-            <button type="button" onClick={() => setEditMode(false)} style={{ background: "#e4e6eb", color: "#050505", border: "none", borderRadius: 6, padding: "8px 20px", fontWeight: 600 }}>Hủy</button>
+    );
+  }
+
+  return (
+    <div className="container mt-4 mb-5">
+      <div className="row justify-content-center">
+        <div className="col-lg-8">
+          {/* Header Card */}
+          <div 
+            className="card border-0 shadow-sm mb-4" 
+            style={{ 
+              borderRadius: '16px',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Cover/Banner */}
+            <div 
+              style={{
+                height: '180px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                position: 'relative'
+              }}
+            >
+              <div 
+                style={{
+                  position: 'absolute',
+                  bottom: '-60px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 2
+                }}
+              >
+                <div style={{ position: 'relative' }}>
+                  <img
+                    src={avatarPreview || `https://ui-avatars.com/api/?background=random&name=${profile.displayName || profile.username}&size=200`}
+                    alt="Avatar"
+                    style={{ 
+                      width: '140px', 
+                      height: '140px', 
+                      borderRadius: '50%', 
+                      objectFit: 'cover', 
+                      border: '5px solid white',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                    }}
+                  />
+                  {editMode && (
+                    <label 
+                      className="btn btn-primary btn-sm"
+                      style={{
+                        position: 'absolute',
+                        bottom: '5px',
+                        right: '5px',
+                        borderRadius: '50%',
+                        width: '40px',
+                        height: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        padding: 0,
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        border: '3px solid white',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                      }}
+                    >
+                      <i className="ph ph-camera" style={{ fontSize: '20px' }}></i>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        style={{ display: "none" }} 
+                        onChange={handleAvatarChange} 
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="card-body text-center" style={{ paddingTop: '70px' }}>
+              <h4 className="mb-1" style={{ fontWeight: 700 }}>
+                {profile.displayName || profile.username}
+              </h4>
+              <p className="text-muted mb-2" style={{ fontSize: '14px' }}>
+                <i className="ph ph-at me-1"></i>
+                {profile.username}
+              </p>
+              {profile.faculty && (
+                <p className="text-muted mb-0" style={{ fontSize: '13px' }}>
+                  <i className="ph ph-graduation-cap me-1"></i>
+                  {profile.faculty} • {profile.class}
+                </p>
+              )}
+              
+              {/* Stats */}
+              <div className="d-flex justify-content-center gap-4 mt-4">
+                <div className="text-center">
+                  <div style={{ fontSize: '24px', fontWeight: 700, color: '#667eea' }}>
+                    {profile.stats?.postsCount || 0}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#999' }}>Bài viết</div>
+                </div>
+                <div className="text-center">
+                  <div style={{ fontSize: '24px', fontWeight: 700, color: '#667eea' }}>
+                    {profile.stats?.commentsCount || 0}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#999' }}>Bình luận</div>
+                </div>
+                <div className="text-center">
+                  <div style={{ fontSize: '24px', fontWeight: 700, color: '#667eea' }}>
+                    {profile.stats?.likesReceived || 0}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#999' }}>Lượt thích</div>
+                </div>
+              </div>
+            </div>
           </div>
-        ) : (
-          <button type="button" onClick={() => setEditMode(true)} style={{ background: "#1877f2", color: "#fff", border: "none", borderRadius: 6, padding: "8px 20px", fontWeight: 600 }}>Chỉnh sửa</button>
-        )}
-      </form>
+
+          {/* Form Card */}
+          <div 
+            className="card border-0 shadow-sm" 
+            style={{ borderRadius: '16px' }}
+          >
+            <div 
+              className="card-header bg-white d-flex justify-content-between align-items-center"
+              style={{
+                borderBottom: '2px solid #f0f2f5',
+                padding: '20px 24px',
+                borderRadius: '16px 16px 0 0'
+              }}
+            >
+              <h5 className="mb-0" style={{ fontWeight: 700, fontSize: '18px' }}>
+                <i className="ph-duotone ph-user-circle-gear text-primary me-2" style={{ fontSize: '24px' }}></i>
+                Thông tin cá nhân
+              </h5>
+              {!editMode && (
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setEditMode(true)}
+                  style={{
+                    borderRadius: '8px',
+                    padding: '8px 20px',
+                    fontWeight: 600,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none'
+                  }}
+                >
+                  <i className="ph ph-pencil-simple me-2"></i>
+                  Chỉnh sửa
+                </button>
+              )}
+            </div>
+
+            <div className="card-body p-4">
+              {/* Messages */}
+              {error && (
+                <div 
+                  className="alert alert-danger d-flex align-items-center mb-4" 
+                  style={{ borderRadius: '10px', fontSize: '14px' }}
+                >
+                  <i className="ph ph-warning-circle me-2" style={{ fontSize: '20px' }}></i>
+                  {error}
+                </div>
+              )}
+              {success && (
+                <div 
+                  className="alert alert-success d-flex align-items-center mb-4" 
+                  style={{ borderRadius: '10px', fontSize: '14px' }}
+                >
+                  <i className="ph ph-check-circle me-2" style={{ fontSize: '20px' }}></i>
+                  {success}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit}>
+                <div className="row">
+                  {/* Display Name */}
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
+                      <i className="ph ph-identification-card me-2"></i>
+                      Tên hiển thị
+                    </label>
+                    <input 
+                      name="displayName" 
+                      value={form.displayName} 
+                      onChange={handleChange} 
+                      disabled={!editMode}
+                      className="form-control"
+                      style={{
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        border: '2px solid #e0e0e0',
+                        fontSize: '14px',
+                        backgroundColor: editMode ? 'white' : '#f8f9fa'
+                      }}
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
+                      <i className="ph ph-envelope me-2"></i>
+                      Email
+                    </label>
+                    <input 
+                      name="email" 
+                      value={form.email} 
+                      onChange={handleChange} 
+                      disabled={!editMode}
+                      className="form-control"
+                      style={{
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        border: '2px solid #e0e0e0',
+                        fontSize: '14px',
+                        backgroundColor: editMode ? 'white' : '#f8f9fa'
+                      }}
+                    />
+                  </div>
+
+                  {/* Phone */}
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
+                      <i className="ph ph-phone me-2"></i>
+                      Số điện thoại
+                    </label>
+                    <input 
+                      name="phone" 
+                      value={form.phone} 
+                      onChange={handleChange} 
+                      disabled={!editMode}
+                      className="form-control"
+                      placeholder="Chưa cập nhật"
+                      style={{
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        border: '2px solid #e0e0e0',
+                        fontSize: '14px',
+                        backgroundColor: editMode ? 'white' : '#f8f9fa'
+                      }}
+                    />
+                  </div>
+
+                  {/* Username */}
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
+                      <i className="ph ph-user me-2"></i>
+                      Tên đăng nhập
+                    </label>
+                    <input 
+                      value={profile.username} 
+                      disabled
+                      className="form-control"
+                      style={{
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        border: '2px solid #e0e0e0',
+                        fontSize: '14px',
+                        backgroundColor: '#f8f9fa',
+                        cursor: 'not-allowed'
+                      }}
+                    />
+                  </div>
+
+                  {/* Faculty */}
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
+                      <i className="ph ph-building me-2"></i>
+                      Khoa
+                    </label>
+                    <input 
+                      name="faculty" 
+                      value={form.faculty} 
+                      onChange={handleChange} 
+                      disabled={!editMode}
+                      className="form-control"
+                      placeholder="Chưa cập nhật"
+                      style={{
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        border: '2px solid #e0e0e0',
+                        fontSize: '14px',
+                        backgroundColor: editMode ? 'white' : '#f8f9fa'
+                      }}
+                    />
+                  </div>
+
+                  {/* Class */}
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
+                      <i className="ph ph-students me-2"></i>
+                      Lớp
+                    </label>
+                    <input 
+                      name="class" 
+                      value={form.class} 
+                      onChange={handleChange} 
+                      disabled={!editMode}
+                      className="form-control"
+                      placeholder="Chưa cập nhật"
+                      style={{
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        border: '2px solid #e0e0e0',
+                        fontSize: '14px',
+                        backgroundColor: editMode ? 'white' : '#f8f9fa'
+                      }}
+                    />
+                  </div>
+
+                  {/* Bio */}
+                  <div className="col-12 mb-3">
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
+                      <i className="ph ph-note-pencil me-2"></i>
+                      Tiểu sử
+                    </label>
+                    <textarea 
+                      name="bio" 
+                      value={form.bio} 
+                      onChange={handleChange} 
+                      disabled={!editMode}
+                      className="form-control"
+                      rows="4"
+                      placeholder="Viết gì đó về bạn..."
+                      style={{
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        border: '2px solid #e0e0e0',
+                        fontSize: '14px',
+                        backgroundColor: editMode ? 'white' : '#f8f9fa',
+                        resize: 'none'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                {editMode && (
+                  <div className="d-flex gap-2 mt-3">
+                    <button 
+                      type="submit" 
+                      className="btn btn-primary flex-grow-1"
+                      disabled={loading}
+                      style={{
+                        borderRadius: '10px',
+                        padding: '12px',
+                        fontWeight: 600,
+                        fontSize: '15px',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        border: 'none'
+                      }}
+                    >
+                      {loading ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2"></span>
+                          Đang lưu...
+                        </>
+                      ) : (
+                        <>
+                          <i className="ph ph-check-circle me-2"></i>
+                          Lưu thay đổi
+                        </>
+                      )}
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={handleCancel}
+                      className="btn btn-light"
+                      disabled={loading}
+                      style={{
+                        borderRadius: '10px',
+                        padding: '12px 24px',
+                        fontWeight: 600,
+                        fontSize: '15px',
+                        border: '2px solid #e0e0e0'
+                      }}
+                    >
+                      <i className="ph ph-x-circle me-2"></i>
+                      Hủy
+                    </button>
+                  </div>
+                )}
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

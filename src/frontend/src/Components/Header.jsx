@@ -1,7 +1,9 @@
 import React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { forwardRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../Utils/api';
+const { socket } = require('../Utils/socket');
 
 const ArrowMenuIcon = ({
   width = 24,
@@ -59,9 +61,73 @@ const FilterSettingsIcon = ({
 export default function Header({ user }) {
   const [showSearch, setShowSearch] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const searchRef = useRef(null);
   const userMenuRef = useRef(null);
+  const notificationRef = useRef(null);
+  const navigate = useNavigate();
+
+  // Fetch notifications on mount
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const data = await getNotifications(token);
+        if (data.success) {
+          setNotifications(data.notifications);
+          setUnreadCount(data.unreadCount);
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
+    fetchNotifications();
+
+    // Setup socket listener for new notifications
+    const handleNewNotification = ({ userId, notification }) => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      // Decode token to get current user ID
+      try {
+        const decoded = JSON.parse(atob(token.split('.')[1]));
+        const currentUserId = decoded._id || decoded.userId || decoded.id;
+
+        // Only update if notification is for current user
+        if (String(userId) === String(currentUserId)) {
+          setNotifications(prev => [notification, ...prev]);
+          setUnreadCount(prev => prev + 1);
+
+          // Show browser notification if permission granted
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Thông báo mới', {
+              body: notification.data?.message || 'Bạn có thông báo mới',
+              icon: '/favicon.ico'
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error decoding token:', error);
+      }
+    };
+
+    socket.on('notification:new', handleNewNotification);
+
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    return () => {
+      socket.off('notification:new', handleNewNotification);
+    };
+  }, []);
 
   const handleActiveMenu = (e) => {
     e.stopPropagation();
@@ -94,6 +160,14 @@ export default function Header({ user }) {
         setShowSearch(false);
       }
 
+      // Xử lý đóng notification dropdown
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target)
+      ) {
+        setShowNotifications(false);
+      }
+
       // Tự động đóng sidebar trên mobile khi click bên ngoài
       if (window.innerWidth <= 1024) {
         const sidebar = document.querySelector(".pc-sidebar");
@@ -110,6 +184,60 @@ export default function Header({ user }) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Handle notification click
+  const handleNotificationClick = async (notification) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      // Mark as read
+      if (!notification.read) {
+        await markNotificationAsRead(token, notification._id);
+        setNotifications(prev =>
+          prev.map(n =>
+            n._id === notification._id ? { ...n, read: true } : n
+          )
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+
+      // Navigate to post if available
+      if (notification.data?.postSlug) {
+        navigate(`/post/${notification.data.postSlug}`);
+        setShowNotifications(false);
+      }
+    } catch (error) {
+      console.error('Error handling notification click:', error);
+    }
+  };
+
+  // Mark all as read
+  const handleMarkAllAsRead = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      await markAllNotificationsAsRead(token);
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
+  };
+
+  // Format time ago
+  const formatTimeAgo = (date) => {
+    const now = new Date();
+    const notificationDate = new Date(date);
+    const diffInSeconds = Math.floor((now - notificationDate) / 1000);
+
+    if (diffInSeconds < 60) return 'Vừa xong';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} phút trước`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} giờ trước`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} ngày trước`;
+    return notificationDate.toLocaleDateString('vi-VN');
+  };
 
   return (
     <header className="pc-header">
@@ -175,96 +303,134 @@ export default function Header({ user }) {
                 <button className="dropdown-item" type="button" > <i className="ph-duotone ph-cpu"></i> <span>Default</span></button>
               </div>
             </li>
-            <li className="dropdown pc-h-item header-user-profile" ref={searchRef}>
+            <li className="dropdown pc-h-item header-user-profile" ref={notificationRef}>
               <button
                 type="button"
                 className="pc-head-link dropdown-toggle arrow-none me-0 btn btn-link p-0 border-0"
-                data-bs-toggle="dropdown"
+                onClick={() => setShowNotifications(!showNotifications)}
                 aria-haspopup="true"
-                aria-expanded="false"
+                aria-expanded={showNotifications}
               >
                 <i className="ph-duotone ph-bell icon-notification"></i>
-                <span className="notification-badge">{user?.notifications?.length || 0}</span>
+                {unreadCount > 0 && (
+                  <span className="notification-badge">{unreadCount}</span>
+                )}
               </button>
-              <div className="dropdown-menu dropdown-menu-end pc-h-dropdown">
-                <div className="dropdown-header d-flex align-items-center justify-content-between">
-                  <h5 className="m-0">Thông báo</h5>
-                </div>
-                <div className="dropdown-body">
-                  <div
-                    className="notification-scroll position-relative"
-                    style={{ maxHeight: "calc(100vh - 225px)" }}
-                  >
-                    {user?.notifications?.length === 0 && (
-                      <div className="dropdown-item text-muted">Không có thông báo mới</div>
+              {showNotifications && (
+                <div className="dropdown-menu dropdown-menu-end pc-h-dropdown show">
+                  <div className="dropdown-header d-flex align-items-center justify-content-between">
+                    <h5 className="m-0">Thông báo</h5>
+                    {unreadCount > 0 && (
+                      <button
+                        className="btn btn-link btn-sm text-decoration-none p-0"
+                        onClick={handleMarkAllAsRead}
+                        style={{ fontSize: '12px' }}
+                      >
+                        Đánh dấu tất cả đã đọc
+                      </button>
                     )}
-                    {user?.notifications?.map((n) => (
-                      <div key={n._id} className="dropdown-item">
-                        <div className="d-flex align-items-center">
-                          <div className="flex-grow-1 ms-3">
-                            <h6 className="mb-1">{n.type}</h6>
-                            <div>{n.data?.text || JSON.stringify(n.data) || ''}</div>
-                          </div>
+                  </div>
+                  <div className="dropdown-body">
+                    <div
+                      className="notification-scroll position-relative"
+                      style={{ maxHeight: "calc(100vh - 225px)", overflowY: "auto" }}
+                    >
+                      {notifications.length === 0 ? (
+                        <div className="dropdown-item text-center text-muted py-4">
+                          <i className="ph-duotone ph-bell-slash" style={{ fontSize: '48px' }}></i>
+                          <p className="mb-0 mt-2">Không có thông báo</p>
                         </div>
-                      </div>
-                    ))}
+                      ) : (
+                        notifications.map((notification) => (
+                          <div
+                            key={notification._id}
+                            className={`dropdown-item ${!notification.read ? 'bg-light' : ''}`}
+                            onClick={() => handleNotificationClick(notification)}
+                            style={{
+                              cursor: 'pointer',
+                              borderLeft: !notification.read ? '3px solid #1877f2' : 'none',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = !notification.read ? '#f8f9fa' : 'white'}
+                          >
+                            <div className="d-flex align-items-start">
+                              <div className="flex-shrink-0">
+                                {notification.type === 'like' ? (
+                                  <i className="ph-duotone ph-heart text-danger" style={{ fontSize: '24px' }}></i>
+                                ) : (
+                                  <i className="ph-duotone ph-chat-circle-text text-primary" style={{ fontSize: '24px' }}></i>
+                                )}
+                              </div>
+                              <div className="flex-grow-1 ms-3">
+                                <h6 className="mb-1" style={{ fontSize: '14px' }}>
+                                  {notification.data?.message || 'Thông báo mới'}
+                                </h6>
+                                {notification.data?.postTitle && (
+                                  <p className="text-muted mb-1" style={{ fontSize: '12px' }}>
+                                    {notification.data.postTitle}
+                                  </p>
+                                )}
+                                {notification.data?.commentContent && (
+                                  <p className="text-muted mb-1" style={{ fontSize: '12px', fontStyle: 'italic' }}>
+                                    "{notification.data.commentContent.substring(0, 50)}..."
+                                  </p>
+                                )}
+                                <small className="text-muted">
+                                  {formatTimeAgo(notification.createdAt)}
+                                </small>
+                              </div>
+                              {!notification.read && (
+                                <div className="flex-shrink-0">
+                                  <span
+                                    className="badge bg-primary rounded-pill"
+                                    style={{ width: '8px', height: '8px', padding: 0 }}
+                                  ></span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </li>
-            <li
-              className="dropdown pc-h-item header-user-profile"
-              ref={searchRef}
-            >
-              <button
-                type="button"
-                className="pc-head-link dropdown-toggle arrow-none me-0 btn btn-link p-0 border-0"
-                data-bs-toggle="dropdown"
-                aria-haspopup="true"
-                aria-expanded="false"
+            {/* Tin nhắn - Tạm thời ẩn cho đến khi có API */}
+            {false && (
+              <li
+                className="dropdown pc-h-item header-user-profile"
+                ref={searchRef}
               >
-                <i className="ph-duotone ph-chat-circle-dots icon-message"></i>
-                <span className="notification-badge">{user?.messages?.length || 0}</span>
-              </button>
-              <div className="dropdown-menu dropdown-menu-end pc-h-dropdown">
-                <div className="dropdown-header d-flex align-items-center justify-content-between">
-                  <h5 className="m-0">Tin nhắn</h5>
-                </div>
-                <div className="dropdown-body">
-                  <div
-                    className="message-scroll position-relative"
-                    style={{ maxHeight: "calc(100vh - 225px)" }}
-                  >
-                    {user?.messages?.length === 0 && (
-                      <div className="dropdown-item text-muted">Không có tin nhắn mới</div>
-                    )}
-                    {user?.messages?.map((m) => (
-                      <div key={m._id} className="dropdown-item">
-                        <div className="d-flex align-items-center">
-                          <div className="flex-shrink-0">
-                            <img
-                              src={`https://ui-avatars.com/api/?background=random&name=${user?.username || "User"}`}
-                              alt="user-avatar"
-                              className="user-avtar"
-                              width={40}
-                              height={40}
-                            />
-                          </div>
-                          <div className="flex-grow-1 ms-3">
-                            <h6 className="mb-1">
-                              {m.participants?.map(p => p.displayName || p.username).join(', ')}
-                            </h6>
-                            <h6 className="text-primary">
-                              <i className="ph-duotone ph-message-circle"></i> {m.messages?.[m.messages.length - 1]?.text || "Tin nhắn mới"}
-                            </h6>
-                          </div>
-                        </div>
+                <button
+                  type="button"
+                  className="pc-head-link dropdown-toggle arrow-none me-0 btn btn-link p-0 border-0"
+                  data-bs-toggle="dropdown"
+                  aria-haspopup="true"
+                  aria-expanded="false"
+                >
+                  <i className="ph-duotone ph-chat-circle-dots icon-message"></i>
+                  <span className="notification-badge">0</span>
+                </button>
+                <div className="dropdown-menu dropdown-menu-end pc-h-dropdown">
+                  <div className="dropdown-header d-flex align-items-center justify-content-between">
+                    <h5 className="m-0">Tin nhắn</h5>
+                  </div>
+                  <div className="dropdown-body">
+                    <div
+                      className="message-scroll position-relative"
+                      style={{ maxHeight: "calc(100vh - 225px)" }}
+                    >
+                      <div className="dropdown-item text-center text-muted py-4">
+                        <i className="ph-duotone ph-chat-circle-slash" style={{ fontSize: '48px' }}></i>
+                        <p className="mb-0 mt-2">Chưa có tin nhắn</p>
                       </div>
-                    ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </li>
+              </li>
+            )}
             <li
               className="dropdown pc-h-item header-user-profile"
               ref={userMenuRef}
@@ -274,8 +440,7 @@ export default function Header({ user }) {
                 onClick={() => setShowUserMenu(!showUserMenu)}
               >
                 <img
-                  src={`https://ui-avatars.com/api/?background=random&name=${user?.username || "User"
-                    }`}
+                  src={user && user.avatarUrl || `https://ui-avatars.com/api/?background=random&name=user`}
                   alt="user-avatar"
                   className="user-avtar"
                   width={40}
@@ -304,8 +469,8 @@ export default function Header({ user }) {
                       <div className="d-flex mb-1">
                         <div className="flex-shrink-0">
                           <img
-                            src={`https://ui-avatars.com/api/?background=random&name=${user?.username || "User"
-                              }`}
+                            src={user && user.avatarUrl || `https://ui-avatars.com/api/?background=random&name=user`}
+
                             alt="user-avatar"
                             className="user-avtar wid-35"
                             width={40}

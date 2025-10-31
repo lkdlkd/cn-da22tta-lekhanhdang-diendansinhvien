@@ -24,7 +24,10 @@ const UserSchema = new mongoose.Schema({
     pushNotifications: { type: Boolean, default: true }
   },
   isBanned: { type: Boolean, default: false },
-  bannedUntil: { type: Date, default: null }
+  bannedUntil: { type: Date, default: null },
+  isOnline: { type: Boolean, default: false },
+  lastSeen: { type: Date, default: Date.now },
+  socketId: { type: String, default: null }
 
 }, { timestamps: true });
 

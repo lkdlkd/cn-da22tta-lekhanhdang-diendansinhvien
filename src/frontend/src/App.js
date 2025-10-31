@@ -13,6 +13,9 @@ import UserAdmin from "./Pages/Admin/AdminDashboard/UserAdmin";
 import PostAdmin from "./Pages/Admin/AdminDashboard/PostDashboard";
 import PostDetail from "./Components/PostDetail";
 import Profile from "./Pages/Profile/Profile";
+import CategoryPosts from "./Pages/Category/CategoryPosts";
+import Categories from "./Pages/Category/Categories";
+
 function App() {
   return (
     <AuthProvider>
@@ -28,6 +31,8 @@ function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="/post/:slug" element={<PostDetail />} />
+            {/* <Route path="/categories" element={<Categories />} /> */}
+            <Route path="/category/:slug" element={<CategoryPosts />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
 

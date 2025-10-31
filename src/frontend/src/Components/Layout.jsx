@@ -2,22 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import Header from './Header';
 import Menu from './Menu';
-import { getProfile, getCategories, getFeaturedPosts,getAllPosts } from '../Utils/api';
+import { getProfile, getCategories, getFeaturedPosts, getAllPosts, getActiveUsers } from '../Utils/api';
 import { Outlet } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
+import { setUserOnline, onUserStatusChanged, offUserStatusChanged } from '../Utils/socket';
 // Fake API lấy thông tin user
 
 
 
-
-// Fake API lấy thành viên tích cực
-function fetchActiveUsers() {
-    return Promise.resolve([
-        { name: 'Nguyễn Văn Nam', avatar: 'https://via.placeholder.com/40', posts: 25 },
-        { name: 'Trần Thị Mai', avatar: 'https://via.placeholder.com/40', posts: 18 },
-        { name: 'Lê Quốc Bảo', avatar: 'https://via.placeholder.com/40', posts: 15 },
-    ]);
-}
 
 // Fake API lấy tài liệu mới
 function fetchDocuments() {
@@ -43,16 +35,62 @@ export default function Layout({ children }) {
             getProfile(token),
             getCategories(),
             getFeaturedPosts(),
-            fetchActiveUsers(),
+            getActiveUsers(5),
             fetchDocuments()
         ]).then(([userData, categoriesData, postsData, usersData, docsData]) => {
+            console.log("✅ Loaded data:", { 
+                user: userData.user?.id, 
+                activeUsersCount: usersData.users?.length,
+                firstUser: usersData.users?.[0]
+            });
+            
             setUser(userData.user);
             setCategories(categoriesData);
             setFeaturedPosts(postsData);
-            setActiveUsers(usersData);
+            setActiveUsers(usersData.users || []);
             setDocuments(docsData);
             setLoading(false);
+            
+            // ✅ Emit user online sau khi load xong profile
+            if (userData.user) {
+                const userId = userData.user.id || userData.user._id;
+                if (userId) {
+                    console.log("🟢 Setting user online:", userId);
+                    setUserOnline(userId);
+                } else {
+                    console.warn("⚠️ User ID not found:", userData.user);
+                }
+            }
+        }).catch(error => {
+            console.error("❌ Error loading data:", error);
+            setLoading(false);
         });
+    }, []);
+
+    // ✅ Listen cho user status changes để update UI realtime
+    useEffect(() => {
+        const handleUserStatusChanged = ({ userId, isOnline, lastSeen }) => {
+            console.log(`📡 User status changed: ${userId} is now ${isOnline ? 'online' : 'offline'}`);
+            
+            // Cập nhật activeUsers list
+            setActiveUsers(prevUsers => {
+                const updated = prevUsers.map(u => 
+                    u._id === userId 
+                        ? { ...u, isOnline, lastSeen }
+                        : u
+                );
+                console.log("📋 Updated activeUsers:", updated);
+                return updated;
+            });
+        };
+
+        onUserStatusChanged(handleUserStatusChanged);
+        console.log("👂 Listening for user status changes");
+
+        return () => {
+            offUserStatusChanged(handleUserStatusChanged);
+            console.log("🔇 Stopped listening for user status changes");
+        };
     }, []);
 
     return (

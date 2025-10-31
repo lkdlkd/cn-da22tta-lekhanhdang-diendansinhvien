@@ -27,7 +27,8 @@ function Menu({ user, categories }) {
             <div className="navbar-wrapper">
                 <div className="m-header">
                     <Link to="/" className="b-brand text-primary">
-                        <i className="bi bi-mortarboard-fill me-2"></i> Diễn đàn Sinh Viên TVU
+                        <i className="ph-duotone ph-graduation-cap me-2" style={{ fontSize: '24px' }}></i> 
+                        <span className="fw-bold">Diễn đàn TVU</span>
                     </Link>
                 </div>
 
@@ -36,22 +37,27 @@ function Menu({ user, categories }) {
 
                         <li className="pc-item">
                             <Link to="/" className="pc-link" onClick={handleNavigation}>
+                                <span className="pc-micon"><i className="ph-duotone ph-house"></i></span>
                                 <span className="pc-mtext">Trang chủ</span>
                             </Link>
                         </li>
 
                         <li className="pc-item">
                             <Link to="/forum" className="pc-link" onClick={handleNavigation}>
+                                <span className="pc-micon"><i className="ph-duotone ph-chats-circle"></i></span>
                                 <span className="pc-mtext">Diễn đàn</span>
                             </Link>
                         </li>
 
                         {/* DANH MỤC */}
                         <li className="pc-item pc-hasmenu">
-                            <a onClick={() => toggleMenu("categories")} className="pc-link d-flex justify-content-between" style={{ cursor: "pointer" }}>
-                                <span className="pc-mtext">Danh mục bài viết</span>
+                            <Link onClick={() => toggleMenu("categories")} className="pc-link d-flex justify-content-between align-items-center" style={{ cursor: "pointer" }}>
+                                <div className="d-flex align-items-center">
+                                    <span className="pc-micon"><i className="ph-duotone ph-folders"></i></span>
+                                    <span className="pc-mtext">Danh mục bài viết</span>
+                                </div>
                                 {activeMenu === "categories" ? <SlArrowDown /> : <SlArrowRight />}
-                            </a>
+                            </Link>
 
                             {activeMenu === "categories" && categories?.length > 0 && (
                                 <ul className="pc-submenu">
@@ -70,10 +76,16 @@ function Menu({ user, categories }) {
                         {!user && (
                             <>
                                 <li className="pc-item">
-                                    <Link to="/login" className="pc-link" onClick={handleNavigation}><span className="pc-mtext">Đăng nhập</span></Link>
+                                    <Link to="/login" className="pc-link" onClick={handleNavigation}>
+                                        <span className="pc-micon"><i className="ph-duotone ph-sign-in"></i></span>
+                                        <span className="pc-mtext">Đăng nhập</span>
+                                    </Link>
                                 </li>
                                 <li className="pc-item">
-                                    <Link to="/register" className="pc-link" onClick={handleNavigation}><span className="pc-mtext">Đăng ký</span></Link>
+                                    <Link to="/register" className="pc-link" onClick={handleNavigation}>
+                                        <span className="pc-micon"><i className="ph-duotone ph-user-plus"></i></span>
+                                        <span className="pc-mtext">Đăng ký</span>
+                                    </Link>
                                 </li>
                             </>
                         )}
@@ -81,17 +93,35 @@ function Menu({ user, categories }) {
                         {/* Nếu ĐÃ đăng nhập */}
                         {user && (
                             <>
-                                <li className="pc-item"><Link to="/notifications" className="pc-link" onClick={handleNavigation}>Thông báo</Link></li>
-                                <li className="pc-item"><Link to="/messages" className="pc-link" onClick={handleNavigation}>Tin nhắn</Link></li>
-                                <li className="pc-item"><Link to="/profile" className="pc-link" onClick={handleNavigation}>Hồ sơ cá nhân</Link></li>
+                                <li className="pc-item">
+                                    <Link to="/notifications" className="pc-link" onClick={handleNavigation}>
+                                        <span className="pc-micon"><i className="ph-duotone ph-bell"></i></span>
+                                        <span className="pc-mtext">Thông báo</span>
+                                    </Link>
+                                </li>
+                                <li className="pc-item">
+                                    <Link to="/messages" className="pc-link" onClick={handleNavigation}>
+                                        <span className="pc-micon"><i className="ph-duotone ph-chats"></i></span>
+                                        <span className="pc-mtext">Tin nhắn</span>
+                                    </Link>
+                                </li>
+                                <li className="pc-item">
+                                    <Link to="/profile" className="pc-link" onClick={handleNavigation}>
+                                        <span className="pc-micon"><i className="ph-duotone ph-user-circle"></i></span>
+                                        <span className="pc-mtext">Hồ sơ cá nhân</span>
+                                    </Link>
+                                </li>
 
                                 {/* ADMIN MENU */}
                                 {user.role === "admin" && (
                                     <li className="pc-item pc-hasmenu">
-                                        <a onClick={() => toggleMenu("admin")} className="pc-link d-flex justify-content-between" style={{ cursor: "pointer" }}>
-                                            <span className="pc-mtext text-danger">Quản trị</span>
+                                        <Link onClick={() => toggleMenu("admin")} className="pc-link d-flex justify-content-between align-items-center" style={{ cursor: "pointer" }}>
+                                            <div className="d-flex align-items-center">
+                                                <span className="pc-micon"><i className="ph-duotone ph-shield-check text-danger"></i></span>
+                                                <span className="pc-mtext text-danger fw-bold">Quản trị</span>
+                                            </div>
                                             {activeMenu === "admin" ? <SlArrowDown /> : <SlArrowRight />}
-                                        </a>
+                                        </Link>
                                         {activeMenu === "admin" && (
                                             <ul className="pc-submenu">
                                                 <li className="pc-item"><Link to="/admin/users" className="pc-link" onClick={handleNavigation}>Quản lý thành viên</Link></li>
@@ -108,7 +138,12 @@ function Menu({ user, categories }) {
                                         localStorage.removeItem("token");
                                         window.location.reload();
                                     }
-                                }><Link to="/login" className="pc-link" onClick={handleNavigation}>Đăng xuất</Link></li>
+                                }>
+                                    <Link to="/login" className="pc-link" onClick={handleNavigation}>
+                                        <span className="pc-micon"><i className="ph-duotone ph-sign-out"></i></span>
+                                        <span className="pc-mtext">Đăng xuất</span>
+                                    </Link>
+                                </li>
                             </>
                         )}
                     </ul>
