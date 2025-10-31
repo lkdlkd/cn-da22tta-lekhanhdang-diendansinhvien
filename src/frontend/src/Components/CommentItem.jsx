@@ -2,6 +2,7 @@ import React from "react";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import { deleteComment } from "@/Utils/api";
+import { useOutletContext } from "react-router-dom";
 import { Link } from "react-router-dom";
 const CommentItem = ({
   comment,
@@ -30,7 +31,7 @@ const CommentItem = ({
   const [editContent, setEditContent] = React.useState(comment.content || '');
   const [editAttachments, setEditAttachments] = React.useState([]);
   const [attachmentsToRemove, setAttachmentsToRemove] = React.useState([]);
-  
+  const { user } = useOutletContext();
   // Check if current user is comment author
   const isAuthor = currentUserId && comment.authorId && 
     (String(currentUserId) === String(comment.authorId._id || comment.authorId));
@@ -115,7 +116,10 @@ const CommentItem = ({
       confirmButtonColor: '#d33',
       cancelButtonColor: '#3085d6',
       confirmButtonText: 'Xóa',
-      cancelButtonText: 'Hủy'
+      cancelButtonText: 'Hủy',
+      customClass: {
+        container: 'swal-on-modal'
+      }
     });
 
     if (result.isConfirmed) {
@@ -504,8 +508,8 @@ const CommentItem = ({
         {isAuthor && (
           <div style={{ 
             position: "absolute", 
-            top: "8px", 
-            right: "-24px",
+            top: "20px", 
+            right: "-30px",
             zIndex: 10
           }}>
             <button
@@ -530,7 +534,7 @@ const CommentItem = ({
                 e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
-              •••
+              ⋯
             </button>
             
             {showOptionsMenu && (
@@ -791,7 +795,7 @@ const CommentItem = ({
               alignItems: "flex-start"
             }}>
               <img
-                src="/default-avatar.png"
+                src={user && user.avatarUrl ? user.avatarUrl : "/default-avatar.png"}
                 alt="Your avatar"
                 style={{
                   width: "32px",

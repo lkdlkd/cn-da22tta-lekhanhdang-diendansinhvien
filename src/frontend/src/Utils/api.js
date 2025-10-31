@@ -417,3 +417,290 @@ export const deleteNotification = async (token, notificationId) => {
   });
   return handleResponse(response);
 };
+
+// ============================================
+// ADMIN APIs
+// ============================================
+
+// ===== ADMIN - CATEGORY MANAGEMENT =====
+export const getAllCategoriesWithStats = async (token) => {
+  const response = await fetch(`${API_BASE}/admin/categories/stats`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const deleteMultipleCategories = async (token, ids) => {
+  const response = await fetch(`${API_BASE}/admin/categories/bulk-delete`, {
+    method: "DELETE",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ ids }),
+  });
+  return handleResponse(response);
+};
+
+export const searchCategories = async (token, keyword, page = 1, limit = 20) => {
+  const response = await fetch(`${API_BASE}/admin/categories/search?keyword=${keyword}&page=${page}&limit=${limit}`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+// ===== ADMIN - USER MANAGEMENT =====
+export const getAllUsersAdmin = async (token, params = {}) => {
+  const queryParams = new URLSearchParams(params).toString();
+  const response = await fetch(`${API_BASE}/admin/users/all?${queryParams}`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const updateUserRole = async (token, userId, role) => {
+  const response = await fetch(`${API_BASE}/admin/users/${userId}/role`, {
+    method: "PUT",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ role }),
+  });
+  return handleResponse(response);
+};
+
+export const banMultipleUsers = async (token, userIds, duration, reason) => {
+  const response = await fetch(`${API_BASE}/admin/users/bulk-ban`, {
+    method: "POST",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ userIds, duration, reason }),
+  });
+  return handleResponse(response);
+};
+
+export const unbanMultipleUsers = async (token, userIds) => {
+  const response = await fetch(`${API_BASE}/admin/users/bulk-unban`, {
+    method: "POST",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ userIds }),
+  });
+  return handleResponse(response);
+};
+
+export const deleteMultipleUsers = async (token, userIds) => {
+  const response = await fetch(`${API_BASE}/admin/users/bulk-delete`, {
+    method: "DELETE",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ userIds }),
+  });
+  return handleResponse(response);
+};
+
+export const getUsersStats = async (token) => {
+  const response = await fetch(`${API_BASE}/admin/users/stats`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+// ===== ADMIN - POST MANAGEMENT =====
+export const getAllPostsAdmin = async (token, params = {}) => {
+  const queryParams = new URLSearchParams(params).toString();
+  const response = await fetch(`${API_BASE}/admin/posts/all?${queryParams}`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const togglePinPost = async (token, postId) => {
+  const response = await fetch(`${API_BASE}/admin/posts/${postId}/pin`, {
+    method: "PUT",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const toggleLockPost = async (token, postId) => {
+  const response = await fetch(`${API_BASE}/admin/posts/${postId}/lock`, {
+    method: "PUT",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const deleteMultiplePosts = async (token, ids) => {
+  const response = await fetch(`${API_BASE}/admin/posts/bulk-delete`, {
+    method: "DELETE",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ ids }),
+  });
+  return handleResponse(response);
+};
+
+export const movePosts = async (token, postIds, categoryId) => {
+  const response = await fetch(`${API_BASE}/admin/posts/move`, {
+    method: "PUT",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ postIds, categoryId }),
+  });
+  return handleResponse(response);
+};
+
+export const getPostsStats = async (token) => {
+  const response = await fetch(`${API_BASE}/admin/posts/stats`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+// ===== ADMIN - COMMENT MANAGEMENT =====
+export const getAllCommentsAdmin = async (token, params = {}) => {
+  const queryParams = new URLSearchParams(params).toString();
+  const response = await fetch(`${API_BASE}/admin/comments/all?${queryParams}`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const deleteCommentAdmin = async (token, commentId) => {
+  const response = await fetch(`${API_BASE}/admin/comments/${commentId}`, {
+    method: "DELETE",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const deleteMultipleComments = async (token, ids) => {
+  const response = await fetch(`${API_BASE}/admin/comments/bulk-delete`, {
+    method: "DELETE",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ ids }),
+  });
+  return handleResponse(response);
+};
+
+export const getCommentsStats = async (token) => {
+  const response = await fetch(`${API_BASE}/admin/comments/stats`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+// ===== ADMIN - NOTIFICATION MANAGEMENT =====
+export const getAllNotificationsAdmin = async (token, params = {}) => {
+  const queryParams = new URLSearchParams(params).toString();
+  const response = await fetch(`${API_BASE}/admin/notifications/all?${queryParams}`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const deleteMultipleNotifications = async (token, ids) => {
+  const response = await fetch(`${API_BASE}/admin/notifications/bulk-delete`, {
+    method: "DELETE",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ ids }),
+  });
+  return handleResponse(response);
+};
+
+export const deleteUserNotifications = async (token, userId) => {
+  const response = await fetch(`${API_BASE}/admin/notifications/user/${userId}`, {
+    method: "DELETE",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const sendBulkNotifications = async (token, userIds, type, message, data = {}) => {
+  const response = await fetch(`${API_BASE}/admin/notifications/bulk-send`, {
+    method: "POST",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ userIds, type, message, data }),
+  });
+  return handleResponse(response);
+};
+
+export const getNotificationsStats = async (token) => {
+  const response = await fetch(`${API_BASE}/admin/notifications/stats`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};

@@ -10,7 +10,9 @@ import LayoutAdmin from "./Components/LayoutAdmin";
 import AdminDashboard from "./Pages/Admin/AdminDashboard/AdminDashboard";
 import CategoryAdmin from "./Pages/Admin/AdminDashboard/CategoryDashboard";
 import UserAdmin from "./Pages/Admin/AdminDashboard/UserAdmin"; 
-import PostAdmin from "./Pages/Admin/AdminDashboard/PostDashboard";
+import PostAdmin from "./Pages/Admin/AdminDashboard/PostAdmin";
+import CommentAdmin from "./Pages/Admin/AdminDashboard/CommentAdmin";
+import NotificationAdmin from "./Pages/Admin/AdminDashboard/NotificationAdmin";
 import PostDetail from "./Components/PostDetail";
 import Profile from "./Pages/Profile/Profile";
 import CategoryPosts from "./Pages/Category/CategoryPosts";
@@ -31,7 +33,7 @@ function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="/post/:slug" element={<PostDetail />} />
-            {/* <Route path="/categories" element={<Categories />} /> */}
+            <Route path="/category" element={<Categories />} />
             <Route path="/category/:slug" element={<CategoryPosts />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
@@ -58,6 +60,8 @@ function App() {
             <Route path="/admin/categories" element={<CategoryAdmin />} />
             <Route path="/admin/users" element={<UserAdmin />} />
             <Route path="/admin/posts" element={<PostAdmin />} />
+            <Route path="/admin/comments" element={<CommentAdmin />} />
+            <Route path="/admin/notifications" element={<NotificationAdmin />} />
             {/* <Route path="/admin/users" element={<UserAdmin />} />
             <Route path="/admin/documents" element={<DocumentAdmin />} />
             <Route path="/admin/categories" element={<CategoryAdmin />} />

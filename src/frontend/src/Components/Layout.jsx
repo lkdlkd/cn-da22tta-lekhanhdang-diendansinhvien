@@ -70,7 +70,6 @@ export default function Layout({ children }) {
     // ✅ Listen cho user status changes để update UI realtime
     useEffect(() => {
         const handleUserStatusChanged = ({ userId, isOnline, lastSeen }) => {
-            console.log(`📡 User status changed: ${userId} is now ${isOnline ? 'online' : 'offline'}`);
             
             // Cập nhật activeUsers list
             setActiveUsers(prevUsers => {
@@ -79,17 +78,14 @@ export default function Layout({ children }) {
                         ? { ...u, isOnline, lastSeen }
                         : u
                 );
-                console.log("📋 Updated activeUsers:", updated);
                 return updated;
             });
         };
 
         onUserStatusChanged(handleUserStatusChanged);
-        console.log("👂 Listening for user status changes");
 
         return () => {
             offUserStatusChanged(handleUserStatusChanged);
-            console.log("🔇 Stopped listening for user status changes");
         };
     }, []);
 

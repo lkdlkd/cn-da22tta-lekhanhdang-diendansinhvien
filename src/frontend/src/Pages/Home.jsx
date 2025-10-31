@@ -8,6 +8,7 @@ import { getAllPosts } from "../Utils/api";
 import HeroSection from '../Components/HeroSection';
 import PostList from '../Components/PostList';
 import PostCreate from '../Components/PostCreate';
+import PostDetail from '../Components/PostDetail';
 import { useOutletContext } from "react-router-dom";
 import { Link } from 'react-router-dom';
 const { socket } = require('../Utils/socket');
@@ -23,6 +24,10 @@ const Home = () => {
   const token = localStorage.getItem("token");
   const [loadingpost, setLoadingpost] = React.useState(true);
   const [posts, setPosts] = React.useState([]);
+  
+  // State for PostDetail modal
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [showPostDetailModal, setShowPostDetailModal] = useState(false);
   const getPosts = React.useCallback(() => {
     setLoadingpost(true);
     getAllPosts().then(data => {
@@ -231,6 +236,18 @@ const Home = () => {
     setPostForm({ title: "", content: "", categoryId: "" });
   };
 
+  // Open PostDetail modal
+  const handleOpenPostDetail = (post) => {
+    setSelectedPost(post);
+    setShowPostDetailModal(true);
+  };
+
+  // Close PostDetail modal
+  const handleClosePostDetail = () => {
+    setShowPostDetailModal(false);
+    setTimeout(() => setSelectedPost(null), 300); // Clear after animation
+  };
+
   return (
     <div>
       <HeroSection />
@@ -314,7 +331,7 @@ const Home = () => {
                   <i className="ph-duotone ph-fire text-danger me-2" style={{ fontSize: '22px' }}></i>
                   Bài viết mới nhất
                 </h5>
-                <Link
+                {/* <Link
                   to="/posts"
                   className="text-decoration-none"
                   style={{
@@ -327,10 +344,14 @@ const Home = () => {
                   onMouseOut={(e) => e.target.style.color = '#1877f2'}
                 >
                   Xem tất cả <i className="ph ph-arrow-right"></i>
-                </Link>
+                </Link> */}
               </div>
               <div className="card-body p-0">
-                <PostList posts={posts} loadingpost={loadingpost} />
+                <PostList 
+                  posts={posts} 
+                  loadingpost={loadingpost} 
+                  onPostClick={handleOpenPostDetail}
+                />
               </div>
             </div>
           </div>
@@ -509,6 +530,16 @@ const Home = () => {
           </div>
         </div>
       </div>
+
+      {/* PostDetail Modal */}
+      {showPostDetailModal && selectedPost && (
+        <PostDetail 
+          user={user}
+          post={selectedPost}
+          show={showPostDetailModal}
+          onClose={handleClosePostDetail}
+        />
+      )}
     </div >
   );
 };

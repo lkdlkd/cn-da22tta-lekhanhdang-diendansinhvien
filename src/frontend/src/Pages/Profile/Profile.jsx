@@ -1,6 +1,54 @@
 import React, { useEffect, useState } from "react";
 import { getProfile, updateProfile } from "../../Utils/api";
 import { useOutletContext } from "react-router-dom";
+import { Link } from "react-router-dom";
+
+const facultiesData = {
+  'Trường Kỹ thuật và Công nghệ': [
+    'Khoa Công nghệ thông tin',
+    'Khoa Kỹ thuật phần mềm',
+    'Khoa Khoa học máy tính',
+    'Khoa An toàn thông tin',
+    'Khoa Cơ khí – Động lực',
+    'Khoa Điện – Điện tử',
+    'Khoa Xây dựng',
+    'Khoa Hóa học Ứng dụng',
+  ],
+  'Trường Kinh tế – Luật': [
+    'Khoa Quản trị kinh doanh',
+    'Khoa Kế toán',
+    'Khoa Marketing',
+    'Khoa Tài chính',
+    'Khoa Logistics',
+    'Khoa Luật',
+  ],
+  'Trường Nông nghiệp – Môi trường': [
+    'Khoa Nông nghiệp – Thủy sản',
+    'Viện Khoa học Công nghệ Môi trường',
+    'Viện Công nghệ Sinh học',
+  ],
+  'Trường Ngôn ngữ – Văn hóa – Nghệ thuật Khmer Nam Bộ và Nhân văn': [
+    'Khoa Ngôn ngữ Anh',
+    'Khoa Ngôn ngữ Trung Quốc',
+    'Khoa Sư phạm',
+    'Khoa Thiết kế đồ họa',
+    'Khoa Quản trị Du lịch – Nhà hàng – Khách sạn',
+    'Khoa Văn hóa – Nghệ thuật Khmer Nam Bộ',
+  ],
+  'Trường Y – Dược': [
+    'Khoa Y học cơ sở',
+    'Khoa Dược học',
+    'Khoa Răng – Hàm – Mặt',
+  ],
+  'Các khoa – viện khác': [
+    'Viện Phát triển Nguồn lực',
+    'Viện Đào tạo Quốc tế',
+    'Khoa Lý luận Chính trị',
+    'Khoa Khoa học Cơ bản',
+    'Khoa Giáo dục Thể chất',
+    'Khoa Dự bị Đại học',
+  ],
+};
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
@@ -11,6 +59,8 @@ const Profile = () => {
   const [success, setSuccess] = useState("");
   const [avatarPreview, setAvatarPreview] = useState("");
   const [avatarFile, setAvatarFile] = useState(null);
+  const [selectedSchool, setSelectedSchool] = useState("");
+  const [availableFaculties, setAvailableFaculties] = useState([]);
   const { user } = useOutletContext();
 
   useEffect(() => {
@@ -26,11 +76,41 @@ const Profile = () => {
         avatarUrl: user.avatarUrl || user.avatar || ""
       });
       setAvatarPreview(user.avatarUrl || user.avatar || "");
+      
+      // Auto-detect school based on faculty
+      if (user.faculty) {
+        for (const [school, faculties] of Object.entries(facultiesData)) {
+          if (faculties.includes(user.faculty)) {
+            setSelectedSchool(school);
+            setAvailableFaculties(faculties);
+            break;
+          }
+        }
+      }
     }
   }, [user]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSchoolChange = (e) => {
+    const school = e.target.value;
+    setSelectedSchool(school);
+    if (school) {
+      setAvailableFaculties(facultiesData[school]);
+      // Reset faculty if not in new school
+      if (form.faculty && !facultiesData[school].includes(form.faculty)) {
+        setForm({ ...form, faculty: "" });
+      }
+    } else {
+      setAvailableFaculties([]);
+      setForm({ ...form, faculty: "" });
+    }
+  };
+
+  const handleFacultyChange = (e) => {
+    setForm({ ...form, faculty: e.target.value });
   };
 
   const handleAvatarChange = (e) => {
@@ -128,10 +208,11 @@ const Profile = () => {
     return (
       <div className="container mt-5">
         <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="mt-3 text-muted">Đang tải thông tin...</p>
+          vui lòng đăng nhập để xem thông tin
+          <br />
+          <Link to="/login" className="btn btn-primary mt-3">
+            Đăng nhập
+          </Link>
         </div>
       </div>
     );
@@ -401,16 +482,14 @@ const Profile = () => {
                   {/* Faculty */}
                   <div className="col-md-6 mb-3">
                     <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
-                      <i className="ph ph-building me-2"></i>
-                      Khoa
+                      <i className="ph ph-buildings me-2"></i>
+                      Trường
                     </label>
-                    <input 
-                      name="faculty" 
-                      value={form.faculty} 
-                      onChange={handleChange} 
+                    <select
+                      value={selectedSchool}
+                      onChange={handleSchoolChange}
                       disabled={!editMode}
-                      className="form-control"
-                      placeholder="Chưa cập nhật"
+                      className="form-select"
                       style={{
                         borderRadius: '10px',
                         padding: '12px 16px',
@@ -418,7 +497,43 @@ const Profile = () => {
                         fontSize: '14px',
                         backgroundColor: editMode ? 'white' : '#f8f9fa'
                       }}
-                    />
+                    >
+                      <option value="">-- Chọn trường --</option>
+                      {Object.keys(facultiesData).map((school) => (
+                        <option key={school} value={school}>
+                          {school}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
+                      <i className="ph ph-building me-2"></i>
+                      Khoa
+                    </label>
+                    <select
+                      name="faculty"
+                      value={form.faculty}
+                      onChange={handleFacultyChange}
+                      disabled={!editMode || !selectedSchool}
+                      className="form-select"
+                      style={{
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        border: '2px solid #e0e0e0',
+                        fontSize: '14px',
+                        backgroundColor: editMode && selectedSchool ? 'white' : '#f8f9fa',
+                        cursor: !selectedSchool ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      <option value="">-- Chọn khoa --</option>
+                      {availableFaculties.map((faculty) => (
+                        <option key={faculty} value={faculty}>
+                          {faculty}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Class */}

@@ -350,3 +350,309 @@ exports.getOnlineUsers = async (req, res) => {
     return res.status(500).json({ error: "Có lỗi xảy ra khi lấy danh sách user online" });
   }
 };
+
+// ==================== ADMIN FUNCTIONS ====================
+
+// [ADMIN] Lấy tất cả users với phân trang và tìm kiếm nâng cao
+exports.getAllUsersAdmin = async (req, res) => {
+  try {
+    const { 
+      page = 1, 
+      limit = 20, 
+      keyword,
+      role,
+      isBanned,
+      isOnline,
+      sortBy = 'createdAt',
+      order = 'desc'
+    } = req.query;
+
+    const query = {};
+    
+    // Tìm kiếm theo keyword
+    if (keyword) {
+      query.$or = [
+        { username: { $regex: keyword, $options: 'i' } },
+        { email: { $regex: keyword, $options: 'i' } },
+        { displayName: { $regex: keyword, $options: 'i' } },
+        { phone: { $regex: keyword, $options: 'i' } }
+      ];
+    }
+
+    // Lọc theo role
+    if (role) query.role = role;
+    
+    // Lọc theo trạng thái ban
+    if (isBanned !== undefined) {
+      query.isBanned = isBanned === 'true';
+    }
+    
+    // Lọc theo online status
+    if (isOnline !== undefined) {
+      query.isOnline = isOnline === 'true';
+    }
+
+    const skip = (page - 1) * limit;
+    const sortOrder = order === 'desc' ? -1 : 1;
+
+    const users = await User.find(query)
+      .select('-password')
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ [sortBy]: sortOrder })
+      .lean();
+
+    // Thêm thống kê cho mỗi user
+    const Post = require('../models/Post');
+    const Comment = require('../models/Comment');
+    
+    const usersWithStats = await Promise.all(
+      users.map(async (user) => {
+        const postsCount = await Post.countDocuments({ authorId: user._id });
+        const commentsCount = await Comment.countDocuments({ authorId: user._id });
+        return {
+          ...user,
+          postsCount,
+          commentsCount
+        };
+      })
+    );
+
+    const total = await User.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: usersWithStats,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// [ADMIN] Cập nhật role user
+exports.updateUserRole = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+
+    if (!['user', 'moderator', 'admin'].includes(role)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Role không hợp lệ' 
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { role },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User không tồn tại' });
+    }
+
+    res.json({ 
+      success: true, 
+      data: user,
+      message: `Đã cập nhật role thành ${role}` 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// [ADMIN] Ban nhiều users cùng lúc
+exports.banMultipleUsers = async (req, res) => {
+  try {
+    const { userIds, duration, reason } = req.body;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Vui lòng cung cấp danh sách user IDs' 
+      });
+    }
+
+    const bannedUntil = duration ? new Date(Date.now() + duration * 24 * 60 * 60 * 1000) : null;
+
+    const result = await User.updateMany(
+      { _id: { $in: userIds } },
+      { 
+        isBanned: true,
+        bannedUntil,
+        bannedReason: reason || 'Vi phạm quy định'
+      }
+    );
+
+    res.json({ 
+      success: true, 
+      message: `Đã ban ${result.modifiedCount} users`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// [ADMIN] Unban nhiều users cùng lúc
+exports.unbanMultipleUsers = async (req, res) => {
+  try {
+    const { userIds } = req.body;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Vui lòng cung cấp danh sách user IDs' 
+      });
+    }
+
+    const result = await User.updateMany(
+      { _id: { $in: userIds } },
+      { 
+        isBanned: false,
+        bannedUntil: null,
+        bannedReason: null
+      }
+    );
+
+    res.json({ 
+      success: true, 
+      message: `Đã unban ${result.modifiedCount} users`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// [ADMIN] Xóa nhiều users cùng lúc
+exports.deleteMultipleUsers = async (req, res) => {
+  try {
+    const { userIds } = req.body;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Vui lòng cung cấp danh sách user IDs' 
+      });
+    }
+
+    // Xóa related data
+    const Post = require('../models/Post');
+    const Comment = require('../models/Comment');
+    const Like = require('../models/Like');
+    const Attachment = require('../models/Attachment');
+
+    await Post.deleteMany({ authorId: { $in: userIds } });
+    await Comment.deleteMany({ authorId: { $in: userIds } });
+    await Like.deleteMany({ userId: { $in: userIds } });
+    await Attachment.deleteMany({ ownerId: { $in: userIds } });
+    await Notification.deleteMany({ userId: { $in: userIds } });
+    await Message.deleteMany({ $or: [{ senderId: { $in: userIds } }, { receiverId: { $in: userIds } }] });
+
+    const result = await User.deleteMany({ _id: { $in: userIds } });
+
+    res.json({ 
+      success: true, 
+      message: `Đã xóa ${result.deletedCount} users`,
+      deletedCount: result.deletedCount
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// [ADMIN] Thống kê users
+exports.getUsersStats = async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const bannedUsers = await User.countDocuments({ isBanned: true });
+    const onlineUsers = await User.countDocuments({ isOnline: true });
+    
+    // Users đăng ký trong 7 ngày qua
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const newUsers = await User.countDocuments({ createdAt: { $gte: sevenDaysAgo } });
+
+    // Users theo role
+    const usersByRole = await User.aggregate([
+      {
+        $group: {
+          _id: '$role',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Users theo tháng (12 tháng gần nhất)
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    
+    const usersByMonth = await User.aggregate([
+      { $match: { createdAt: { $gte: twelveMonthsAgo } } },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } }
+    ]);
+
+    // Top active users
+    const Post = require('../models/Post');
+    const topUsers = await Post.aggregate([
+      {
+        $group: {
+          _id: '$authorId',
+          postsCount: { $sum: 1 }
+        }
+      },
+      { $sort: { postsCount: -1 } },
+      { $limit: 10 },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      { $unwind: '$user' },
+      {
+        $project: {
+          userId: '$_id',
+          username: '$user.username',
+          displayName: '$user.displayName',
+          avatarUrl: '$user.avatarUrl',
+          postsCount: 1
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      stats: {
+        totalUsers,
+        bannedUsers,
+        onlineUsers,
+        newUsers,
+        usersByRole,
+        usersByMonth,
+        topUsers
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};

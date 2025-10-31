@@ -504,3 +504,269 @@ exports.getCommentLikes = async (req, res) => {
 		res.status(500).json({ success: false, error: err.message });
 	}
 };
+
+// ==================== ADMIN FUNCTIONS ====================
+
+// [ADMIN] Lấy tất cả comments với phân trang và lọc
+exports.getAllCommentsAdmin = async (req, res) => {
+	try {
+		const { 
+			page = 1, 
+			limit = 20, 
+			postId, 
+			userId, 
+			keyword,
+			sortBy = 'createdAt',
+			order = 'desc'
+		} = req.query;
+
+		const query = {};
+		
+		// Lọc theo bài viết
+		if (postId) query.postId = postId;
+		
+		// Lọc theo user
+		if (userId) query.authorId = userId;
+		
+		// Tìm kiếm theo nội dung
+		if (keyword) {
+			query.content = { $regex: keyword, $options: 'i' };
+		}
+
+		const skip = (page - 1) * limit;
+		const sortOrder = order === 'desc' ? -1 : 1;
+
+		const comments = await Comment.find(query)
+			.populate('authorId', 'username displayName avatarUrl email')
+			.populate('postId', 'title slug')
+			.populate('attachments')
+			.skip(skip)
+			.limit(parseInt(limit))
+			.sort({ [sortBy]: sortOrder })
+			.lean();
+
+		// Thêm thông tin likes count
+		const commentsWithStats = await Promise.all(
+			comments.map(async (comment) => {
+				const likesCount = await Like.countDocuments({ 
+					targetType: 'comment', 
+					targetId: comment._id 
+				});
+				const repliesCount = await Comment.countDocuments({ 
+					parentId: comment._id 
+				});
+				return {
+					...comment,
+					likesCount,
+					repliesCount
+				};
+			})
+		);
+
+		const total = await Comment.countDocuments(query);
+
+		res.json({
+			success: true,
+			data: commentsWithStats,
+			pagination: {
+				page: parseInt(page),
+				limit: parseInt(limit),
+				total,
+				pages: Math.ceil(total / limit)
+			}
+		});
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [ADMIN] Xóa comment (kèm replies và attachments)
+exports.deleteCommentAdmin = async (req, res) => {
+	try {
+		const commentId = req.params.id;
+		const comment = await Comment.findById(commentId);
+
+		if (!comment) {
+			return res.status(404).json({ success: false, error: 'Comment không tồn tại' });
+		}
+
+		// Xóa tất cả replies
+		const replies = await Comment.find({ parentId: commentId });
+		for (const reply of replies) {
+			// Xóa attachments của replies
+			if (reply.attachments?.length > 0) {
+				await Attachment.deleteMany({ _id: { $in: reply.attachments } });
+			}
+			// Xóa likes của replies
+			await Like.deleteMany({ targetType: 'comment', targetId: reply._id });
+		}
+		await Comment.deleteMany({ parentId: commentId });
+
+		// Xóa attachments của comment chính
+		if (comment.attachments?.length > 0) {
+			await Attachment.deleteMany({ _id: { $in: comment.attachments } });
+		}
+
+		// Xóa likes của comment
+		await Like.deleteMany({ targetType: 'comment', targetId: commentId });
+
+		// Xóa comment
+		await Comment.findByIdAndDelete(commentId);
+
+		// Cập nhật post comments count
+		const Post = require('../models/Post');
+		await Post.findByIdAndUpdate(comment.postId, { 
+			$inc: { commentsCount: -(1 + replies.length) } 
+		});
+
+		// Cập nhật user stats
+		const User = require('../models/User');
+		await User.findByIdAndUpdate(comment.authorId, { 
+			$inc: { "stats.commentsCount": -(1 + replies.length) } 
+		});
+
+		res.json({ 
+			success: true, 
+			message: `Đã xóa comment và ${replies.length} replies` 
+		});
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [ADMIN] Xóa nhiều comments cùng lúc
+exports.deleteMultipleCommentsAdmin = async (req, res) => {
+	try {
+		const { ids } = req.body;
+
+		if (!ids || !Array.isArray(ids) || ids.length === 0) {
+			return res.status(400).json({ 
+				success: false, 
+				error: 'Vui lòng cung cấp danh sách ID' 
+			});
+		}
+
+		let totalDeleted = 0;
+		let postUpdates = {};
+
+		for (const commentId of ids) {
+			const comment = await Comment.findById(commentId);
+			if (!comment) continue;
+
+			// Đếm replies
+			const repliesCount = await Comment.countDocuments({ parentId: commentId });
+			
+			// Xóa replies
+			await Comment.deleteMany({ parentId: commentId });
+			
+			// Xóa attachments
+			if (comment.attachments?.length > 0) {
+				await Attachment.deleteMany({ _id: { $in: comment.attachments } });
+			}
+			
+			// Xóa likes
+			await Like.deleteMany({ targetType: 'comment', targetId: commentId });
+			
+			// Xóa comment
+			await Comment.findByIdAndDelete(commentId);
+
+			// Track post updates
+			const postId = String(comment.postId);
+			postUpdates[postId] = (postUpdates[postId] || 0) + (1 + repliesCount);
+
+			totalDeleted += (1 + repliesCount);
+		}
+
+		// Cập nhật posts
+		const Post = require('../models/Post');
+		for (const [postId, count] of Object.entries(postUpdates)) {
+			await Post.findByIdAndUpdate(postId, { $inc: { commentsCount: -count } });
+		}
+
+		res.json({ 
+			success: true, 
+			message: `Đã xóa ${totalDeleted} comments`,
+			deletedCount: totalDeleted
+		});
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [ADMIN] Thống kê comments
+exports.getCommentsStats = async (req, res) => {
+	try {
+		const totalComments = await Comment.countDocuments();
+		const totalReplies = await Comment.countDocuments({ parentId: { $ne: null } });
+		const totalRootComments = totalComments - totalReplies;
+
+		// Comments trong 7 ngày qua
+		const sevenDaysAgo = new Date();
+		sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+		const recentComments = await Comment.countDocuments({ 
+			createdAt: { $gte: sevenDaysAgo } 
+		});
+
+		// Top users có nhiều comments nhất
+		const topCommenters = await Comment.aggregate([
+			{
+				$group: {
+					_id: '$authorId',
+					count: { $sum: 1 }
+				}
+			},
+			{ $sort: { count: -1 } },
+			{ $limit: 10 },
+			{
+				$lookup: {
+					from: 'users',
+					localField: '_id',
+					foreignField: '_id',
+					as: 'user'
+				}
+			},
+			{ $unwind: '$user' },
+			{
+				$project: {
+					userId: '$_id',
+					username: '$user.username',
+					displayName: '$user.displayName',
+					avatarUrl: '$user.avatarUrl',
+					commentsCount: '$count'
+				}
+			}
+		]);
+
+		// Comments theo tháng (12 tháng gần nhất)
+		const twelveMonthsAgo = new Date();
+		twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+		
+		const commentsByMonth = await Comment.aggregate([
+			{ $match: { createdAt: { $gte: twelveMonthsAgo } } },
+			{
+				$group: {
+					_id: {
+						year: { $year: '$createdAt' },
+						month: { $month: '$createdAt' }
+					},
+					count: { $sum: 1 }
+				}
+			},
+			{ $sort: { '_id.year': 1, '_id.month': 1 } }
+		]);
+
+		res.json({
+			success: true,
+			stats: {
+				totalComments,
+				totalRootComments,
+				totalReplies,
+				recentComments,
+				topCommenters,
+				commentsByMonth
+			}
+		});
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+};

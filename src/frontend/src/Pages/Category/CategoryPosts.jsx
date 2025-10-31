@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPostsByCategory, getCategoryById } from '../../Utils/api';
 import PostList from '../../Components/PostList';
+import PostDetail from '../../Components/PostDetail';
 import { useOutletContext } from 'react-router-dom';
-
+import LoadingPost from '../../Components/LoadingPost';
 const { socket } = require('../../Utils/socket');
 
 const CategoryPosts = () => {
@@ -14,6 +15,10 @@ const CategoryPosts = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // State for PostDetail modal
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [showPostDetailModal, setShowPostDetailModal] = useState(false);
 
   // Load data khi slug thay đổi
   useEffect(() => {
@@ -208,14 +213,23 @@ const CategoryPosts = () => {
     }
   };
 
+  // Open PostDetail modal
+  const handleOpenPostDetail = (post) => {
+    setSelectedPost(post);
+    setShowPostDetailModal(true);
+  };
+
+  // Close PostDetail modal
+  const handleClosePostDetail = () => {
+    setShowPostDetailModal(false);
+    setTimeout(() => setSelectedPost(null), 300); // Clear after animation
+  };
+
   if (loading) {
     return (
       <div className="container mt-4">
         <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="mt-3 text-muted">Đang tải bài viết...</p>
+          <LoadingPost />
         </div>
       </div>
     );
@@ -341,12 +355,27 @@ const CategoryPosts = () => {
                 </span>
               </div>
               <div className="card-body p-0">
-                <PostList posts={posts} loadingpost={false} />
+                <PostList 
+                  user={user}
+                  posts={posts} 
+                  loadingpost={false} 
+                  onPostClick={handleOpenPostDetail}
+                />
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* PostDetail Modal */}
+      {showPostDetailModal && selectedPost && (
+        <PostDetail 
+          user={user}
+          post={selectedPost}
+          show={showPostDetailModal}
+          onClose={handleClosePostDetail}
+        />
+      )}
     </div>
   );
 };

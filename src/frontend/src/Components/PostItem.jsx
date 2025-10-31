@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 const PostItem = ({
   post,
+  user,
   currentUserId,
   isLiked,
   isCommentsExpanded,
@@ -32,15 +33,14 @@ const PostItem = ({
   handleLike,
   handleDeletePost,
   handleEditPost,
-  toggleComments
+  toggleComments,
+  onPostClick
 }) => {
   const hasComments = post.comments && post.comments.length > 0;
   const organizedComments = hasComments ? organizeComments(post.comments) : [];
-
   // State for image lightbox
   const [lightboxImage, setLightboxImage] = useState(null);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-
   // State for "Xem thêm" content
   const [isExpanded, setIsExpanded] = useState(false);
   const contentLimit = 300;
@@ -311,7 +311,7 @@ const PostItem = ({
                     onClick={() => {
                       setShowOptionsMenu(false);
                       navigator.clipboard.writeText(window.location.origin + `/post/${post.slug}`);
-                      alert("Đã sao chép link bài viết!");
+                      toast.info("Đã sao chép link bài viết!");
                     }}
                     style={{
                       width: "100%",
@@ -338,7 +338,7 @@ const PostItem = ({
                     <button
                       onClick={() => {
                         setShowOptionsMenu(false);
-                        alert("Chức năng báo cáo đang được phát triển");
+                        toast.info("Chức năng báo cáo đang được phát triển");
                       }}
                       style={{
                         width: "100%",
@@ -372,7 +372,7 @@ const PostItem = ({
       <div style={{ padding: "0 16px 12px" }}>
         <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#050505", marginBottom: "8px", lineHeight: "1.4" }}>
           <span
-            onClick={() => navigate(`/post/${post.slug}`, { state: { post } })}
+            onClick={() => onPostClick ? onPostClick(post) : navigate(`/post/${post.slug}`, { state: { post } })}
             style={{
               color: "#050505",
               textDecoration: "none",
@@ -605,6 +605,11 @@ const PostItem = ({
         }}
           onMouseOver={e => e.currentTarget.style.backgroundColor = "#f2f3f5"}
           onMouseOut={e => e.currentTarget.style.backgroundColor = "transparent"}
+          onClick={() => {
+            setShowOptionsMenu(false);
+            navigator.clipboard.writeText(window.location.origin + `/post/${post.slug}`);
+            toast.info("Chia sẻ bài viết thành công!");
+          }}
         >
           ↗️ Chia sẻ
         </button>
@@ -647,11 +652,10 @@ const PostItem = ({
               <div style={{ fontSize: "13px", marginTop: "4px" }}>Hãy là người đầu tiên bình luận!</div>
             </div>
           )}
-
           {/* Comment Input - Facebook Style */}
           <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
             <img
-              src="/default-avatar.png"
+              src={user?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
               alt="Your avatar"
               style={{
                 width: "32px",

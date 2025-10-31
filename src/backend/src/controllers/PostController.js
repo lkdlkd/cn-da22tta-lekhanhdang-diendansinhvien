@@ -298,7 +298,7 @@ exports.deletePost = async (req, res) => {
 
 		if (!post) return res.status(404).json({ success: false, error: 'Post not found' });
 
-		if (authorId.toString() !== post.authorId.toString() && !req.user.isAdmin) {
+		if (authorId.toString() !== post.authorId.toString() && !req.user.role=== 'admin') {
 			return res.status(403).json({ success: false, error: 'Bạn không có quyền xóa bài viết này' });
 		}
 
@@ -680,6 +680,306 @@ exports.getPostLikes = async (req, res) => {
 			.sort({ createdAt: -1 });
 
 		res.json({ success: true, likes });
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// ==================== ADMIN FUNCTIONS ====================
+
+// [ADMIN] Lấy tất cả posts với phân trang và tìm kiếm nâng cao
+exports.getAllPostsAdmin = async (req, res) => {
+	try {
+		const { 
+			page = 1, 
+			limit = 20, 
+			keyword,
+			categoryId,
+			authorId,
+			pinned,
+			locked,
+			isDraft,
+			sortBy = 'createdAt',
+			order = 'desc'
+		} = req.query;
+
+		const query = {};
+		
+		// Tìm kiếm theo keyword
+		if (keyword) {
+			query.$or = [
+				{ title: { $regex: keyword, $options: 'i' } },
+				{ content: { $regex: keyword, $options: 'i' } },
+				{ slug: { $regex: keyword, $options: 'i' } }
+			];
+		}
+
+		// Lọc theo category
+		if (categoryId) query.categoryId = categoryId;
+		
+		// Lọc theo author
+		if (authorId) query.authorId = authorId;
+		
+		// Lọc theo trạng thái
+		if (pinned !== undefined) query.pinned = pinned === 'true';
+		if (locked !== undefined) query.locked = locked === 'true';
+		if (isDraft !== undefined) query.isDraft = isDraft === 'true';
+
+		const skip = (page - 1) * limit;
+		const sortOrder = order === 'desc' ? -1 : 1;
+
+		const posts = await Post.find(query)
+			.populate('authorId', 'username displayName avatarUrl email')
+			.populate('categoryId', 'title slug')
+			.populate('attachments')
+			.skip(skip)
+			.limit(parseInt(limit))
+			.sort({ [sortBy]: sortOrder })
+			.lean();
+
+		const total = await Post.countDocuments(query);
+
+		res.json({
+			success: true,
+			data: posts,
+			pagination: {
+				page: parseInt(page),
+				limit: parseInt(limit),
+				total,
+				pages: Math.ceil(total / limit)
+			}
+		});
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [ADMIN] Pin/Unpin post
+exports.togglePinPost = async (req, res) => {
+	try {
+		const postId = req.params.id;
+		const post = await Post.findById(postId);
+
+		if (!post) {
+			return res.status(404).json({ success: false, error: 'Post không tồn tại' });
+		}
+
+		post.pinned = !post.pinned;
+		await post.save();
+
+		res.json({ 
+			success: true, 
+			data: post,
+			message: post.pinned ? 'Đã ghim bài viết' : 'Đã bỏ ghim bài viết'
+		});
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [ADMIN] Lock/Unlock post
+exports.toggleLockPost = async (req, res) => {
+	try {
+		const postId = req.params.id;
+		const post = await Post.findById(postId);
+
+		if (!post) {
+			return res.status(404).json({ success: false, error: 'Post không tồn tại' });
+		}
+
+		post.locked = !post.locked;
+		await post.save();
+
+		res.json({ 
+			success: true, 
+			data: post,
+			message: post.locked ? 'Đã khóa bài viết' : 'Đã mở khóa bài viết'
+		});
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [ADMIN] Xóa nhiều posts cùng lúc
+exports.deleteMultiplePosts = async (req, res) => {
+	try {
+		const { ids } = req.body;
+
+		if (!ids || !Array.isArray(ids) || ids.length === 0) {
+			return res.status(400).json({ 
+				success: false, 
+				error: 'Vui lòng cung cấp danh sách ID' 
+			});
+		}
+
+		// Xóa related data cho tất cả posts
+		await Comment.deleteMany({ postId: { $in: ids } });
+		await Like.deleteMany({ targetType: 'post', targetId: { $in: ids } });
+		await Report.deleteMany({ targetType: 'post', targetId: { $in: ids } });
+
+		// Xóa attachments
+		const posts = await Post.find({ _id: { $in: ids } });
+		const attachmentIds = posts.flatMap(post => post.attachments || []);
+		if (attachmentIds.length > 0) {
+			await Attachment.deleteMany({ _id: { $in: attachmentIds } });
+		}
+
+		const result = await Post.deleteMany({ _id: { $in: ids } });
+
+		// Cập nhật user stats
+		const User = require('../models/User');
+		for (const post of posts) {
+			await User.findByIdAndUpdate(post.authorId, { 
+				$inc: { "stats.postsCount": -1 } 
+			});
+		}
+
+		res.json({ 
+			success: true, 
+			message: `Đã xóa ${result.deletedCount} bài viết`,
+			deletedCount: result.deletedCount
+		});
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [ADMIN] Chuyển bài viết sang category khác
+exports.movePosts = async (req, res) => {
+	try {
+		const { postIds, categoryId } = req.body;
+
+		if (!postIds || !Array.isArray(postIds) || postIds.length === 0) {
+			return res.status(400).json({ 
+				success: false, 
+				error: 'Vui lòng cung cấp danh sách post IDs' 
+			});
+		}
+
+		if (!categoryId) {
+			return res.status(400).json({ 
+				success: false, 
+				error: 'Vui lòng cung cấp category ID' 
+			});
+		}
+
+		// Kiểm tra category tồn tại
+		const Category = require('../models/Category');
+		const category = await Category.findById(categoryId);
+		if (!category) {
+			return res.status(404).json({ 
+				success: false, 
+				error: 'Category không tồn tại' 
+			});
+		}
+
+		const result = await Post.updateMany(
+			{ _id: { $in: postIds } },
+			{ categoryId }
+		);
+
+		res.json({ 
+			success: true, 
+			message: `Đã chuyển ${result.modifiedCount} bài viết sang ${category.title}`,
+			modifiedCount: result.modifiedCount
+		});
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [ADMIN] Thống kê posts
+exports.getPostsStats = async (req, res) => {
+	try {
+		const totalPosts = await Post.countDocuments();
+		const publishedPosts = await Post.countDocuments({ isDraft: false });
+		const draftPosts = await Post.countDocuments({ isDraft: true });
+		const pinnedPosts = await Post.countDocuments({ pinned: true });
+		const lockedPosts = await Post.countDocuments({ locked: true });
+
+		// Posts trong 7 ngày qua
+		const sevenDaysAgo = new Date();
+		sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+		const recentPosts = await Post.countDocuments({ 
+			createdAt: { $gte: sevenDaysAgo } 
+		});
+
+		// Posts theo category
+		const postsByCategory = await Post.aggregate([
+			{
+				$group: {
+					_id: '$categoryId',
+					count: { $sum: 1 }
+				}
+			},
+			{ $sort: { count: -1 } },
+			{
+				$lookup: {
+					from: 'categories',
+					localField: '_id',
+					foreignField: '_id',
+					as: 'category'
+				}
+			},
+			{ $unwind: '$category' },
+			{
+				$project: {
+					categoryId: '$_id',
+					categoryTitle: '$category.title',
+					categorySlug: '$category.slug',
+					postsCount: '$count'
+				}
+			}
+		]);
+
+		// Top posts (theo views, likes, comments)
+		const topPostsByViews = await Post.find({ isDraft: false })
+			.sort({ views: -1 })
+			.limit(10)
+			.select('title slug views likesCount commentsCount authorId')
+			.populate('authorId', 'username displayName')
+			.lean();
+
+		const topPostsByLikes = await Post.find({ isDraft: false })
+			.sort({ likesCount: -1 })
+			.limit(10)
+			.select('title slug views likesCount commentsCount authorId')
+			.populate('authorId', 'username displayName')
+			.lean();
+
+		// Posts theo tháng (12 tháng gần nhất)
+		const twelveMonthsAgo = new Date();
+		twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+		
+		const postsByMonth = await Post.aggregate([
+			{ $match: { createdAt: { $gte: twelveMonthsAgo } } },
+			{
+				$group: {
+					_id: {
+						year: { $year: '$createdAt' },
+						month: { $month: '$createdAt' }
+					},
+					count: { $sum: 1 }
+				}
+			},
+			{ $sort: { '_id.year': 1, '_id.month': 1 } }
+		]);
+
+		res.json({
+			success: true,
+			stats: {
+				totalPosts,
+				publishedPosts,
+				draftPosts,
+				pinnedPosts,
+				lockedPosts,
+				recentPosts,
+				postsByCategory,
+				topPostsByViews,
+				topPostsByLikes,
+				postsByMonth
+			}
+		});
 	} catch (err) {
 		res.status(500).json({ success: false, error: err.message });
 	}

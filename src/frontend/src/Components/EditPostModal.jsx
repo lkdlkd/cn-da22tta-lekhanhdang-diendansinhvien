@@ -1,31 +1,35 @@
 import React, { useState, useEffect } from "react";
+import Modal from "react-bootstrap/Modal";
 import * as api from "../Utils/api";
 import { toast } from "react-toastify";
 import { useOutletContext } from "react-router-dom";
+
 const EditPostModal = ({ post, onClose, onUpdate }) => {
     const [title, setTitle] = useState(post?.title || "");
     const [content, setContent] = useState(post?.content || "");
     const [categoryId, setCategoryId] = useState(post?.categoryId?._id || "");
-    // const [categories, setCategories] = useState([]);
+    const [tags, setTags] = useState(post?.tags?.join(", ") || "");
     const [existingAttachments, setExistingAttachments] = useState(post?.attachments || []);
     const [newAttachments, setNewAttachments] = useState([]);
     const [attachmentsToRemove, setAttachmentsToRemove] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const { categories } = useOutletContext();
-    
-    // useEffect(() => {
-    //     const fetchCategories = async () => {
-    //         try {
-    //             const result = await api.getCategories();
-    //             if (result.success) {
-    //                 setCategories(result.categories);
-    //             }
-    //         } catch (error) {
-    //             console.error("Error fetching categories:", error);
-    //         }
-    //     };
-    //     fetchCategories();
-    // }, []);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [selectedEmoji, setSelectedEmoji] = useState("");
+
+    const { categories, user } = useOutletContext();
+
+    // Danh sách emoji phổ biến
+    const emojis = [
+        "😊", "😂", "❤️", "😍", "😭", "🤔", "👍", "🎉", "🔥", "✨",
+        "💯", "😎", "🥰", "😢", "😱", "🤗", "💪", "🙏", "👏", "🎈",
+        "🌟", "💖", "😴", "🤩", "😜", "🥳", "🤝", "💕", "🌈", "⭐"
+    ];
+    const handleEmojiSelect = (emoji) => {
+        setSelectedEmoji(emoji);
+        setShowEmojiPicker(false);
+        // Thêm emoji vào content
+        setContent(prev => prev + " " + emoji);
+    };
 
     const handleNewAttachmentChange = (e) => {
         if (!e.target.files || e.target.files.length === 0) return;
@@ -83,6 +87,13 @@ const EditPostModal = ({ post, onClose, onUpdate }) => {
                 formData.append('categoryId', categoryId);
             }
 
+            // Thêm tags
+            if (tags.trim()) {
+                tags.split(",").map(tag => tag.trim()).filter(tag => tag).forEach(tag => {
+                    formData.append('tags', tag);
+                });
+            }
+
             // Thêm danh sách attachments cần xóa
             if (attachmentsToRemove.length > 0) {
                 attachmentsToRemove.forEach(id => {
@@ -99,7 +110,7 @@ const EditPostModal = ({ post, onClose, onUpdate }) => {
 
             if (result.success) {
                 toast.success("Cập nhật bài viết thành công!");
-                
+
                 // Cleanup previews
                 newAttachments.forEach(att => {
                     if (att.preview) URL.revokeObjectURL(att.preview);
@@ -127,196 +138,234 @@ const EditPostModal = ({ post, onClose, onUpdate }) => {
     };
 
     return (
-        <div style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            padding: "20px"
-        }}>
-            <div style={{
-                backgroundColor: "white",
-                borderRadius: "12px",
-                width: "100%",
-                maxWidth: "700px",
-                maxHeight: "90vh",
-                overflow: "auto",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.15)"
-            }}>
+        <Modal show={true} onHide={onClose} centered size="lg">
+            <form onSubmit={handleSubmit} encType="multipart/form-data">
                 {/* Header */}
                 <div style={{
-                    padding: "20px",
-                    borderBottom: "1px solid #e4e6eb",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between"
+                    padding: "16px 16px 0 16px",
+                    borderBottom: "1px solid #e4e6eb"
                 }}>
-                    <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "bold" }}>
-                        Chỉnh sửa bài viết
-                    </h2>
-                    <button
-                        onClick={onClose}
-                        style={{
-                            background: "none",
-                            border: "none",
-                            fontSize: "24px",
-                            cursor: "pointer",
-                            color: "#65676b",
-                            padding: "0",
-                            width: "36px",
-                            height: "36px",
-                            borderRadius: "50%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center"
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#f2f3f5"}
-                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                    >
-                        ×
-                    </button>
-                </div>
-
-                {/* Form */}
-                <form onSubmit={handleSubmit} style={{ padding: "20px" }}>
-                    {/* Title */}
-                    <div style={{ marginBottom: "16px" }}>
-                        <label style={{
-                            display: "block",
-                            marginBottom: "8px",
-                            fontWeight: "600",
+                    <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginBottom: "16px"
+                    }}>
+                        <h5 style={{
+                            margin: 0,
+                            fontSize: "20px",
+                            fontWeight: "700",
                             color: "#050505"
                         }}>
-                            Tiêu đề <span style={{ color: "red" }}>*</span>
-                        </label>
+                            Chỉnh sửa bài viết
+                        </h5>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            style={{
+                                background: "#e4e6eb",
+                                border: "none",
+                                borderRadius: "50%",
+                                width: "36px",
+                                height: "36px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: "pointer",
+                                fontSize: "20px",
+                                color: "#65676b"
+                            }}
+                        >
+                            ×
+                        </button>
+                    </div>
+
+                    {/* User info */}
+                    <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        paddingBottom: "16px"
+                    }}>
+                        <img
+                            src={post?.authorId?.avatarUrl || user?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
+                            alt="Avatar"
+                            style={{
+                                width: "40px",
+                                height: "40px",
+                                borderRadius: "50%",
+                                objectFit: "cover"
+                            }}
+                        />
+                        <div style={{ flex: 1 }}>
+                            <div style={{
+                                fontWeight: "600",
+                                fontSize: "15px",
+                                color: "#050505"
+                            }}>
+                                {post?.authorId?.displayName || user?.displayName || "Bạn"}
+                            </div>
+                            <select
+                                value={categoryId}
+                                onChange={(e) => setCategoryId(e.target.value)}
+                                required
+                                style={{
+                                    backgroundColor: "#e7f3ff",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    padding: "4px 8px",
+                                    fontSize: "13px",
+                                    fontWeight: "600",
+                                    color: "#1877f2",
+                                    cursor: "pointer",
+                                    outline: "none"
+                                }}
+                            >
+                                <option value="">-- Chọn chuyên mục --</option>
+                                {categories && categories.map(cat => (
+                                    <option key={cat.slug} value={cat._id || cat.slug}>{cat.title}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <Modal.Body style={{ padding: "16px", maxHeight: "60vh", overflowY: "auto" }}>
+                    {/* Title */}
+                    <div className="mb-3">
                         <input
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            placeholder="Nhập tiêu đề bài viết..."
+                            placeholder="Tiêu đề bài viết..."
+                            required
                             style={{
                                 width: "100%",
-                                padding: "12px",
-                                border: "1px solid #ccd0d5",
-                                borderRadius: "8px",
-                                fontSize: "15px",
-                                outline: "none"
+                                border: "none",
+                                outline: "none",
+                                fontSize: "18px",
+                                fontWeight: "600",
+                                padding: "8px 0",
+                                color: "#050505"
                             }}
-                            onFocus={(e) => e.target.style.borderColor = "#1877f2"}
-                            onBlur={(e) => e.target.style.borderColor = "#ccd0d5"}
                         />
                     </div>
 
-                    {/* Category */}
-                    <div style={{ marginBottom: "16px" }}>
-                        <label style={{
-                            display: "block",
-                            marginBottom: "8px",
-                            fontWeight: "600",
-                            color: "#050505"
-                        }}>
-                            Chuyên mục
-                        </label>
-                        <select
-                            value={categoryId}
-                            onChange={(e) => setCategoryId(e.target.value)}
-                            style={{
-                                width: "100%",
-                                padding: "12px",
-                                border: "1px solid #ccd0d5",
-                                borderRadius: "8px",
-                                fontSize: "15px",
-                                outline: "none",
-                                cursor: "pointer"
-                            }}
-                        >
-                            <option value="">-- Chọn chuyên mục --</option>
-                            {categories.map(cat => (
-                                <option key={cat._id} value={cat._id}>
-                                    {cat.title}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
                     {/* Content */}
-                    <div style={{ marginBottom: "16px" }}>
-                        <label style={{
-                            display: "block",
-                            marginBottom: "8px",
-                            fontWeight: "600",
-                            color: "#050505"
-                        }}>
-                            Nội dung <span style={{ color: "red" }}>*</span>
-                        </label>
+                    <div className="mb-3">
                         <textarea
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
                             placeholder="Bạn đang nghĩ gì?"
                             rows={6}
+                            required
                             style={{
                                 width: "100%",
-                                padding: "12px",
-                                border: "1px solid #ccd0d5",
-                                borderRadius: "8px",
-                                fontSize: "15px",
+                                border: "none",
                                 outline: "none",
-                                resize: "vertical",
-                                fontFamily: "inherit"
+                                fontSize: "15px",
+                                resize: "none",
+                                color: "#050505",
+                                lineHeight: "1.5"
                             }}
-                            onFocus={(e) => e.target.style.borderColor = "#1877f2"}
-                            onBlur={(e) => e.target.style.borderColor = "#ccd0d5"}
                         />
                     </div>
 
-                    {/* Existing Attachments */}
-                    {existingAttachments.length > 0 && (
-                        <div style={{ marginBottom: "16px" }}>
-                            <label style={{
-                                display: "block",
-                                marginBottom: "8px",
-                                fontWeight: "600",
-                                color: "#050505"
+                    {/* Tags Input */}
+                    <div className="mb-3">
+                        <input
+                            type="text"
+                            value={tags}
+                            onChange={(e) => setTags(e.target.value)}
+                            placeholder="Thêm thẻ (cách nhau bằng dấu phẩy). Ví dụ: học tập, đời sống"
+                            style={{
+                                width: "100%",
+                                border: "1px solid #e4e6eb",
+                                borderRadius: "8px",
+                                outline: "none",
+                                fontSize: "14px",
+                                padding: "10px 12px",
+                                color: "#65676b"
+                            }}
+                        />
+                    </div>
+
+                    {/* Hidden file input */}
+                    <input
+                        ref={fileInputRef => window.editFileInputRef = fileInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*,video/*,.pdf,.doc,.docx"
+                        onChange={handleNewAttachmentChange}
+                        style={{ display: "none" }}
+                    />
+
+                    {/* Existing + New Attachments combined */}
+                    {(existingAttachments.length > 0 || newAttachments.length > 0) && (
+                        <div style={{
+                            border: "1px solid #e4e6eb",
+                            borderRadius: "8px",
+                            padding: "12px",
+                            backgroundColor: "#f7f8fa",
+                            marginBottom: "12px"
+                        }}>
+                            <div style={{
+                                display: "grid",
+                                gridTemplateColumns: (existingAttachments.length + newAttachments.length) === 1
+                                    ? "1fr"
+                                    : (existingAttachments.length + newAttachments.length) === 2
+                                        ? "repeat(2, 1fr)"
+                                        : "repeat(3, 1fr)",
+                                gap: "4px"
                             }}>
-                                File đính kèm hiện tại
-                            </label>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                                {/* Existing Attachments */}
                                 {existingAttachments.map(att => (
                                     <div key={att._id} style={{
                                         position: "relative",
+                                        backgroundColor: "#fff",
                                         borderRadius: "8px",
                                         overflow: "hidden",
-                                        border: "1px solid #e4e6eb"
+                                        aspectRatio: (existingAttachments.length + newAttachments.length) === 1 ? "16/9" : "1/1"
                                     }}>
                                         {att.mime?.startsWith('image/') ? (
                                             <img
                                                 src={att.storageUrl}
                                                 alt={att.filename}
                                                 style={{
-                                                    width: "100px",
-                                                    height: "100px",
+                                                    width: "100%",
+                                                    height: "100%",
                                                     objectFit: "cover"
                                                 }}
                                             />
                                         ) : (
                                             <div style={{
-                                                width: "100px",
-                                                height: "100px",
+                                                width: "100%",
+                                                height: "100%",
                                                 display: "flex",
+                                                flexDirection: "column",
                                                 alignItems: "center",
                                                 justifyContent: "center",
+                                                padding: "16px",
                                                 backgroundColor: "#f0f2f5",
-                                                fontSize: "12px",
-                                                textAlign: "center",
-                                                padding: "8px"
+                                                minHeight: "150px"
                                             }}>
-                                                📄<br />{att.filename?.substring(0, 10)}...
+                                                <span style={{ fontSize: "40px", marginBottom: "8px" }}>📎</span>
+                                                <span style={{
+                                                    fontSize: "13px",
+                                                    color: "#050505",
+                                                    textAlign: "center",
+                                                    wordBreak: "break-word",
+                                                    fontWeight: "500",
+                                                    marginBottom: "4px"
+                                                }}>
+                                                    {att.filename}
+                                                </span>
+                                                <span style={{
+                                                    fontSize: "12px",
+                                                    color: "#65676b"
+                                                }}>
+                                                    {formatFileSize(att.size || 0)}
+                                                </span>
                                             </div>
                                         )}
                                         <button
@@ -324,71 +373,85 @@ const EditPostModal = ({ post, onClose, onUpdate }) => {
                                             onClick={() => removeExistingAttachment(att._id)}
                                             style={{
                                                 position: "absolute",
-                                                top: "4px",
-                                                right: "4px",
-                                                background: "rgba(0,0,0,0.6)",
-                                                color: "white",
-                                                border: "none",
+                                                top: "8px",
+                                                right: "8px",
+                                                width: "32px",
+                                                height: "32px",
                                                 borderRadius: "50%",
-                                                width: "24px",
-                                                height: "24px",
+                                                backgroundColor: "rgba(255,255,255,0.9)",
+                                                color: "#050505",
+                                                border: "none",
                                                 cursor: "pointer",
+                                                fontSize: "20px",
+                                                fontWeight: "bold",
                                                 display: "flex",
                                                 alignItems: "center",
-                                                justifyContent: "center"
+                                                justifyContent: "center",
+                                                lineHeight: 1,
+                                                boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                                            }}
+                                            onMouseOver={(e) => {
+                                                e.currentTarget.style.backgroundColor = "#e4e6eb";
+                                                e.currentTarget.style.transform = "scale(1.05)";
+                                            }}
+                                            onMouseOut={(e) => {
+                                                e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.9)";
+                                                e.currentTarget.style.transform = "scale(1)";
                                             }}
                                         >
                                             ×
                                         </button>
                                     </div>
                                 ))}
-                            </div>
-                        </div>
-                    )}
 
-                    {/* New Attachments */}
-                    {newAttachments.length > 0 && (
-                        <div style={{ marginBottom: "16px" }}>
-                            <label style={{
-                                display: "block",
-                                marginBottom: "8px",
-                                fontWeight: "600",
-                                color: "#050505"
-                            }}>
-                                File mới sẽ thêm
-                            </label>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                                {/* New Attachments */}
                                 {newAttachments.map((att, index) => (
-                                    <div key={index} style={{
+                                    <div key={`new-${index}`} style={{
                                         position: "relative",
+                                        backgroundColor: "#fff",
                                         borderRadius: "8px",
                                         overflow: "hidden",
-                                        border: "1px solid #e4e6eb"
+                                        aspectRatio: (existingAttachments.length + newAttachments.length) === 1 ? "16/9" : "1/1"
                                     }}>
                                         {att.preview ? (
                                             <img
                                                 src={att.preview}
-                                                alt={att.name}
+                                                alt="preview"
                                                 style={{
-                                                    width: "100px",
-                                                    height: "100px",
+                                                    width: "100%",
+                                                    height: "100%",
                                                     objectFit: "cover"
                                                 }}
                                             />
                                         ) : (
                                             <div style={{
-                                                width: "100px",
-                                                height: "100px",
+                                                width: "100%",
+                                                height: "100%",
                                                 display: "flex",
+                                                flexDirection: "column",
                                                 alignItems: "center",
                                                 justifyContent: "center",
+                                                padding: "16px",
                                                 backgroundColor: "#f0f2f5",
-                                                fontSize: "12px",
-                                                textAlign: "center",
-                                                padding: "8px"
+                                                minHeight: "150px"
                                             }}>
-                                                📄<br />{att.name?.substring(0, 10)}...
-                                                <br />{formatFileSize(att.size)}
+                                                <span style={{ fontSize: "40px", marginBottom: "8px" }}>📎</span>
+                                                <span style={{
+                                                    fontSize: "13px",
+                                                    color: "#050505",
+                                                    textAlign: "center",
+                                                    wordBreak: "break-word",
+                                                    fontWeight: "500",
+                                                    marginBottom: "4px"
+                                                }}>
+                                                    {att.name}
+                                                </span>
+                                                <span style={{
+                                                    fontSize: "12px",
+                                                    color: "#65676b"
+                                                }}>
+                                                    {formatFileSize(att.size)}
+                                                </span>
                                             </div>
                                         )}
                                         <button
@@ -396,18 +459,30 @@ const EditPostModal = ({ post, onClose, onUpdate }) => {
                                             onClick={() => removeNewAttachment(index)}
                                             style={{
                                                 position: "absolute",
-                                                top: "4px",
-                                                right: "4px",
-                                                background: "rgba(0,0,0,0.6)",
-                                                color: "white",
-                                                border: "none",
+                                                top: "8px",
+                                                right: "8px",
+                                                width: "32px",
+                                                height: "32px",
                                                 borderRadius: "50%",
-                                                width: "24px",
-                                                height: "24px",
+                                                backgroundColor: "rgba(255,255,255,0.9)",
+                                                color: "#050505",
+                                                border: "none",
                                                 cursor: "pointer",
+                                                fontSize: "20px",
+                                                fontWeight: "bold",
                                                 display: "flex",
                                                 alignItems: "center",
-                                                justifyContent: "center"
+                                                justifyContent: "center",
+                                                lineHeight: 1,
+                                                boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                                            }}
+                                            onMouseOver={(e) => {
+                                                e.currentTarget.style.backgroundColor = "#e4e6eb";
+                                                e.currentTarget.style.transform = "scale(1.05)";
+                                            }}
+                                            onMouseOut={(e) => {
+                                                e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.9)";
+                                                e.currentTarget.style.transform = "scale(1)";
                                             }}
                                         >
                                             ×
@@ -418,82 +493,129 @@ const EditPostModal = ({ post, onClose, onUpdate }) => {
                         </div>
                     )}
 
-                    {/* Add Attachments Button */}
-                    <div style={{ marginBottom: "20px" }}>
-                        <label
-                            htmlFor="edit-post-attachments"
-                            style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "8px",
-                                padding: "10px 16px",
-                                backgroundColor: "#f0f2f5",
-                                borderRadius: "8px",
-                                cursor: "pointer",
-                                fontWeight: "500",
-                                color: "#050505"
-                            }}
-                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#e4e6eb"}
-                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#f0f2f5"}
-                        >
-                            📎 Thêm file đính kèm
-                        </label>
-                        <input
-                            type="file"
-                            id="edit-post-attachments"
-                            multiple
-                            onChange={handleNewAttachmentChange}
-                            style={{ display: "none" }}
-                        />
+                    {/* Add to Post Section - Facebook Style */}
+                    <div style={{
+                        border: "1px solid #e4e6eb",
+                        borderRadius: "8px",
+                        padding: "8px 12px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginBottom: "12px"
+                    }}>
+                        <span style={{
+                            fontSize: "15px",
+                            fontWeight: "600",
+                            color: "#050505"
+                        }}>
+                            Thêm vào bài viết của bạn
+                        </span>
+                        <div style={{ display: "flex", gap: "4px" }}>
+                            <button
+                                type="button"
+                                onClick={() => window.editFileInputRef?.click()}
+                                style={{
+                                    background: "none",
+                                    border: "none",
+                                    borderRadius: "50%",
+                                    width: "36px",
+                                    height: "36px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    cursor: "pointer",
+                                    fontSize: "20px"
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#f0f2f5"}
+                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                            >
+                                🖼️
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                style={{
+                                    background: "none",
+                                    border: "none",
+                                    borderRadius: "50%",
+                                    width: "36px",
+                                    height: "36px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    cursor: "pointer",
+                                    fontSize: "20px"
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#f0f2f5"}
+                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                            >
+                                😊
+                            </button>
+                        </div>
                     </div>
 
-                    {/* Buttons */}
-                    <div style={{
-                        display: "flex",
-                        gap: "12px",
-                        justifyContent: "flex-end"
-                    }}>
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            disabled={isSubmitting}
-                            style={{
-                                padding: "10px 24px",
-                                backgroundColor: "#e4e6eb",
-                                color: "#050505",
-                                border: "none",
-                                borderRadius: "8px",
-                                fontSize: "15px",
-                                fontWeight: "600",
-                                cursor: "pointer"
-                            }}
-                            onMouseOver={(e) => !isSubmitting && (e.currentTarget.style.backgroundColor = "#d8dadf")}
-                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#e4e6eb"}
-                        >
-                            Hủy
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            style={{
-                                padding: "10px 24px",
-                                backgroundColor: isSubmitting ? "#bcc0c4" : "#1877f2",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "8px",
-                                fontSize: "15px",
-                                fontWeight: "600",
-                                cursor: isSubmitting ? "not-allowed" : "pointer"
-                            }}
-                            onMouseOver={(e) => !isSubmitting && (e.currentTarget.style.backgroundColor = "#166fe5")}
-                            onMouseOut={(e) => !isSubmitting && (e.currentTarget.style.backgroundColor = "#1877f2")}
-                        >
-                            {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                    {/* Emoji Picker */}
+                    {showEmojiPicker && (
+                        <div style={{
+                            border: "1px solid #e4e6eb",
+                            borderRadius: "8px",
+                            padding: "12px",
+                            backgroundColor: "#fff",
+                            marginBottom: "12px",
+                            display: "grid",
+                            gridTemplateColumns: "repeat(10, 1fr)",
+                            gap: "4px"
+                        }}>
+                            {emojis.map((emoji, idx) => (
+                                <button
+                                    key={idx}
+                                    type="button"
+                                    onClick={() => handleEmojiSelect(emoji)}
+                                    style={{
+                                        background: "none",
+                                        border: "none",
+                                        fontSize: "24px",
+                                        cursor: "pointer",
+                                        borderRadius: "4px",
+                                        padding: "8px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center"
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#f0f2f5"}
+                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                >
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </Modal.Body>
+
+                {/* Footer with full-width submit button */}
+                <div style={{ padding: "16px", borderTop: "1px solid #e4e6eb" }}>
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        style={{
+                            width: "100%",
+                            padding: "10px",
+                            backgroundColor: isSubmitting ? "#bcc0c4" : "#1877f2",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "8px",
+                            fontSize: "15px",
+                            fontWeight: "600",
+                            cursor: isSubmitting ? "not-allowed" : "pointer"
+                        }}
+                        onMouseOver={(e) => !isSubmitting && (e.currentTarget.style.backgroundColor = "#166fe5")}
+                        onMouseOut={(e) => !isSubmitting && (e.currentTarget.style.backgroundColor = "#1877f2")}
+                    >
+                        {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
+                    </button>
+                </div>
+            </form>
+        </Modal>
     );
 };
 

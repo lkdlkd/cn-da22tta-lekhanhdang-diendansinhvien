@@ -2,13 +2,14 @@ import React, { useState, useContext, useEffect } from "react";
 import PostItem from "./PostItem";
 import EditPostModal from "./EditPostModal";
 import { AuthContext } from "../Context/AuthContext";
+import { useOutletContext } from "react-router-dom";
 import * as api from "../Utils/api";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
-const PostList = ({ posts, loadingpost, onPostUpdate }) => {
+const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick }) => {
     const { auth } = useContext(AuthContext);
     const token = auth.token || localStorage.getItem('token');
-
+    const { user } = useOutletContext();
     // Decode token để lấy user ID
     let currentUserId = null;
     if (token) {
@@ -26,6 +27,19 @@ const PostList = ({ posts, loadingpost, onPostUpdate }) => {
     
     // State for edit modal
     const [editingPost, setEditingPost] = useState(null);
+
+    // State for pagination
+    const [visibleCount, setVisibleCount] = useState(30);
+    const POSTS_PER_PAGE = 30;
+
+    // Reset visible count when posts change
+    useEffect(() => {
+        setVisibleCount(20); // số bài viết muốn hiển thị ban đầu   
+    }, [posts]);
+
+    const handleLoadMore = () => {
+        setVisibleCount(prev => prev + POSTS_PER_PAGE);
+    };
 
     const handleReplyChange = (commentId, value) => {
         setReplyTexts(prev => ({ ...prev, [commentId]: value }));
@@ -187,6 +201,10 @@ const PostList = ({ posts, loadingpost, onPostUpdate }) => {
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
             confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy',
+            customClass: {
+                container: 'swal-on-modal'
+            }
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
@@ -437,11 +455,16 @@ const PostList = ({ posts, loadingpost, onPostUpdate }) => {
         );
     }
 
+    // Get visible posts
+    const visiblePosts = posts.slice(0, visibleCount);
+    const hasMore = posts.length > visibleCount;
+
     return (
         <div>
-            {posts.map(post => (
+            {visiblePosts.map(post => (
                 <PostItem
                     key={post._id}
+                    user={user}
                     post={post}
                     currentUserId={currentUserId}
                     isLiked={likedPosts.has(post._id)}
@@ -467,8 +490,68 @@ const PostList = ({ posts, loadingpost, onPostUpdate }) => {
                     handleReplyAttachmentChange={handleReplyAttachmentChange}
                     removeReplyAttachment={removeReplyAttachment}
                     handleSubmitReply={handleSubmitReply}
+                    onPostClick={onPostClick}
                 />
             ))}
+
+            {/* Load More Button */}
+            {hasMore && (
+                <div 
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        padding: '20px',
+                        marginTop: '16px'
+                    }}
+                >
+                    <button
+                        onClick={handleLoadMore}
+                        style={{
+                            backgroundColor: 'white',
+                            border: '2px solid #e4e6eb',
+                            borderRadius: '8px',
+                            padding: '12px 32px',
+                            fontSize: '15px',
+                            fontWeight: 600,
+                            color: '#050505',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f0f2f5';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'white';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+                        }}
+                    >
+                        <i className="ph ph-arrow-down" style={{ fontSize: '18px' }}></i>
+                        Xem thêm {Math.min(POSTS_PER_PAGE, posts.length - visibleCount)} bài viết
+                    </button>
+                </div>
+            )}
+
+            {/* Show total count */}
+            {!hasMore && posts.length > POSTS_PER_PAGE && (
+                <div 
+                    style={{
+                        textAlign: 'center',
+                        padding: '20px',
+                        color: '#65676b',
+                        fontSize: '14px'
+                    }}
+                >
+                    <i className="ph ph-check-circle" style={{ fontSize: '18px', marginRight: '8px' }}></i>
+                    Đã hiển thị tất cả {posts.length} bài viết
+                </div>
+            )}
 
             {/* Edit Post Modal */}
             {editingPost && (

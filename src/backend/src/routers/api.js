@@ -52,10 +52,17 @@ router.get('/users/active', userRoutes.getActiveUsers);// Lấy danh sách thàn
 router.get('/users/online', userRoutes.getOnlineUsers);// Lấy danh sách user đang online
 
 
+// ===== ADMIN - USER MANAGEMENT =====
 router.get('/admin/users', authenticateAdmin, userRoutes.getAllUsers);// Lấy danh sách người dùng admin
+router.get('/admin/users/all', authenticateAdmin, userRoutes.getAllUsersAdmin);// Lấy danh sách người dùng admin với filters
+router.get('/admin/users/stats', authenticateAdmin, userRoutes.getUsersStats);// Thống kê người dùng
 router.delete('/admin/users/:id', authenticateAdmin, userRoutes.deleteUser);// Xóa người dùng admin 
+router.put('/admin/users/:id/role', authenticateAdmin, userRoutes.updateUserRole);// Cập nhật role người dùng
 router.post('/admin/users/:id/ban', authenticateAdmin, userRoutes.banUser);// Cấm người dùng admin
-router.post('/admin/users/:id/unban', authenticateAdmin, userRoutes.unbanUser);//
+router.post('/admin/users/:id/unban', authenticateAdmin, userRoutes.unbanUser);// Bỏ cấm người dùng
+router.post('/admin/users/bulk-ban', authenticateAdmin, userRoutes.banMultipleUsers);// Cấm nhiều người dùng
+router.post('/admin/users/bulk-unban', authenticateAdmin, userRoutes.unbanMultipleUsers);// Bỏ cấm nhiều người dùng
+router.delete('/admin/users/bulk-delete', authenticateAdmin, userRoutes.deleteMultipleUsers);// Xóa nhiều người dùng
 
 router.post('/posts', upload.array('attachments'), authenticateUser, postRoutes.createPost);// Tạo bài viết mới
 router.get('/posts', postRoutes.getAllPosts);// Lấy tất cả bài viết
@@ -68,13 +75,24 @@ router.post('/posts/:id/like', authenticateUser, postRoutes.likePost);// Like b�
 router.post('/posts/:id/unlike', authenticateUser, postRoutes.unlikePost);// Unlike bài viết
 router.get('/posts/:id/likes', postRoutes.getPostLikes);// Lấy danh sách người đã like bài viết
 
+// ===== ADMIN - POST MANAGEMENT =====
+router.get('/admin/posts/all', authenticateAdmin, postRoutes.getAllPostsAdmin);// Lấy tất cả bài viết với filters
+router.get('/admin/posts/stats', authenticateAdmin, postRoutes.getPostsStats);// Thống kê bài viết
+router.put('/admin/posts/:id/pin', authenticateAdmin, postRoutes.togglePinPost);// Ghim/bỏ ghim bài viết
+router.put('/admin/posts/:id/lock', authenticateAdmin, postRoutes.toggleLockPost);// Khóa/mở khóa bài viết
+router.delete('/admin/posts/bulk-delete', authenticateAdmin, postRoutes.deleteMultiplePosts);// Xóa nhiều bài viết
+router.put('/admin/posts/move', authenticateAdmin, postRoutes.movePosts);// Chuyển bài viết sang danh mục khác
+
 router.get('/categories', categoryRoutes.getAllCategories);
 
+// ===== ADMIN - CATEGORY MANAGEMENT =====
 router.post('/categories', authenticateAdmin, categoryRoutes.createCategory);
 router.get('/categories/:id', categoryRoutes.getCategoryById);
-
 router.put('/categories/:id', authenticateAdmin, categoryRoutes.updateCategory);
 router.delete('/categories/:id', authenticateAdmin, categoryRoutes.deleteCategory);
+router.get('/admin/categories/stats', authenticateAdmin, categoryRoutes.getAllCategoriesWithStats);// Lấy danh mục với thống kê
+router.delete('/admin/categories/bulk-delete', authenticateAdmin, categoryRoutes.deleteMultipleCategories);// Xóa nhiều danh mục
+router.get('/admin/categories/search', authenticateAdmin, categoryRoutes.searchCategories);// Tìm kiếm danh mục
 
 // API tạo bình luận cho bài viết
 router.post('/comments',  upload.array('attachments'), authenticateUser, CommentController.createComment);
@@ -84,11 +102,24 @@ router.post('/comments/:id/like', authenticateUser, CommentController.likeCommen
 router.post('/comments/:id/unlike', authenticateUser, CommentController.unlikeComment);// Unlike bình luận
 router.get('/comments/:id/likes', CommentController.getCommentLikes);// Lấy danh sách người đã like bình luận
 
+// ===== ADMIN - COMMENT MANAGEMENT =====
+router.get('/admin/comments/all', authenticateAdmin, CommentController.getAllCommentsAdmin);// Lấy tất cả bình luận với filters
+router.get('/admin/comments/stats', authenticateAdmin, CommentController.getCommentsStats);// Thống kê bình luận
+router.delete('/admin/comments/:id', authenticateAdmin, CommentController.deleteCommentAdmin);// Xóa bình luận (cascade)
+router.delete('/admin/comments/bulk-delete', authenticateAdmin, CommentController.deleteMultipleCommentsAdmin);// Xóa nhiều bình luận
+
 // Notification routes
 router.get('/notifications', authenticateUser, NotificationController.getMyNotifications);// Lấy danh sách thông báo
 router.put('/notifications/:id/read', authenticateUser, NotificationController.markAsRead);// Đánh dấu thông báo đã đọc
 router.put('/notifications/read-all', authenticateUser, NotificationController.markAllAsRead);// Đánh dấu tất cả thông báo đã đọc
 router.delete('/notifications/:id', authenticateUser, NotificationController.deleteNotification);// Xóa thông báo
 router.delete('/notifications', authenticateUser, NotificationController.deleteAllNotifications);// Xóa tất cả thông báo
+
+// ===== ADMIN - NOTIFICATION MANAGEMENT =====
+router.get('/admin/notifications/all', authenticateAdmin, NotificationController.getAllNotificationsAdmin);// Lấy tất cả thông báo với filters
+router.get('/admin/notifications/stats', authenticateAdmin, NotificationController.getNotificationsStats);// Thống kê thông báo
+router.delete('/admin/notifications/bulk-delete', authenticateAdmin, NotificationController.deleteMultipleNotifications);// Xóa nhiều thông báo
+router.delete('/admin/notifications/user/:userId', authenticateAdmin, NotificationController.deleteUserNotifications);// Xóa thông báo của user
+router.post('/admin/notifications/bulk-send', authenticateAdmin, NotificationController.sendBulkNotifications);// Gửi thông báo hàng loạt
 
 module.exports = router;
