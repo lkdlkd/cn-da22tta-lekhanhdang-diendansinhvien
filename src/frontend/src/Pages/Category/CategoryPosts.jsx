@@ -15,6 +15,11 @@ const CategoryPosts = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [searchText, setSearchText] = useState('');
   
   // State for PostDetail modal
   const [selectedPost, setSelectedPost] = useState(null);
@@ -22,6 +27,7 @@ const CategoryPosts = () => {
 
   // Load data khi slug thay đổi
   useEffect(() => {
+    setSearchText('');
     loadCategoryAndPosts();
   }, [slug]);
 
@@ -198,18 +204,68 @@ const CategoryPosts = () => {
       setError(null);
 
       // Load category info và posts song song
+      const params = { page: 1, limit };
+      if (searchText.trim()) params.keyword = searchText.trim();
       const [postsData] = await Promise.all([
-        // getCategoryById(slug),
-        getPostsByCategory(slug)
+        getPostsByCategory(slug, params)
       ]);
 
       setCategory(categories.find(cat => cat.slug === slug) || null);
-      setPosts(postsData);
+      setPosts(Array.isArray(postsData) ? postsData : []);
+      setPage(1);
+      setHasMore(Array.isArray(postsData) ? postsData.length === limit : false);
     } catch (err) {
       console.error('Error loading category posts:', err);
       setError(err.message || 'Không thể tải bài viết');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLoadMore = async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    const nextPage = page + 1;
+    try {
+      const params = { page: nextPage, limit };
+      if (searchText.trim()) params.keyword = searchText.trim();
+      const data = await getPostsByCategory(slug, params);
+      const newItems = Array.isArray(data) ? data : [];
+      if (newItems.length > 0) {
+        setPosts(prev => {
+          const ids = new Set(prev.map(p => String(p._id)));
+          const merged = [...prev];
+          newItems.forEach(item => {
+            const id = String(item._id);
+            if (!ids.has(id)) merged.push(item);
+          });
+          return merged;
+        });
+      }
+      setPage(nextPage);
+      setHasMore(newItems.length === limit);
+    } catch (e) {
+      console.error('Load more failed:', e);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  // Search in category
+  const handleSearch = async () => {
+    try {
+      setIsLoadingMore(true);
+      const params = { page: 1, limit };
+      if (searchText.trim()) params.keyword = searchText.trim();
+      const data = await getPostsByCategory(slug, params);
+      const items = Array.isArray(data) ? data : [];
+      setPosts(items);
+      setPage(1);
+      setHasMore(items.length === limit);
+    } catch (e) {
+      console.error('Search failed:', e);
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -355,11 +411,35 @@ const CategoryPosts = () => {
                 </span>
               </div>
               <div className="card-body p-0">
+                {/* Search bar */}
+                <div className="p-3" style={{ borderBottom: '1px solid #f0f2f5' }}>
+                  <div className="input-group">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Tìm kiếm trong chuyên mục..."
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                      style={{ borderRadius: '8px 0 0 8px' }}
+                    />
+                    <button
+                      className="btn btn-primary"
+                      onClick={handleSearch}
+                      style={{ borderRadius: '0 8px 8px 0' }}
+                    >
+                      <i className="ph ph-magnifying-glass"> Tìm</i>
+                    </button>
+                  </div>
+                </div>
                 <PostList 
                   user={user}
                   posts={posts} 
                   loadingpost={false} 
                   onPostClick={handleOpenPostDetail}
+                  hasMore={hasMore}
+                  onLoadMore={handleLoadMore}
+                  isLoadingMore={isLoadingMore}
                 />
               </div>
             </div>

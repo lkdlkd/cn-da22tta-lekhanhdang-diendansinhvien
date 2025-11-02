@@ -6,7 +6,7 @@ import { useOutletContext } from "react-router-dom";
 import * as api from "../Utils/api";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
-const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick }) => {
+const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasMoreProp, onLoadMore, isLoadingMore }) => {
     const { auth } = useContext(AuthContext);
     const token = auth.token || localStorage.getItem('token');
     const { user } = useOutletContext();
@@ -28,7 +28,7 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick }) => {
     // State for edit modal
     const [editingPost, setEditingPost] = useState(null);
 
-    // State for pagination
+    // State for client-side pagination (fallback if server pagination not provided)
     const [visibleCount, setVisibleCount] = useState(30);
     const POSTS_PER_PAGE = 30;
 
@@ -38,7 +38,11 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick }) => {
     }, [posts]);
 
     const handleLoadMore = () => {
-        setVisibleCount(prev => prev + POSTS_PER_PAGE);
+        if (typeof onLoadMore === 'function') {
+            onLoadMore();
+        } else {
+            setVisibleCount(prev => prev + POSTS_PER_PAGE);
+        }
     };
 
     const handleReplyChange = (commentId, value) => {
@@ -455,9 +459,10 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick }) => {
         );
     }
 
-    // Get visible posts
-    const visiblePosts = posts.slice(0, visibleCount);
-    const hasMore = posts.length > visibleCount;
+    // Determine pagination mode and visible items
+    const serverPaginated = typeof onLoadMore === 'function';
+    const visiblePosts = serverPaginated ? posts : posts.slice(0, visibleCount);
+    const hasMore = serverPaginated ? !!hasMoreProp : posts.length > visibleCount;
 
     return (
         <div>
@@ -506,6 +511,7 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick }) => {
                 >
                     <button
                         onClick={handleLoadMore}
+                        disabled={serverPaginated && isLoadingMore}
                         style={{
                             backgroundColor: 'white',
                             border: '2px solid #e4e6eb',
@@ -533,13 +539,15 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick }) => {
                         }}
                     >
                         <i className="ph ph-arrow-down" style={{ fontSize: '18px' }}></i>
-                        Xem thêm {Math.min(POSTS_PER_PAGE, posts.length - visibleCount)} bài viết
+                        {serverPaginated
+                          ? (isLoadingMore ? 'Đang tải...' : 'Xem thêm')
+                          : `Xem thêm ${Math.min(POSTS_PER_PAGE, posts.length - visibleCount)} bài viết`}
                     </button>
                 </div>
             )}
 
-            {/* Show total count */}
-            {!hasMore && posts.length > POSTS_PER_PAGE && (
+            {/* Show total count (client-side paging only) */}
+            {!serverPaginated && !hasMore && posts.length > POSTS_PER_PAGE && (
                 <div 
                     style={{
                         textAlign: 'center',

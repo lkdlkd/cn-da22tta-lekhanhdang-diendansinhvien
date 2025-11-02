@@ -2,17 +2,22 @@ import React, { useEffect, useState } from "react";
 import Table from "react-bootstrap/Table";
 import Modal from "react-bootstrap/Modal";
 import Form from "react-bootstrap/Form";
+import Pagination from "react-bootstrap/Pagination";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
-import { 
-	getAllPostsAdmin, 
+import {
+	getAllPostsAdmin,
 	deletePost,
 	togglePinPost,
 	toggleLockPost,
 	deleteMultiplePosts,
 	movePosts,
 	getPostsStats,
-	getCategories
+	getCategories,
+	softDeletePostAdmin,
+	restorePostAdmin,
+	bulkSoftDeletePostsAdmin,
+	bulkRestorePostsAdmin
 } from "../../../Utils/api";
 
 const PostAdmin = () => {
@@ -23,23 +28,27 @@ const PostAdmin = () => {
 	const [selectedPost, setSelectedPost] = useState(null);
 	const [selectedPosts, setSelectedPosts] = useState([]);
 	const [stats, setStats] = useState(null);
-	
-	// Filters
-	const [filters, setFilters] = useState({
+	const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
+
+	// Filters (applied) and pendingFilters (UI state)
+	const filterDefaults = {
 		keyword: "",
 		categoryId: "",
 		authorId: "",
 		pinned: "",
 		locked: "",
 		isDraft: "",
+		isDeleted: "",
 		page: 1,
 		limit: 20,
 		sortBy: "createdAt",
 		order: "desc"
-	});
-	
+	};
+	const [filters, setFilters] = useState(filterDefaults);
+	const [pendingFilters, setPendingFilters] = useState(filterDefaults);
+
 	const token = localStorage.getItem("token");
-	
+
 	// Fetch posts with filters
 	const fetchPosts = async () => {
 		setLoading(true);
@@ -51,19 +60,35 @@ const PostAdmin = () => {
 			if (filters.pinned !== "") params.pinned = filters.pinned;
 			if (filters.locked !== "") params.locked = filters.locked;
 			if (filters.isDraft !== "") params.isDraft = filters.isDraft;
+			if (filters.isDeleted !== "") params.isDeleted = filters.isDeleted;
 			params.page = filters.page;
 			params.limit = filters.limit;
 			params.sortBy = filters.sortBy;
 			params.order = filters.order;
-			
+
 			const data = await getAllPostsAdmin(token, params);
 			setPosts(data.data || []);
+			if (data.pagination) setPagination(data.pagination);
 		} catch (err) {
 			toast.error("Lỗi khi tải danh sách bài viết");
 		}
 		setLoading(false);
 	};
-	
+
+	// Apply filters only when clicking Search or pressing Enter
+	const applyFilters = () => {
+		setSelectedPosts([]);
+		setFilters({ ...pendingFilters, page: 1 });
+	};
+
+	// Reset filters
+	const resetFilters = () => {
+		setPendingFilters(filterDefaults);
+		setFilters(filterDefaults);
+		setSelectedPosts([]);
+		setPagination({ page: 1, limit: 20, total: 0, pages: 1 });
+	};
+
 	// Fetch categories
 	const fetchCategories = async () => {
 		try {
@@ -73,7 +98,14 @@ const PostAdmin = () => {
 			console.error("Lỗi khi tải danh mục");
 		}
 	};
-	
+
+	// Pagination handlers
+	const goToPage = (page) => {
+		if (page < 1 || page > pagination.pages) return;
+		setSelectedPosts([]);
+		setFilters(prev => ({ ...prev, page }));
+	};
+
 	// Fetch statistics
 	const fetchStats = async () => {
 		try {
@@ -83,14 +115,14 @@ const PostAdmin = () => {
 			console.error("Lỗi khi tải thống kê");
 		}
 	};
-	
+
 	useEffect(() => {
 		fetchPosts();
 		fetchCategories();
 		fetchStats();
 		// eslint-disable-next-line
 	}, [filters]);
-	
+
 	// Select all posts
 	const handleSelectAll = (e) => {
 		if (e.target.checked) {
@@ -99,7 +131,7 @@ const PostAdmin = () => {
 			setSelectedPosts([]);
 		}
 	};
-	
+
 	// Select single post
 	const handleSelectPost = (postId) => {
 		if (selectedPosts.includes(postId)) {
@@ -108,7 +140,7 @@ const PostAdmin = () => {
 			setSelectedPosts([...selectedPosts, postId]);
 		}
 	};
-	
+
 	// Show post detail modal
 	const handleShowModal = (post) => {
 		setSelectedPost(post);
@@ -142,7 +174,7 @@ const PostAdmin = () => {
 			}
 		}
 	};
-	
+
 	// Toggle pin
 	const handleTogglePin = async (postId) => {
 		try {
@@ -153,7 +185,7 @@ const PostAdmin = () => {
 			toast.error("Lỗi khi cập nhật trạng thái ghim");
 		}
 	};
-	
+
 	// Toggle lock
 	const handleToggleLock = async (postId) => {
 		try {
@@ -164,14 +196,49 @@ const PostAdmin = () => {
 			toast.error("Lỗi khi cập nhật trạng thái khóa");
 		}
 	};
-	
+
+	// Soft delete (ẩn) single
+	const handleSoftDelete = async (postId) => {
+		const result = await Swal.fire({
+			title: "Ẩn bài viết?",
+			text: "Bài viết sẽ được đánh dấu Đã ẩn và ẩn khỏi người dùng, có thể khôi phục sau.",
+			icon: "warning",
+			showCancelButton: true,
+			confirmButtonText: "Ẩn",
+			cancelButtonText: "Hủy",
+			customClass: { container: 'swal-on-modal' }
+		});
+		if (result.isConfirmed) {
+			try {
+				await softDeletePostAdmin(token, postId);
+				toast.success("Đã ẩn bài viết");
+				fetchPosts();
+				fetchStats();
+			} catch (err) {
+				toast.error("Lỗi khi ẩn bài viết");
+			}
+		}
+	};
+
+	// Restore single
+	const handleRestore = async (postId) => {
+		try {
+			await restorePostAdmin(token, postId);
+			toast.success("Đã khôi phục bài viết");
+			fetchPosts();
+			fetchStats();
+		} catch (err) {
+			toast.error("Lỗi khi khôi phục bài viết");
+		}
+	};
+
 	// Bulk actions
 	const handleBulkAction = async (action) => {
 		if (selectedPosts.length === 0) {
 			toast.warning("Vui lòng chọn ít nhất một bài viết");
 			return;
 		}
-		
+
 		if (action === "delete") {
 			const result = await Swal.fire({
 				title: "Xác nhận",
@@ -182,7 +249,7 @@ const PostAdmin = () => {
 				cancelButtonText: "Hủy",
 				customClass: { container: 'swal-on-modal' }
 			});
-			
+
 			if (result.isConfirmed) {
 				try {
 					await deleteMultiplePosts(token, selectedPosts);
@@ -193,6 +260,37 @@ const PostAdmin = () => {
 				} catch (err) {
 					toast.error(`Lỗi: ${err.message}`);
 				}
+			}
+		} else if (action === "soft-delete") {
+			const result = await Swal.fire({
+				title: "Xác nhận",
+				text: `Ẩn ${selectedPosts.length} bài viết đã chọn?`,
+				icon: "warning",
+				showCancelButton: true,
+				confirmButtonText: "Ẩn",
+				cancelButtonText: "Hủy",
+				customClass: { container: 'swal-on-modal' }
+			});
+			if (result.isConfirmed) {
+				try {
+					await bulkSoftDeletePostsAdmin(token, selectedPosts);
+					toast.success("Đã ẩn các bài viết đã chọn");
+					setSelectedPosts([]);
+					fetchPosts();
+					fetchStats();
+				} catch (err) {
+					toast.error(`Lỗi: ${err.message}`);
+				}
+			}
+		} else if (action === "restore") {
+			try {
+				await bulkRestorePostsAdmin(token, selectedPosts);
+				toast.success("Đã khôi phục các bài viết đã chọn");
+				setSelectedPosts([]);
+				fetchPosts();
+				fetchStats();
+			} catch (err) {
+				toast.error(`Lỗi: ${err.message}`);
 			}
 		} else if (action === "move") {
 			const { value: categoryId } = await Swal.fire({
@@ -207,7 +305,7 @@ const PostAdmin = () => {
 				cancelButtonText: "Hủy",
 				customClass: { container: 'swal-on-modal' }
 			});
-			
+
 			if (categoryId) {
 				try {
 					await movePosts(token, selectedPosts, categoryId);
@@ -224,7 +322,7 @@ const PostAdmin = () => {
 	return (
 		<div className="container-fluid p-4">
 			<h2 className="mb-4">Quản lý bài viết</h2>
-			
+
 			{/* Statistics */}
 			{stats && (
 				<div className="row mb-4">
@@ -236,14 +334,14 @@ const PostAdmin = () => {
 							</div>
 						</div>
 					</div>
-					<div className="col-md-3">
+					{/* <div className="col-md-3">
 						<div className="card text-center">
 							<div className="card-body">
 								<h5>Đã xuất bản</h5>
 								<h3 className="text-success">{stats.publishedPosts || 0}</h3>
 							</div>
 						</div>
-					</div>
+					</div> */}
 					<div className="col-md-3">
 						<div className="card text-center">
 							<div className="card-body">
@@ -262,7 +360,7 @@ const PostAdmin = () => {
 					</div>
 				</div>
 			)}
-			
+
 			{/* Filters */}
 			<div className="card mb-4">
 				<div className="card-body">
@@ -271,14 +369,15 @@ const PostAdmin = () => {
 							<Form.Control
 								type="text"
 								placeholder="Tìm kiếm theo tiêu đề, nội dung..."
-								value={filters.keyword}
-								onChange={(e) => setFilters({...filters, keyword: e.target.value, page: 1})}
+								value={pendingFilters.keyword}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, keyword: e.target.value })}
+								onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
 							/>
 						</div>
 						<div className="col-md-2">
 							<Form.Select
-								value={filters.categoryId}
-								onChange={(e) => setFilters({...filters, categoryId: e.target.value, page: 1})}
+								value={pendingFilters.categoryId}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, categoryId: e.target.value })}
 							>
 								<option value="">Tất cả danh mục</option>
 								{categories.map(cat => (
@@ -288,8 +387,8 @@ const PostAdmin = () => {
 						</div>
 						<div className="col-md-2">
 							<Form.Select
-								value={filters.pinned}
-								onChange={(e) => setFilters({...filters, pinned: e.target.value, page: 1})}
+								value={pendingFilters.pinned}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, pinned: e.target.value })}
 							>
 								<option value="">Tất cả</option>
 								<option value="true">Đã ghim</option>
@@ -298,8 +397,8 @@ const PostAdmin = () => {
 						</div>
 						<div className="col-md-2">
 							<Form.Select
-								value={filters.locked}
-								onChange={(e) => setFilters({...filters, locked: e.target.value, page: 1})}
+								value={pendingFilters.locked}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, locked: e.target.value })}
 							>
 								<option value="">Tất cả</option>
 								<option value="true">Đã khóa</option>
@@ -308,8 +407,8 @@ const PostAdmin = () => {
 						</div>
 						<div className="col-md-2">
 							<Form.Select
-								value={filters.sortBy}
-								onChange={(e) => setFilters({...filters, sortBy: e.target.value})}
+								value={pendingFilters.sortBy}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, sortBy: e.target.value })}
 							>
 								<option value="createdAt">Ngày tạo</option>
 								<option value="views">Lượt xem</option>
@@ -317,17 +416,78 @@ const PostAdmin = () => {
 								<option value="commentsCount">Số bình luận</option>
 							</Form.Select>
 						</div>
+						<div className="col-md-2">
+							<Form.Select
+								value={pendingFilters.isDeleted}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, isDeleted: e.target.value })}
+							>
+								<option value="">Tất cả trạng thái ẩn</option>
+								<option value="false">Chưa ẩn</option>
+								<option value="true">Đã ẩn</option>
+							</Form.Select>
+						</div>
+						<div className="col-md-2 d-flex gap-2">
+							<button className="btn btn-primary w-100" onClick={applyFilters} type="button">
+								Tìm
+							</button>
+							<button className="btn btn-outline-secondary w-100" onClick={resetFilters} type="button">
+								Đặt lại
+							</button>
+						</div>
+					</div>
+					<div className="row g-3 mt-2">
+						{/* <div className="col-md-2">
+							<Form.Select
+								value={filters.isDraft}
+								onChange={(e) => setFilters({ ...filters, isDraft: e.target.value, page: 1 })}
+							>
+								<option value="">Tất cả bài viết</option>
+								<option value="true">Bản nháp</option>
+								<option value="false">Đã xuất bản</option>
+							</Form.Select>
+						</div> */}
+
 					</div>
 				</div>
 			</div>
-			
+			<div className="mb-3">
+				<div className="d-flex justify-content-between align-items-center mb-2">
+					<small className="text-muted">
+						Hiển thị {posts.length} / {pagination.total} bài viết
+					</small>
+					<div className="d-flex align-items-center">
+						<span className="me-2">Mỗi trang:</span>
+						<Form.Select
+							size="sm"
+							style={{ width: 100 }}
+							value={filters.limit}
+							onChange={(e) => {
+								const newLimit = Number(e.target.value) || 20;
+								setSelectedPosts([]);
+								setFilters(prev => ({ ...prev, limit: newLimit, page: 1 }));
+							}}
+						>
+							<option value="10">10</option>
+							<option value="20">20</option>
+							<option value="50">50</option>
+							<option value="100">100</option>
+						</Form.Select>
+					</div>
+				</div>
+			</div>
 			{/* Bulk actions */}
 			{selectedPosts.length > 0 && (
 				<div className="alert alert-info d-flex justify-content-between align-items-center">
 					<span>Đã chọn {selectedPosts.length} bài viết</span>
 					<div>
+						<button className="btn btn-warning btn-sm me-2" onClick={() => handleBulkAction("soft-delete")}>
+							Ẩn
+						</button>
+						<button className="btn btn-success btn-sm me-2" onClick={() => handleBulkAction("restore")}>
+							Khôi phục
+						</button>
 						<button className="btn btn-danger btn-sm me-2" onClick={() => handleBulkAction("delete")}>
-							Xóa
+							Xóa vĩnh viễn
 						</button>
 						<button className="btn btn-primary btn-sm" onClick={() => handleBulkAction("move")}>
 							Chuyển danh mục
@@ -335,7 +495,7 @@ const PostAdmin = () => {
 					</div>
 				</div>
 			)}
-			
+
 			{loading ? (
 				<div className="text-center p-5">
 					<div className="spinner-border" role="status">
@@ -349,7 +509,7 @@ const PostAdmin = () => {
 							<thead>
 								<tr>
 									<th>
-										<Form.Check 
+										<Form.Check
 											type="checkbox"
 											onChange={handleSelectAll}
 											checked={selectedPosts.length === posts.length && posts.length > 0}
@@ -370,7 +530,7 @@ const PostAdmin = () => {
 								{posts.map((post, idx) => (
 									<tr key={post._id}>
 										<td>
-											<Form.Check 
+											<Form.Check
 												type="checkbox"
 												checked={selectedPosts.includes(post._id)}
 												onChange={() => handleSelectPost(post._id)}
@@ -388,6 +548,7 @@ const PostAdmin = () => {
 										<td>{post.likesCount || 0}</td>
 										<td>{post.commentsCount || 0}</td>
 										<td>
+											{post.isDeleted && <span className="badge bg-danger me-2">Đã xóa</span>}
 											{post.isDraft ? (
 												<span className="badge bg-warning">Bản nháp</span>
 											) : (
@@ -416,12 +577,30 @@ const PostAdmin = () => {
 												>
 													🔒
 												</button>
-												<button
-													className="btn btn-danger btn-sm"
-													onClick={() => handleDelete(post._id)}
-												>
-													Xóa
-												</button>
+												{post.isDeleted ? (
+													<button
+														className="btn btn-success btn-sm"
+														onClick={() => handleRestore(post._id)}
+													>
+														Khôi phục
+													</button>
+												) : (
+													<>
+														<button
+															className="btn btn-warning btn-sm"
+															onClick={() => handleSoftDelete(post._id)}
+														>
+															Ẩn
+														</button>
+														<button
+															className="btn btn-danger btn-sm ms-2"
+															onClick={() => handleDelete(post._id)}
+														>
+															Xóa
+														</button>
+													</>
+												)}
+
 											</div>
 										</td>
 									</tr>
@@ -458,20 +637,29 @@ const PostAdmin = () => {
 								<strong>Trạng thái:</strong>
 								{selectedPost.pinned && <span className="badge bg-warning ms-2">Ghim</span>}
 								{selectedPost.locked && <span className="badge bg-secondary ms-2">Khóa</span>}
+								{selectedPost.isDeleted && <span className="badge bg-danger ms-2">Đã xóa</span>}
 								{selectedPost.isDraft ? (
 									<span className="badge bg-warning ms-2">Bản nháp</span>
 								) : (
 									<span className="badge bg-success ms-2">Công khai</span>
 								)}
 							</div>
+							<div className="row mb-3">
+								<div className="col-md-6">
+									<p><strong>Slug:</strong> {selectedPost.slug}</p>
+								</div>
+								<div className="col-md-6">
+									<p><strong>Cập nhật:</strong> {new Date(selectedPost.updatedAt).toLocaleString()}</p>
+								</div>
+							</div>
 							<div>
 								<strong>Nội dung:</strong>
-								<div 
+								<div
 									style={{
-										maxHeight: "300px", 
-										overflow: "auto", 
-										padding: "10px", 
-										background: "#f8f9fa", 
+										maxHeight: "300px",
+										overflow: "auto",
+										padding: "10px",
+										background: "#f8f9fa",
 										borderRadius: "5px",
 										marginTop: "10px"
 									}}
@@ -479,6 +667,20 @@ const PostAdmin = () => {
 									{selectedPost.content}
 								</div>
 							</div>
+							{selectedPost.attachments && selectedPost.attachments.length > 0 && (
+								<div className="mt-3">
+									<strong>Tệp đính kèm:</strong>
+									<ul className="mt-2">
+										{selectedPost.attachments.map(att => (
+											<li key={att._id}>
+												<a href={att.storageUrl} target="_blank" rel="noreferrer">
+													{att.filename}
+												</a>
+											</li>
+										))}
+									</ul>
+								</div>
+							)}
 							{selectedPost.tags && selectedPost.tags.length > 0 && (
 								<div className="mt-3">
 									<strong>Tags:</strong>
@@ -498,6 +700,26 @@ const PostAdmin = () => {
 					</button>
 				</Modal.Footer>
 			</Modal>
+
+			{/* Pagination + page size */}
+			<div className="mt-3">
+
+				{pagination.pages > 1 && (
+					<div className="d-flex justify-content-center">
+						<Pagination>
+							<Pagination.First onClick={() => goToPage(1)} disabled={pagination.page === 1} />
+							<Pagination.Prev onClick={() => goToPage(pagination.page - 1)} disabled={pagination.page === 1} />
+							{Array.from({ length: pagination.pages }, (_, i) => i + 1).map(p => (
+								<Pagination.Item key={p} active={p === pagination.page} onClick={() => goToPage(p)}>
+									{p}
+								</Pagination.Item>
+							))}
+							<Pagination.Next onClick={() => goToPage(pagination.page + 1)} disabled={pagination.page === pagination.pages} />
+							<Pagination.Last onClick={() => goToPage(pagination.pages)} disabled={pagination.page === pagination.pages} />
+						</Pagination>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 };

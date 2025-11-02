@@ -77,15 +77,15 @@ export const getActiveUsers = async (limit = 10) => {
   return handleResponse(response);
 };
 
-export const getOnlineUsers = async (limit = 50) => {
-  const response = await fetch(`${API_BASE}/users/online?limit=${limit}`, {
-    method: "GET",
-    headers: withNoStore({
-      "Content-Type": "application/json",
-    }),
-  });
-  return handleResponse(response);
-};
+// export const getOnlineUsers = async (limit = 50) => {
+//   const response = await fetch(`${API_BASE}/users/online?limit=${limit}`, {
+//     method: "GET",
+//     headers: withNoStore({
+//       "Content-Type": "application/json",
+//     }),
+//   });
+//   return handleResponse(response);
+// };
 
 // Lấy thông tin user theo username (public profile)
 export const getUserByUsername = async (username, token) => {
@@ -145,8 +145,10 @@ export const getCategories = async () => {
   });
   return handleResponse(response);
 };
-export const getPostsByCategory = async (slug) => {
-  const response = await fetch(`${API_BASE}/posts/category/${slug}`, {
+export const getPostsByCategory = async (slug, params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  const url = query ? `${API_BASE}/posts/category/${slug}?${query}` : `${API_BASE}/posts/category/${slug}`;
+  const response = await fetch(url, {
     method: "GET",
     headers: withNoStore({
       "Content-Type": "application/json",
@@ -203,8 +205,10 @@ export const deleteCategory = async (token, categoryId) => {
 // ============================================
 // POST APIs
 // ============================================
-export const getAllPosts = async () => {
-  const response = await fetch(`${API_BASE}/posts`, {
+export const getAllPosts = async (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  const url = query ? `${API_BASE}/posts?${query}` : `${API_BASE}/posts`;
+  const response = await fetch(url, {
     method: "GET",
     headers: withNoStore({
       "Content-Type": "application/json",
@@ -222,16 +226,16 @@ export const getPostBySlug = async (slug) => {
   });
   return handleResponse(response);
 };
-
-export const getFeaturedPosts = async () => {
-  const response = await fetch(`${API_BASE}/posts/featured`, {
-    method: "GET",
-    headers: withNoStore({
-      "Content-Type": "application/json",
-    }),
-  });
-  return handleResponse(response);
-};
+// chưa dùng đến
+// export const getFeaturedPosts = async () => {
+//   const response = await fetch(`${API_BASE}/posts/featured`, {
+//     method: "GET",
+//     headers: withNoStore({
+//       "Content-Type": "application/json",
+//     }),
+//   });
+//   return handleResponse(response);
+// };
 export const createPost = async (token, data) => {
   const isFormData = data instanceof FormData;
   const headers = withNoStore(isFormData ? { Authorization: `Bearer ${token}` } : { "Content-Type": "application/json", Authorization: `Bearer ${token}` });
@@ -271,16 +275,6 @@ export const deletePost = async (token, postId) => {
 // ============================================
 // ADMIN - USER MANAGEMENT APIs
 // ============================================
-export const getAllUsers = async (token) => {
-  const response = await fetch(`${API_BASE}/admin/users`, {
-    method: "GET",
-    headers: withNoStore({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    }),
-  });
-  return handleResponse(response);
-};
 export const deleteUser = async (token, userId) => {
   const response = await fetch(`${API_BASE}/admin/users/${userId}`, {
     method: "DELETE",
@@ -468,6 +462,17 @@ export const getAllCategoriesWithStats = async (token) => {
   return handleResponse(response);
 };
 
+export const getCategoriesStats = async (token) => {
+  const response = await fetch(`${API_BASE}/admin/categories/summary`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
 export const deleteMultipleCategories = async (token, ids) => {
   const response = await fetch(`${API_BASE}/admin/categories/bulk-delete`, {
     method: "DELETE",
@@ -504,17 +509,6 @@ export const getAllUsersAdmin = async (token, params = {}) => {
   return handleResponse(response);
 };
 
-export const updateUserRole = async (token, userId, role) => {
-  const response = await fetch(`${API_BASE}/admin/users/${userId}/role`, {
-    method: "PUT",
-    headers: withNoStore({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    }),
-    body: JSON.stringify({ role }),
-  });
-  return handleResponse(response);
-};
 
 export const banMultipleUsers = async (token, userIds, duration, reason) => {
   const response = await fetch(`${API_BASE}/admin/users/bulk-ban`, {
@@ -629,6 +623,53 @@ export const getPostsStats = async (token) => {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     }),
+  });
+  return handleResponse(response);
+};
+
+// SOFT DELETE / RESTORE (ADMIN)
+export const softDeletePostAdmin = async (token, postId) => {
+  const response = await fetch(`${API_BASE}/admin/posts/${postId}/soft-delete`, {
+    method: "PUT",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const restorePostAdmin = async (token, postId) => {
+  const response = await fetch(`${API_BASE}/admin/posts/${postId}/restore`, {
+    method: "PUT",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const bulkSoftDeletePostsAdmin = async (token, ids) => {
+  const response = await fetch(`${API_BASE}/admin/posts/bulk-soft-delete`, {
+    method: "PUT",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ ids }),
+  });
+  return handleResponse(response);
+};
+
+export const bulkRestorePostsAdmin = async (token, ids) => {
+  const response = await fetch(`${API_BASE}/admin/posts/bulk-restore`, {
+    method: "PUT",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ ids }),
   });
   return handleResponse(response);
 };

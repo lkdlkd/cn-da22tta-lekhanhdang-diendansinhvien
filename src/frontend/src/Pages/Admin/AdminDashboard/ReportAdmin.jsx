@@ -22,14 +22,22 @@ const ReportAdmin = () => {
     pages: 0
   });
   
-  // Filters
-  const [filters, setFilters] = useState({
+  // Filters (fetch-on-submit pattern)
+  const defaultFilters = {
+    status: '',
+    targetType: '',
+    keyword: '',
+    sortBy: 'createdAt',
+    order: 'desc'
+  };
+  const [pendingFilters, setPendingFilters] = useState({
     status: '',
     targetType: '',
     keyword: '',
     sortBy: 'createdAt',
     order: 'desc'
   });
+  const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
 
   // Selected reports for bulk actions
   const [selectedReports, setSelectedReports] = useState([]);
@@ -44,13 +52,19 @@ const ReportAdmin = () => {
 
   useEffect(() => {
     fetchReports();
+    // stats don't depend on filters/pagination; fetch once on mount and after actions
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.page, pagination.limit, appliedFilters]);
+
+  useEffect(() => {
     fetchStats();
-  }, [pagination.page, filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchReports = async () => {
     try {
       setLoading(true);
-      const result = await getAllReportsAdmin(token, pagination.page, pagination.limit, filters);
+  const result = await getAllReportsAdmin(token, pagination.page, pagination.limit, appliedFilters);
       if (result.success) {
         setReports(result.data);
         setPagination(prev => ({
@@ -79,8 +93,20 @@ const ReportAdmin = () => {
   };
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setPendingFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const applyFilters = () => {
+    setAppliedFilters({ ...pendingFilters });
     setPagination(prev => ({ ...prev, page: 1 }));
+    setSelectedReports([]);
+  };
+
+  const resetFilters = () => {
+    setPendingFilters({ ...defaultFilters });
+    setAppliedFilters({ ...defaultFilters });
+    setPagination(prev => ({ ...prev, page: 1 }));
+    setSelectedReports([]);
   };
 
   const handleSelectReport = (reportId) => {
@@ -320,7 +346,7 @@ const ReportAdmin = () => {
               <label className="form-label">Trạng thái</label>
               <select 
                 className="form-select" 
-                value={filters.status}
+                value={pendingFilters.status}
                 onChange={(e) => handleFilterChange('status', e.target.value)}
               >
                 <option value="">Tất cả</option>
@@ -333,7 +359,7 @@ const ReportAdmin = () => {
               <label className="form-label">Loại đối tượng</label>
               <select 
                 className="form-select" 
-                value={filters.targetType}
+                value={pendingFilters.targetType}
                 onChange={(e) => handleFilterChange('targetType', e.target.value)}
               >
                 <option value="">Tất cả</option>
@@ -348,23 +374,67 @@ const ReportAdmin = () => {
                 type="text" 
                 className="form-control" 
                 placeholder="Tìm theo nội dung..."
-                value={filters.keyword}
+                value={pendingFilters.keyword}
                 onChange={(e) => handleFilterChange('keyword', e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
               />
             </div>
             <div className="col-md-2">
-              <label className="form-label">Sắp xếp</label>
-              <select 
-                className="form-select" 
-                value={filters.order}
-                onChange={(e) => handleFilterChange('order', e.target.value)}
-              >
-                <option value="desc">Mới nhất</option>
-                <option value="asc">Cũ nhất</option>
-              </select>
+              <label className="form-label">Sắp xếp theo</label>
+              <div className="d-flex gap-2">
+                <select 
+                  className="form-select"
+                  value={pendingFilters.sortBy}
+                  onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                >
+                  <option value="createdAt">Thời gian tạo</option>
+                  <option value="status">Trạng thái</option>
+                  <option value="targetType">Loại đối tượng</option>
+                </select>
+                <select 
+                  className="form-select" 
+                  value={pendingFilters.order}
+                  onChange={(e) => handleFilterChange('order', e.target.value)}
+                >
+                  <option value="desc">Giảm dần</option>
+                  <option value="asc">Tăng dần</option>
+                </select>
+              </div>
+            </div>
+            <div className="col-md-12 d-flex gap-2 mt-2">
+              <button className="btn btn-primary" onClick={applyFilters}>
+                <i className="ph-magnifying-glass me-1"></i>
+                Tìm kiếm
+              </button>
+              <button className="btn btn-outline-secondary" onClick={resetFilters}>
+                <i className="ph-arrow-counter-clockwise me-1"></i>
+                Đặt lại
+              </button>
+              <button className="btn btn-outline-primary" onClick={fetchReports}>
+                <i className="ph-arrow-clockwise me-1"></i>
+                Tải lại
+              </button>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Applied filters summary */}
+      <div className="mb-2">
+        {appliedFilters.status && (
+          <span className="badge bg-light text-dark me-2">Trạng thái: {appliedFilters.status}</span>
+        )}
+        {appliedFilters.targetType && (
+          <span className="badge bg-light text-dark me-2">Loại: {appliedFilters.targetType}</span>
+        )}
+        {appliedFilters.keyword && (
+          <span className="badge bg-light text-dark me-2">Từ khóa: "{appliedFilters.keyword}"</span>
+        )}
+        {(appliedFilters.sortBy || appliedFilters.order) && (
+          <span className="badge bg-light text-dark me-2">
+            Sắp xếp: {appliedFilters.sortBy === 'createdAt' ? 'Thời gian' : appliedFilters.sortBy === 'status' ? 'Trạng thái' : 'Loại'} {appliedFilters.order === 'asc' ? '↑' : '↓'}
+          </span>
+        )}
       </div>
 
       {/* Bulk Actions */}
@@ -428,6 +498,9 @@ const ReportAdmin = () => {
             <div className="text-center py-5 text-muted">
               <i className="ph-warning-circle" style={{ fontSize: '3rem' }}></i>
               <p className="mt-2">Không có báo cáo nào</p>
+              <button className="btn btn-outline-secondary" onClick={resetFilters}>
+                Đặt lại bộ lọc
+              </button>
             </div>
           ) : (
             <>
@@ -487,12 +560,12 @@ const ReportAdmin = () => {
                           {report.targetInfo ? (
                             <div>
                               {report.targetType === 'post' && (
-                                <small className="text-truncate d-block" style={{ maxWidth: '200px' }}>
+                                <small className="text-truncate d-block" style={{ maxWidth: '200px' }} title={report.targetInfo.title}>
                                   {report.targetInfo.title}
                                 </small>
                               )}
                               {report.targetType === 'comment' && (
-                                <small className="text-truncate d-block" style={{ maxWidth: '200px' }}>
+                                <small className="text-truncate d-block" style={{ maxWidth: '200px' }} title={report.targetInfo.content}>
                                   {report.targetInfo.content}
                                 </small>
                               )}
@@ -500,6 +573,11 @@ const ReportAdmin = () => {
                                 <small>
                                   {report.targetInfo.displayName || report.targetInfo.username}
                                 </small>
+                              )}
+                              {(report.targetType === 'post' || report.targetType === 'comment') && report.targetInfo?.authorId && (
+                                <div>
+                                  <small className="text-muted">Bởi: {report.targetInfo.authorId.displayName || report.targetInfo.authorId.username}</small>
+                                </div>
                               )}
                               <button 
                                 className="btn btn-link btn-sm p-0"
@@ -514,15 +592,27 @@ const ReportAdmin = () => {
                           )}
                         </td>
                         <td>
-                          <small className="text-truncate d-block" style={{ maxWidth: '200px' }}>
+                          <small className="text-truncate d-block" style={{ maxWidth: '200px' }} title={report.reason}>
                             {report.reason}
                           </small>
                         </td>
                         <td>
-                          <span className={getStatusBadge(report.status)}>
-                            {report.status === 'open' ? 'Chờ xử lý' : 
-                             report.status === 'reviewed' ? 'Đang xem xét' : 'Đã đóng'}
-                          </span>
+                          <div className="d-flex align-items-center gap-2">
+                            <span className={getStatusBadge(report.status)}>
+                              {report.status === 'open' ? 'Chờ xử lý' : 
+                               report.status === 'reviewed' ? 'Đang xem xét' : 'Đã đóng'}
+                            </span>
+                            <select 
+                              className="form-select form-select-sm"
+                              style={{ width: 'auto' }}
+                              value={report.status}
+                              onChange={(e) => handleUpdateStatus(report._id, e.target.value)}
+                            >
+                              <option value="open">Chờ xử lý</option>
+                              <option value="reviewed">Đang xem xét</option>
+                              <option value="closed">Đã đóng</option>
+                            </select>
+                          </div>
                         </td>
                         <td>
                           <small>{formatDate(report.createdAt)}</small>
@@ -549,15 +639,43 @@ const ReportAdmin = () => {
 
               {/* Pagination */}
               <div className="d-flex justify-content-between align-items-center mt-3">
-                <div>
-                  Hiển thị {reports.length} / {pagination.total} báo cáo
+                <div className="d-flex align-items-center gap-3">
+                  <span>
+                    Hiển thị {reports.length} / {pagination.total} báo cáo
+                  </span>
+                  <div className="d-flex align-items-center gap-2">
+                    <span>Kích thước trang:</span>
+                    <select
+                      className="form-select form-select-sm"
+                      style={{ width: 'auto' }}
+                      value={pagination.limit}
+                      onChange={(e) => {
+                        const newLimit = parseInt(e.target.value, 10);
+                        setPagination(prev => ({ ...prev, page: 1, limit: newLimit }));
+                        setSelectedReports([]);
+                      }}
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
                 </div>
                 <nav>
                   <ul className="pagination mb-0">
                     <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
                       <button 
                         className="page-link"
-                        onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                        onClick={() => setPagination(prev => { const next = { ...prev, page: 1 }; setSelectedReports([]); return next; })}
+                      >
+                        Đầu
+                      </button>
+                    </li>
+                    <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
+                      <button 
+                        className="page-link"
+                        onClick={() => setPagination(prev => { const next = { ...prev, page: prev.page - 1 }; setSelectedReports([]); return next; })}
                       >
                         Trước
                       </button>
@@ -569,7 +687,7 @@ const ReportAdmin = () => {
                       >
                         <button 
                           className="page-link"
-                          onClick={() => setPagination(prev => ({ ...prev, page: i + 1 }))}
+                          onClick={() => setPagination(prev => { const next = { ...prev, page: i + 1 }; setSelectedReports([]); return next; })}
                         >
                           {i + 1}
                         </button>
@@ -578,9 +696,17 @@ const ReportAdmin = () => {
                     <li className={`page-item ${pagination.page === pagination.pages ? 'disabled' : ''}`}>
                       <button 
                         className="page-link"
-                        onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                        onClick={() => setPagination(prev => { const next = { ...prev, page: prev.page + 1 }; setSelectedReports([]); return next; })}
                       >
                         Sau
+                      </button>
+                    </li>
+                    <li className={`page-item ${pagination.page === pagination.pages ? 'disabled' : ''}`}>
+                      <button 
+                        className="page-link"
+                        onClick={() => setPagination(prev => { const next = { ...prev, page: pagination.pages || 1 }; setSelectedReports([]); return next; })}
+                      >
+                        Cuối
                       </button>
                     </li>
                   </ul>

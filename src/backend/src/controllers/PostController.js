@@ -11,21 +11,21 @@ const path = require('path');
 // HÀM XỬ LÝ TAGS
 function processTags(tags) {
 	if (!tags) return [];
-	
+
 	if (Array.isArray(tags)) {
 		return tags
 			.filter(tag => tag && typeof tag === 'string')
 			.map(tag => tag.trim())
 			.filter(tag => tag.length > 0);
 	}
-	
+
 	if (typeof tags === 'string') {
 		return tags
 			.split(',')
 			.map(tag => tag.trim())
 			.filter(tag => tag.length > 0);
 	}
-	
+
 	return [];
 }
 
@@ -41,15 +41,33 @@ async function generateUniqueSlug(title) {
 	return slug;
 }
 
-// Lấy tất cả bài viết
+// Lấy tất cả bài viết (hỗ trợ phân trang qua query: page, limit)
 exports.getAllPosts = async (req, res) => {
 	try {
-		// Sử dụng aggregation pipeline để tối ưu queries
-		const posts = await Post.find()
+		// Đọc tham số phân trang, mặc định 1/20
+		const page = Math.max(parseInt(req.query.page) || 1, 1);
+		const limit = Math.max(parseInt(req.query.limit) || 20, 1);
+		const skip = (page - 1) * limit;
+
+		// Lọc theo từ khóa nếu có
+			const keyword = (req.query.keyword || '').toString().trim();
+			// Chỉ hiển thị bài viết chưa xóa và đã xuất bản
+			const baseQuery = { isDeleted: false, isDraft: false };
+		if (keyword) {
+			baseQuery.$or = [
+				{ title: { $regex: keyword, $options: 'i' } },
+				{ content: { $regex: keyword, $options: 'i' } }
+			];
+		}
+
+		// Lấy danh sách bài viết theo trang
+		const posts = await Post.find(baseQuery)
 			.populate('authorId', 'username displayName avatarUrl faculty class bio stats')
 			.populate('categoryId', 'title slug description')
 			.populate('attachments')
 			.sort({ createdAt: -1 })
+			.skip(skip)
+			.limit(limit)
 			.lean();
 
 		if (posts.length === 0) {
@@ -72,7 +90,7 @@ exports.getAllPosts = async (req, res) => {
 		]);
 
 		// Lấy likes cho comments trong 1 query
-		const likescmt = commentIds.length > 0 
+		const likescmt = commentIds.length > 0
 			? await Like.find({ targetType: 'comment', targetId: { $in: commentIds } })
 				.populate('userId', 'username displayName avatarUrl')
 				.sort({ createdAt: -1 })
@@ -105,7 +123,7 @@ exports.getAllPosts = async (req, res) => {
 			return {
 				...c,
 				authorName: c.authorId?.displayName || c.authorId?.username || 'Ẩn danh',
-				parentAuthorName: parent 
+				parentAuthorName: parent
 					? (parent.authorId?.displayName || parent.authorId?.username || 'Ẩn danh')
 					: null,
 				likes: commentLikesMap.get(cId) || []
@@ -165,9 +183,9 @@ exports.getPostBySlug = async (req, res) => {
 
 		// Lấy likes cho comments nếu có comments
 		const likescmt = commentsRaw.length > 0
-			? await Like.find({ 
-				targetType: 'comment', 
-				targetId: { $in: commentsRaw.map(c => c._id) } 
+			? await Like.find({
+				targetType: 'comment',
+				targetId: { $in: commentsRaw.map(c => c._id) }
 			})
 				.populate('userId', 'username displayName avatarUrl faculty class')
 				.sort({ createdAt: -1 })
@@ -177,7 +195,7 @@ exports.getPostBySlug = async (req, res) => {
 		// Tạo maps để tra cứu O(1)
 		const commentMap = new Map(commentsRaw.map(c => [String(c._id), c]));
 		const commentLikesMap = new Map();
-		
+
 		likescmt.forEach(l => {
 			const key = String(l.targetId);
 			if (!commentLikesMap.has(key)) commentLikesMap.set(key, []);
@@ -193,7 +211,7 @@ exports.getPostBySlug = async (req, res) => {
 			return {
 				...c,
 				authorName: c.authorId?.displayName || c.authorId?.username || 'Ẩn danh',
-				parentAuthorName: parent 
+				parentAuthorName: parent
 					? (parent.authorId?.displayName || parent.authorId?.username || 'Ẩn danh')
 					: null,
 				likes: commentLikesMap.get(cId) || []
@@ -341,12 +359,12 @@ exports.updatePost = async (req, res) => {
 		post.title = req.body.title ?? post.title;
 		post.slug = req.body.slug ?? post.slug;
 		post.content = req.body.content ?? post.content;
-		
+
 		// Xử lý tags - sử dụng helper function
 		if (req.body.tags !== undefined) {
 			post.tags = processTags(req.body.tags);
 		}
-		
+
 		post.categoryId = req.body.categoryId ?? post.categoryId;
 
 		await post.save();
@@ -355,7 +373,7 @@ exports.updatePost = async (req, res) => {
 		await post.populate('authorId', 'username displayName avatarUrl faculty class');
 		await post.populate('categoryId', 'title slug');
 		await post.populate('attachments');
-		
+
 		// Emit socket event for realtime update (sự kiện riêng cho update)
 		if (req.app.get('io')) {
 			req.app.get('io').emit('post:updated', {
@@ -363,7 +381,7 @@ exports.updatePost = async (req, res) => {
 				post: post
 			});
 		}
-		
+
 		res.json({ success: true, post });
 	} catch (err) {
 		console.error(err);
@@ -380,7 +398,7 @@ exports.deletePost = async (req, res) => {
 
 		if (!post) return res.status(404).json({ success: false, error: 'Post not found' });
 
-		if (authorId.toString() !== post.authorId.toString() && !req.user.role=== 'admin') {
+		if (authorId.toString() !== post.authorId.toString() && !req.user.role === 'admin') {
 			return res.status(403).json({ success: false, error: 'Bạn không có quyền xóa bài viết này' });
 		}
 
@@ -486,114 +504,130 @@ exports.deletePost = async (req, res) => {
 	}
 };
 
-// Lấy bài viết nổi bật (pinned)
-exports.getFeaturedPosts = async (req, res) => {
-	try {
-		const posts = await Post.find({ pinned: true })
-			.sort({ updatedAt: -1 })
-			.populate('authorId', 'username displayName avatarUrl faculty class bio stats')
-			.populate('categoryId', 'title slug description')
-			.populate('attachments')
-			.lean();
+// Lấy bài viết nổi bật (pinned)// chưa dùng đến
+// exports.getFeaturedPosts = async (req, res) => {
+// 	try {
+// 		const posts = await Post.find({ pinned: true })
+// 			.sort({ updatedAt: -1 })
+// 			.populate('authorId', 'username displayName avatarUrl faculty class bio stats')
+// 			.populate('categoryId', 'title slug description')
+// 			.populate('attachments')
+// 			.lean();
 
-		if (posts.length === 0) {
-			return res.json([]);
-		}
+// 		if (posts.length === 0) {
+// 			return res.json([]);
+// 		}
 
-		const postIds = posts.map(p => p._id);
+// 		const postIds = posts.map(p => p._id);
 
-		// Query song song
-		const [commentsRaw, likes, commentIds] = await Promise.all([
-			comment.find({ postId: { $in: postIds } })
-				.populate('authorId', 'username displayName avatarUrl faculty class')
-				.populate('attachments')
-				.lean(),
-			Like.find({ targetType: 'post', targetId: { $in: postIds } })
-				.populate('userId', 'username displayName avatarUrl faculty class')
-				.sort({ createdAt: -1 })
-				.lean(),
-			comment.find({ postId: { $in: postIds } }).distinct('_id')
-		]);
+// 		// Query song song
+// 		const [commentsRaw, likes, commentIds] = await Promise.all([
+// 			comment.find({ postId: { $in: postIds } })
+// 				.populate('authorId', 'username displayName avatarUrl faculty class')
+// 				.populate('attachments')
+// 				.lean(),
+// 			Like.find({ targetType: 'post', targetId: { $in: postIds } })
+// 				.populate('userId', 'username displayName avatarUrl faculty class')
+// 				.sort({ createdAt: -1 })
+// 				.lean(),
+// 			comment.find({ postId: { $in: postIds } }).distinct('_id')
+// 		]);
 
-		const likescmt = commentIds.length > 0
-			? await Like.find({ targetType: 'comment', targetId: { $in: commentIds } })
-				.populate('userId', 'username displayName avatarUrl faculty class')
-				.sort({ createdAt: -1 })
-				.lean()
-			: [];
+// 		const likescmt = commentIds.length > 0
+// 			? await Like.find({ targetType: 'comment', targetId: { $in: commentIds } })
+// 				.populate('userId', 'username displayName avatarUrl faculty class')
+// 				.sort({ createdAt: -1 })
+// 				.lean()
+// 			: [];
 
-		// Tạo maps
-		const commentMap = new Map(commentsRaw.map(c => [String(c._id), c]));
-		const likesMap = new Map();
-		const commentLikesMap = new Map();
+// 		// Tạo maps
+// 		const commentMap = new Map(commentsRaw.map(c => [String(c._id), c]));
+// 		const likesMap = new Map();
+// 		const commentLikesMap = new Map();
 
-		likes.forEach(l => {
-			const key = String(l.targetId);
-			if (!likesMap.has(key)) likesMap.set(key, []);
-			likesMap.get(key).push(l);
-		});
+// 		likes.forEach(l => {
+// 			const key = String(l.targetId);
+// 			if (!likesMap.has(key)) likesMap.set(key, []);
+// 			likesMap.get(key).push(l);
+// 		});
 
-		likescmt.forEach(l => {
-			const key = String(l.targetId);
-			if (!commentLikesMap.has(key)) commentLikesMap.set(key, []);
-			commentLikesMap.get(key).push(l);
-		});
+// 		likescmt.forEach(l => {
+// 			const key = String(l.targetId);
+// 			if (!commentLikesMap.has(key)) commentLikesMap.set(key, []);
+// 			commentLikesMap.get(key).push(l);
+// 		});
 
-		// Xử lý comments
-		const comments = commentsRaw.map(c => {
-			const cId = String(c._id);
-			const parentId = c.parentId ? String(c.parentId) : null;
-			const parent = parentId ? commentMap.get(parentId) : null;
+// 		// Xử lý comments
+// 		const comments = commentsRaw.map(c => {
+// 			const cId = String(c._id);
+// 			const parentId = c.parentId ? String(c.parentId) : null;
+// 			const parent = parentId ? commentMap.get(parentId) : null;
 
-			return {
-				...c,
-				authorName: c.authorId?.displayName || c.authorId?.username || 'Ẩn danh',
-				parentAuthorName: parent 
-					? (parent.authorId?.displayName || parent.authorId?.username || 'Ẩn danh')
-					: null,
-				likes: commentLikesMap.get(cId) || []
-			};
-		});
+// 			return {
+// 				...c,
+// 				authorName: c.authorId?.displayName || c.authorId?.username || 'Ẩn danh',
+// 				parentAuthorName: parent 
+// 					? (parent.authorId?.displayName || parent.authorId?.username || 'Ẩn danh')
+// 					: null,
+// 				likes: commentLikesMap.get(cId) || []
+// 			};
+// 		});
 
-		// Tạo comment map theo postId
-		const commentsByPost = new Map();
-		comments.forEach(c => {
-			const key = String(c.postId);
-			if (!commentsByPost.has(key)) commentsByPost.set(key, []);
-			commentsByPost.get(key).push(c);
-		});
+// 		// Tạo comment map theo postId
+// 		const commentsByPost = new Map();
+// 		comments.forEach(c => {
+// 			const key = String(c.postId);
+// 			if (!commentsByPost.has(key)) commentsByPost.set(key, []);
+// 			commentsByPost.get(key).push(c);
+// 		});
 
-		// Gắn data vào posts
-		const postsWithDetails = posts.map(post => {
-			const pId = String(post._id);
-			return {
-				...post,
-				likes: likesMap.get(pId) || [],
-				comments: commentsByPost.get(pId) || []
-			};
-		});
+// 		// Gắn data vào posts
+// 		const postsWithDetails = posts.map(post => {
+// 			const pId = String(post._id);
+// 			return {
+// 				...post,
+// 				likes: likesMap.get(pId) || [],
+// 				comments: commentsByPost.get(pId) || []
+// 			};
+// 		});
 
-		res.json(postsWithDetails);
-	} catch (err) {
-		console.error('Error in getFeaturedPosts:', err);
-		res.status(500).json({ success: false, error: err.message });
-	}
-};
+// 		res.json(postsWithDetails);
+// 	} catch (err) {
+// 		console.error('Error in getFeaturedPosts:', err);
+// 		res.status(500).json({ success: false, error: err.message });
+// 	}
+// };
 
 // Lấy bài viết theo chuyên mục
 exports.getPostsByCategory = async (req, res) => {
 	try {
 		const category = await Category.findOne({ slug: req.params.slug }).lean();
-		
+
 		if (!category) {
-			return res.status(404).json({ success: false, error: 'Category not found' });
+			return res.status(404).json({ success: false, error: 'Không tìm thấy chuyên mục' });
 		}
-		
-		const posts = await Post.find({ categoryId: category._id })
+		// Phân trang qua query: page, limit
+		const page = Math.max(parseInt(req.query.page) || 1, 1);
+		const limit = Math.max(parseInt(req.query.limit) || 20, 1);
+		const skip = (page - 1) * limit;
+
+		const keyword = (req.query.keyword || '').toString().trim();
+			// Chỉ hiển thị bài viết chưa xóa và đã xuất bản
+			const query = { categoryId: category._id, isDeleted: false, isDraft: false };
+		if (keyword) {
+			query.$or = [
+				{ title: { $regex: keyword, $options: 'i' } },
+				{ content: { $regex: keyword, $options: 'i' } }
+			];
+		}
+
+		const posts = await Post.find(query)
 			.sort({ createdAt: -1 })
 			.populate('authorId', 'username displayName avatarUrl faculty class bio stats')
 			.populate('categoryId', 'title slug description')
 			.populate('attachments')
+			.skip(skip)
+			.limit(limit)
 			.lean();
 
 		if (posts.length === 0) {
@@ -648,7 +682,7 @@ exports.getPostsByCategory = async (req, res) => {
 			return {
 				...c,
 				authorName: c.authorId?.displayName || c.authorId?.username || 'Ẩn danh',
-				parentAuthorName: parent 
+				parentAuthorName: parent
 					? (parent.authorId?.displayName || parent.authorId?.username || 'Ẩn danh')
 					: null,
 				likes: commentLikesMap.get(cId) || []
@@ -672,7 +706,6 @@ exports.getPostsByCategory = async (req, res) => {
 				comments: commentsByPost.get(pId) || []
 			};
 		});
-
 		res.json(postsWithDetails);
 	} catch (err) {
 		console.error('Error in getPostsByCategory:', err);
@@ -811,60 +844,70 @@ exports.unlikePost = async (req, res) => {
 };
 
 // Lấy danh sách người đã like bài viết
-exports.getPostLikes = async (req, res) => {
-	try {
-		const postId = req.params.id;
-		const likes = await Like.find({ targetType: 'post', targetId: postId })
-			.populate('userId', 'username displayName avatarUrl')
-			.sort({ createdAt: -1 });
+// exports.getPostLikes = async (req, res) => {
+// 	try {
+// 		const postId = req.params.id;
+// 		const likes = await Like.find({ targetType: 'post', targetId: postId })
+// 			.populate('userId', 'username displayName avatarUrl')
+// 			.sort({ createdAt: -1 });
 
-		res.json({ success: true, likes });
-	} catch (err) {
-		res.status(500).json({ success: false, error: err.message });
-	}
-};
+// 		res.json({ success: true, likes });
+// 	} catch (err) {
+// 		res.status(500).json({ success: false, error: err.message });
+// 	}
+// };
 
 // ==================== ADMIN FUNCTIONS ====================
 
 // [ADMIN] Lấy tất cả posts với phân trang và tìm kiếm nâng cao
 exports.getAllPostsAdmin = async (req, res) => {
 	try {
-		const { 
-			page = 1, 
-			limit = 20, 
+		const {
+			page = 1,
+			limit = 20,
 			keyword,
 			categoryId,
 			authorId,
 			pinned,
 			locked,
 			isDraft,
+			isDeleted,
 			sortBy = 'createdAt',
 			order = 'desc'
 		} = req.query;
 
 		const query = {};
-		
+
 		// Tìm kiếm theo keyword
 		if (keyword) {
-			query.$or = [
-				{ title: { $regex: keyword, $options: 'i' } },
-				{ content: { $regex: keyword, $options: 'i' } },
-				{ slug: { $regex: keyword, $options: 'i' } }
-			];
+			const kw = String(keyword).trim();
+			if (kw) {
+				query.$or = [
+					{ title: { $regex: kw, $options: 'i' } },
+					{ content: { $regex: kw, $options: 'i' } },
+					{ slug: { $regex: kw, $options: 'i' } },
+					{ authorId: await User.find({
+						$or: [
+							{ username: { $regex: kw, $options: 'i' } },	
+							{ displayName: { $regex: kw, $options: 'i' } }
+						]
+					}).distinct('_id') }
+
+				];
+			}
 		}
 
-		// Lọc theo category
+		// Lọc theo category và author
 		if (categoryId) query.categoryId = categoryId;
-		
-		// Lọc theo author
 		if (authorId) query.authorId = authorId;
-		
-		// Lọc theo trạng thái
-		if (pinned !== undefined) query.pinned = pinned === 'true';
-		if (locked !== undefined) query.locked = locked === 'true';
-		if (isDraft !== undefined) query.isDraft = isDraft === 'true';
 
-		const skip = (page - 1) * limit;
+		// Lọc theo trạng thái
+		if (pinned !== undefined && pinned !== '') query.pinned = String(pinned) === 'true';
+		if (locked !== undefined && locked !== '') query.locked = String(locked) === 'true';
+		if (isDraft !== undefined && isDraft !== '') query.isDraft = String(isDraft) === 'true';
+		if (isDeleted !== undefined && isDeleted !== '') query.isDeleted = String(isDeleted) === 'true';
+
+		const skip = (parseInt(page) - 1) * parseInt(limit);
 		const sortOrder = order === 'desc' ? -1 : 1;
 		const limitNum = parseInt(limit);
 
@@ -897,6 +940,80 @@ exports.getAllPostsAdmin = async (req, res) => {
 	}
 };
 
+// [ADMIN] Đánh dấu xóa mềm (soft-delete) 1 bài viết
+exports.softDeletePostAdmin = async (req, res) => {
+	try {
+		const { id } = req.params;
+		const post = await Post.findById(id);
+		if (!post) {
+			return res.status(404).json({ success: false, error: 'Post không tồn tại' });
+		}
+
+		if (post.isDeleted) {
+			return res.json({ success: true, data: post, message: 'Bài viết đã ở trạng thái đã xóa' });
+		}
+
+		post.isDeleted = true;
+		await post.save();
+		return res.json({ success: true, data: post, message: 'Đã chuyển bài viết sang trạng thái đã xóa (soft-delete)' });
+	} catch (err) {
+		console.error('Error in softDeletePostAdmin:', err);
+		return res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [ADMIN] Khôi phục 1 bài viết (bỏ trạng thái isDeleted)
+exports.restorePostAdmin = async (req, res) => {
+	try {
+		const { id } = req.params;
+		const post = await Post.findById(id);
+		if (!post) {
+			return res.status(404).json({ success: false, error: 'Post không tồn tại' });
+		}
+
+		if (!post.isDeleted) {
+			return res.json({ success: true, data: post, message: 'Bài viết đã ở trạng thái hoạt động' });
+		}
+
+		post.isDeleted = false;
+		await post.save();
+		return res.json({ success: true, data: post, message: 'Đã khôi phục bài viết' });
+	} catch (err) {
+		console.error('Error in restorePostAdmin:', err);
+		return res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [ADMIN] Xóa mềm nhiều bài viết
+exports.bulkSoftDeletePostsAdmin = async (req, res) => {
+	try {
+		const { ids } = req.body;
+		if (!ids || !Array.isArray(ids) || ids.length === 0) {
+			return res.status(400).json({ success: false, error: 'Vui lòng cung cấp danh sách ID' });
+		}
+		const result = await Post.updateMany({ _id: { $in: ids } }, { $set: { isDeleted: true } });
+		return res.json({ success: true, modifiedCount: result.modifiedCount, message: `Đã xóa mềm ${result.modifiedCount} bài viết` });
+	} catch (err) {
+		console.error('Error in bulkSoftDeletePostsAdmin:', err);
+		return res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [ADMIN] Khôi phục nhiều bài viết
+exports.bulkRestorePostsAdmin = async (req, res) => {
+	try {
+		const { ids } = req.body;
+		if (!ids || !Array.isArray(ids) || ids.length === 0) {
+			return res.status(400).json({ success: false, error: 'Vui lòng cung cấp danh sách ID' });
+		}
+		const result = await Post.updateMany({ _id: { $in: ids } }, { $set: { isDeleted: false } });
+		return res.json({ success: true, modifiedCount: result.modifiedCount, message: `Đã khôi phục ${result.modifiedCount} bài viết` });
+	} catch (err) {
+		console.error('Error in bulkRestorePostsAdmin:', err);
+		return res.status(500).json({ success: false, error: err.message });
+	}
+};
+
 // [ADMIN] Pin/Unpin post
 exports.togglePinPost = async (req, res) => {
 	try {
@@ -910,8 +1027,8 @@ exports.togglePinPost = async (req, res) => {
 		post.pinned = !post.pinned;
 		await post.save();
 
-		res.json({ 
-			success: true, 
+		res.json({
+			success: true,
 			data: post,
 			message: post.pinned ? 'Đã ghim bài viết' : 'Đã bỏ ghim bài viết'
 		});
@@ -933,8 +1050,8 @@ exports.toggleLockPost = async (req, res) => {
 		post.locked = !post.locked;
 		await post.save();
 
-		res.json({ 
-			success: true, 
+		res.json({
+			success: true,
 			data: post,
 			message: post.locked ? 'Đã khóa bài viết' : 'Đã mở khóa bài viết'
 		});
@@ -949,41 +1066,85 @@ exports.deleteMultiplePosts = async (req, res) => {
 		const { ids } = req.body;
 
 		if (!ids || !Array.isArray(ids) || ids.length === 0) {
-			return res.status(400).json({ 
-				success: false, 
-				error: 'Vui lòng cung cấp danh sách ID' 
+			return res.status(400).json({
+				success: false,
+				error: 'Vui lòng cung cấp danh sách ID'
 			});
 		}
 
-		// Lấy posts và attachments
-		const posts = await Post.find({ _id: { $in: ids } }).lean();
-		const attachmentIds = posts.flatMap(post => post.attachments || []);
+		// 1) Lấy posts (bao gồm attachments và authorId)
+		const posts = await Post.find({ _id: { $in: ids } }).select('_id attachments authorId').lean();
+		const postAttachmentIds = posts.flatMap(p => p.attachments || []);
 
-		// Xóa tất cả related data song song
-		const deletePromises = [
-			comment.deleteMany({ postId: { $in: ids } }),
-			Like.deleteMany({ targetType: 'post', targetId: { $in: ids } }),
-			Post.deleteMany({ _id: { $in: ids } })
-		];
+		// 2) Lấy tất cả comments của các bài viết và attachments của chúng
+		const allComments = await comment.find({ postId: { $in: ids } }).select('_id attachments authorId').lean();
+		const commentIds = allComments.map(c => c._id);
+		const commentAttachmentIds = allComments.flatMap(c => c.attachments || []);
 
-		if (attachmentIds.length > 0) {
-			deletePromises.push(Attachment.deleteMany({ _id: { $in: attachmentIds } }));
+		// 3) Lấy thông tin attachment để xoá file vật lý
+		const allAttachmentIds = Array.from(new Set([
+			...postAttachmentIds.map(id => String(id)),
+			...commentAttachmentIds.map(id => String(id))
+		]));
+
+		const attachmentsToDelete = allAttachmentIds.length > 0
+			? await Attachment.find({ _id: { $in: allAttachmentIds } }).select('filename').lean()
+			: [];
+
+		// 4) Xoá file vật lý của toàn bộ attachments (post + comment)
+		for (const att of attachmentsToDelete) {
+			try {
+				const filePath = path.join(__dirname, '../../src/uploads', att.filename);
+				if (fs.existsSync(filePath)) {
+					fs.unlinkSync(filePath);
+					console.log(`✅ Đã xóa file: ${att.filename}`);
+				} else {
+					console.log(`⚠️ File không tồn tại (có thể đã bị xóa): ${att.filename}`);
+				}
+			} catch (err) {
+				console.error(`❌ Lỗi xóa file ${att.filename}:`, err);
+			}
 		}
 
-		const [commentsDeleted, likesDeleted, postsResult] = await Promise.all(deletePromises);
+		// 5) Xoá likes của posts và comments, thông báo liên quan, attachments (DB), comments và cuối cùng posts
+		const Notification = require('../models/Notification');
 
-		// Cập nhật user stats song song
+		const [
+			postLikesDeleted,
+			commentLikesDeleted,
+			notificationsDeleted,
+			commentAttachmentsDeleted,
+			postAttachmentsDeleted,
+			commentsDeleted,
+			postsResult
+		] = await Promise.all([
+			Like.deleteMany({ targetType: 'post', targetId: { $in: ids } }),
+			commentIds.length > 0 ? Like.deleteMany({ targetType: 'comment', targetId: { $in: commentIds } }) : { deletedCount: 0 },
+			Notification.deleteMany({ 'data.postId': { $in: ids } }),
+			commentAttachmentIds.length > 0 ? Attachment.deleteMany({ _id: { $in: commentAttachmentIds } }) : { deletedCount: 0 },
+			postAttachmentIds.length > 0 ? Attachment.deleteMany({ _id: { $in: postAttachmentIds } }) : { deletedCount: 0 },
+			comment.deleteMany({ postId: { $in: ids } }),
+			Post.deleteMany({ _id: { $in: ids } })
+		]);
+
+		// 6) Cập nhật user stats song song (giảm postsCount theo số bài bị xóa)
 		await Promise.all(
-			posts.map(post => 
-				User.findByIdAndUpdate(post.authorId, { 
-					$inc: { "stats.postsCount": -1 } 
+			posts.map(post =>
+				User.findByIdAndUpdate(post.authorId, {
+					$inc: { 'stats.postsCount': -1 }
 				})
 			)
 		);
 
-		res.json({ 
-			success: true, 
-			message: `Đã xóa ${postsResult.deletedCount} bài viết`,
+		// 7) Emit socket events cho từng bài đã xóa (nếu cần realtime)
+		if (req.app.get('io')) {
+			const io = req.app.get('io');
+			ids.forEach(postId => io.emit('post:deleted', { postId }));
+		}
+
+		res.json({
+			success: true,
+			message: `Đã xóa ${postsResult.deletedCount} bài viết và toàn bộ dữ liệu liên quan`,
 			deletedCount: postsResult.deletedCount
 		});
 	} catch (err) {
@@ -998,16 +1159,16 @@ exports.movePosts = async (req, res) => {
 		const { postIds, categoryId } = req.body;
 
 		if (!postIds || !Array.isArray(postIds) || postIds.length === 0) {
-			return res.status(400).json({ 
-				success: false, 
-				error: 'Vui lòng cung cấp danh sách post IDs' 
+			return res.status(400).json({
+				success: false,
+				error: 'Vui lòng cung cấp danh sách post IDs'
 			});
 		}
 
 		if (!categoryId) {
-			return res.status(400).json({ 
-				success: false, 
-				error: 'Vui lòng cung cấp category ID' 
+			return res.status(400).json({
+				success: false,
+				error: 'Vui lòng cung cấp category ID'
 			});
 		}
 
@@ -1015,9 +1176,9 @@ exports.movePosts = async (req, res) => {
 		const Category = require('../models/Category');
 		const category = await Category.findById(categoryId);
 		if (!category) {
-			return res.status(404).json({ 
-				success: false, 
-				error: 'Category không tồn tại' 
+			return res.status(404).json({
+				success: false,
+				error: 'Category không tồn tại'
 			});
 		}
 
@@ -1026,8 +1187,8 @@ exports.movePosts = async (req, res) => {
 			{ categoryId }
 		);
 
-		res.json({ 
-			success: true, 
+		res.json({
+			success: true,
 			message: `Đã chuyển ${result.modifiedCount} bài viết sang ${category.title}`,
 			modifiedCount: result.modifiedCount
 		});
@@ -1041,7 +1202,7 @@ exports.getPostsStats = async (req, res) => {
 	try {
 		const sevenDaysAgo = new Date();
 		sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-		
+
 		const twelveMonthsAgo = new Date();
 		twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 

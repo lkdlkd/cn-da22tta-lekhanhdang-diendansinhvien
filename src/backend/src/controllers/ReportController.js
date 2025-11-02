@@ -98,8 +98,9 @@ exports.getMyReports = async (req, res) => {
 		const query = { reporterId };
 		if (status) query.status = status;
 
-		const skip = (page - 1) * limit;
-		const limitNum = parseInt(limit);
+		const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+		const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+		const skip = (pageNum - 1) * limitNum;
 
 		const [reports, total] = await Promise.all([
 			Report.find(query)
@@ -145,7 +146,7 @@ exports.getMyReports = async (req, res) => {
 			success: true,
 			data: reportsWithTargets,
 			pagination: {
-				page: parseInt(page),
+				page: pageNum,
 				limit: limitNum,
 				total,
 				pages: Math.ceil(total / limitNum)
@@ -200,102 +201,120 @@ exports.cancelReport = async (req, res) => {
 exports.getAllReportsAdmin = async (req, res) => {
 	try {
 		const { 
-			page = 1, 
-			limit = 20, 
-			status,
-			targetType,
-			keyword,
-			sortBy = 'createdAt',
-			order = 'desc'
-		} = req.query;
+				page = 1, 
+				limit = 20, 
+				status,
+				targetType,
+				keyword,
+				sortBy = 'createdAt',
+				order = 'desc'
+			} = req.query;
 
 		const query = {};
-		
+
 		// Lọc theo status
 		if (status) query.status = status;
-		
+
 		// Lọc theo targetType
 		if (targetType) query.targetType = targetType;
 
-		const skip = (page - 1) * limit;
-		const sortOrder = order === 'desc' ? -1 : 1;
-		const limitNum = parseInt(limit);
+		const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+		const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+		const skip = (pageNum - 1) * limitNum;
 
-		// Query song song reports và total
+		// Whitelist sort fields to prevent invalid keys
+		const allowedSortFields = new Set(['createdAt', 'status', 'targetType']);
+		const sortField = allowedSortFields.has(String(sortBy)) ? String(sortBy) : 'createdAt';
+		const sortOrder = String(order).toLowerCase() === 'asc' ? 1 : -1;
+
+		// Áp dụng keyword server-side: tìm theo reason hoặc theo nội dung đối tượng
+		if (keyword && String(keyword).trim().length > 0) {
+			const kw = String(keyword).trim();
+			const regex = new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+			const orConds = [{ reason: regex }];
+
+			// Helper: push condition by type when ids found
+			const pushTypeConds = (type, ids) => {
+				if (ids && ids.length > 0) {
+					orConds.push({ targetType: type, targetId: { $in: ids } });
+				}
+			};
+
+			if (!targetType || targetType === 'post') {
+				const postIds = await Post.find({
+					$or: [{ title: regex }, { content: regex }]
+				}).select('_id').lean();
+				pushTypeConds('post', postIds.map(p => p._id));
+			}
+
+			if (!targetType || targetType === 'comment') {
+				const commentIds = await Comment.find({ content: regex }).select('_id').lean();
+				pushTypeConds('comment', commentIds.map(c => c._id));
+			}
+
+			if (!targetType || targetType === 'user') {
+				const userIds = await User.find({
+					$or: [
+						{ username: regex },
+						{ displayName: regex },
+						{ email: regex }
+					]
+				}).select('_id').lean();
+				pushTypeConds('user', userIds.map(u => u._id));
+			}
+
+			// Nếu không có điều kiện nào khớp keyword, đảm bảo trả về rỗng
+			if (orConds.length === 0) {
+				query._id = { $in: [] };
+			} else {
+				query.$or = orConds;
+			}
+		}
+
+		// Query song song reports và total theo query cuối cùng
 		const [reports, total] = await Promise.all([
 			Report.find(query)
 				.populate('reporterId', 'username displayName avatarUrl email')
 				.populate('handledBy', 'username displayName avatarUrl')
 				.skip(skip)
 				.limit(limitNum)
-				.sort({ [sortBy]: sortOrder })
+				.sort({ [sortField]: sortOrder })
 				.lean(),
 			Report.countDocuments(query)
 		]);
 
-		// Populate target info với keyword search
+		// Populate target info (không lọc thêm ở đây để giữ đúng phân trang)
 		const reportsWithTargets = await Promise.all(
 			reports.map(async (report) => {
 				let targetInfo = null;
-				let shouldInclude = true;
-
 				if (report.targetType === 'post') {
-					const post = await Post.findById(report.targetId)
+					targetInfo = await Post.findById(report.targetId)
 						.select('title slug content authorId')
 						.populate('authorId', 'username displayName avatarUrl')
 						.lean();
-					targetInfo = post;
-					if (keyword && post) {
-						shouldInclude = post.title?.toLowerCase().includes(keyword.toLowerCase()) ||
-							post.content?.toLowerCase().includes(keyword.toLowerCase());
-					}
 				} else if (report.targetType === 'comment') {
-					const comment = await Comment.findById(report.targetId)
+					targetInfo = await Comment.findById(report.targetId)
 						.select('content postId authorId')
 						.populate('authorId', 'username displayName avatarUrl')
 						.populate('postId', 'title slug')
 						.lean();
-					targetInfo = comment;
-					if (keyword && comment) {
-						shouldInclude = comment.content?.toLowerCase().includes(keyword.toLowerCase());
-					}
 				} else if (report.targetType === 'user') {
-					const user = await User.findById(report.targetId)
+					targetInfo = await User.findById(report.targetId)
 						.select('username displayName avatarUrl email')
 						.lean();
-					targetInfo = user;
-					if (keyword && user) {
-						shouldInclude = user.username?.toLowerCase().includes(keyword.toLowerCase()) ||
-							user.displayName?.toLowerCase().includes(keyword.toLowerCase()) ||
-							user.email?.toLowerCase().includes(keyword.toLowerCase());
-					}
 				}
-
-				// Check reason keyword
-				if (keyword && !shouldInclude) {
-					shouldInclude = report.reason?.toLowerCase().includes(keyword.toLowerCase());
-				}
-
-				return shouldInclude ? {
-					...report,
-					targetInfo
-				} : null;
+				return { ...report, targetInfo };
 			})
 		);
 
-		// Filter out null results from keyword search
-		const filteredReports = keyword 
-			? reportsWithTargets.filter(r => r !== null)
-			: reportsWithTargets;
-
 		res.json({
 			success: true,
-			data: filteredReports,
+			data: reportsWithTargets,
 			pagination: {
-				page: parseInt(page),
+				page: pageNum,
 				limit: limitNum,
-				total: keyword ? filteredReports.length : total,
-				pages: Math.ceil((keyword ? filteredReports.length : total) / limitNum)
+				total,
+				pages: Math.ceil(total / limitNum)
 			}
 		});
 	} catch (err) {

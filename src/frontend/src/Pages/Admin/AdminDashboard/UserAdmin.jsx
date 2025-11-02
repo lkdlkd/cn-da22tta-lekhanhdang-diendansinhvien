@@ -5,17 +5,17 @@ import Form from "react-bootstrap/Form";
 import Pagination from "react-bootstrap/Pagination";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
-import { 
-	getAllUsersAdmin, 
-	deleteUser, 
-	banUser, 
+import {
+	getAllUsersAdmin,
+	deleteUser,
+	banUser,
 	unbanUser,
-	updateUserRole,
 	deleteMultipleUsers,
 	banMultipleUsers,
 	unbanMultipleUsers,
 	getUsersStats
 } from "../../../Utils/api";
+import { Link } from "react-router-dom";
 
 const UserAdmin = () => {
 	const [users, setUsers] = useState([]);
@@ -24,8 +24,9 @@ const UserAdmin = () => {
 	const [selectedUser, setSelectedUser] = useState(null);
 	const [selectedUsers, setSelectedUsers] = useState([]);
 	const [stats, setStats] = useState(null);
-	
-	// Filters
+	const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
+
+	// Filters (applied) and pendingFilters (UI state)
 	const [filters, setFilters] = useState({
 		keyword: "",
 		role: "",
@@ -36,9 +37,19 @@ const UserAdmin = () => {
 		sortBy: "createdAt",
 		order: "desc"
 	});
-	
+	const [pendingFilters, setPendingFilters] = useState({
+		keyword: "",
+		role: "",
+		isBanned: "",
+		isOnline: "",
+		page: 1,
+		limit: 20,
+		sortBy: "createdAt",
+		order: "desc"
+	});
+
 	const token = localStorage.getItem("token");
-	
+
 	// Fetch users with filters
 	const fetchUsers = async () => {
 		setLoading(true);
@@ -52,15 +63,16 @@ const UserAdmin = () => {
 			params.limit = filters.limit;
 			params.sortBy = filters.sortBy;
 			params.order = filters.order;
-			
+
 			const data = await getAllUsersAdmin(token, params);
 			setUsers(data.data || []);
+			if (data.pagination) setPagination(data.pagination);
 		} catch (err) {
 			toast.error("Lỗi khi tải danh sách người dùng");
 		}
 		setLoading(false);
 	};
-	
+
 	// Fetch statistics
 	const fetchStats = async () => {
 		try {
@@ -76,7 +88,31 @@ const UserAdmin = () => {
 		fetchStats();
 		// eslint-disable-next-line
 	}, [filters]);
-	
+
+	// Apply filters only when user clicks the button or presses Enter
+	const applyFilters = () => {
+		setSelectedUsers([]);
+		setFilters({ ...pendingFilters, page: 1 });
+	};
+
+	// Reset all filters
+	const resetFilters = () => {
+		const defaults = {
+			keyword: "",
+			role: "",
+			isBanned: "",
+			isOnline: "",
+			page: 1,
+			limit: 20,
+			sortBy: "createdAt",
+			order: "desc"
+		};
+		setPendingFilters(defaults);
+		setFilters(defaults);
+		setSelectedUsers([]);
+		setPagination({ page: 1, limit: 20, total: 0, pages: 1 });
+	};
+
 	// Select all users
 	const handleSelectAll = (e) => {
 		if (e.target.checked) {
@@ -85,7 +121,7 @@ const UserAdmin = () => {
 			setSelectedUsers([]);
 		}
 	};
-	
+
 	// Select single user
 	const handleSelectUser = (userId) => {
 		if (selectedUsers.includes(userId)) {
@@ -128,7 +164,7 @@ const UserAdmin = () => {
 			}
 		}
 	};
-	
+
 	// Ban user
 	const handleBan = async (userId) => {
 		const result = await Swal.fire({
@@ -150,7 +186,7 @@ const UserAdmin = () => {
 			}
 		}
 	};
-	
+
 	// Unban user
 	const handleUnban = async (userId) => {
 		try {
@@ -161,51 +197,49 @@ const UserAdmin = () => {
 			toast.error("Lỗi khi bỏ cấm người dùng");
 		}
 	};
-	
-	// Change user role
-	const handleChangeRole = async (userId, currentRole) => {
-		const { value: newRole } = await Swal.fire({
-			title: "Thay đổi vai trò",
-			input: "select",
-			inputOptions: {
-				user: "User",
-				moderator: "Moderator",
-				admin: "Admin"
-			},
-			inputValue: currentRole,
-			showCancelButton: true,
-			confirmButtonText: "Cập nhật",
-			cancelButtonText: "Hủy",
-			customClass: { container: 'swal-on-modal' }
-		});
-		
-		if (newRole && newRole !== currentRole) {
-			try {
-				await updateUserRole(token, userId, newRole);
-				toast.success("Cập nhật vai trò thành công!");
-				fetchUsers();
-			} catch (err) {
-				toast.error("Lỗi khi cập nhật vai trò");
-			}
-		}
-	};
-	
+
 	// Bulk actions
 	const handleBulkAction = async (action) => {
 		if (selectedUsers.length === 0) {
 			toast.warning("Vui lòng chọn ít nhất một người dùng");
 			return;
 		}
-		
+
 		let confirmText = "";
 		let successText = "";
-		
+		let duration = null;
+		let reason = null;
+
 		switch (action) {
 			case "delete":
 				confirmText = `Xóa ${selectedUsers.length} người dùng đã chọn?`;
 				successText = "Xóa người dùng thành công!";
 				break;
 			case "ban":
+				// Hỏi thêm thời hạn và lý do trước khi xác nhận
+				const { value: banConfig } = await Swal.fire({
+					title: "Cấm người dùng",
+					html: `
+						<div class="mb-2 text-start"><label class="form-label">Thời hạn (ngày, để trống = vĩnh viễn)</label>
+							<input id="ban-duration" type="number" min="1" class="swal2-input" style="width:100%" placeholder="Số ngày" />
+						</div>
+						<div class="text-start"><label class="form-label">Lý do</label>
+							<textarea id="ban-reason" class="swal2-textarea" placeholder="Vi phạm quy định"></textarea>
+						</div>
+					`,
+					focusConfirm: false,
+					confirmButtonText: "Tiếp tục",
+					showCancelButton: true,
+					cancelButtonText: "Hủy",
+					preConfirm: () => {
+						const d = (document.getElementById('ban-duration') || {}).value;
+						const r = (document.getElementById('ban-reason') || {}).value;
+						return { duration: d ? Number(d) : null, reason: r || null };
+					}
+				});
+				if (!banConfig) return; // user canceled
+				duration = banConfig.duration;
+				reason = banConfig.reason || 'Vi phạm quy định';
 				confirmText = `Cấm ${selectedUsers.length} người dùng đã chọn?`;
 				successText = "Cấm người dùng thành công!";
 				break;
@@ -216,7 +250,7 @@ const UserAdmin = () => {
 			default:
 				return;
 		}
-		
+
 		const result = await Swal.fire({
 			title: "Xác nhận",
 			text: confirmText,
@@ -226,13 +260,13 @@ const UserAdmin = () => {
 			cancelButtonText: "Hủy",
 			customClass: { container: 'swal-on-modal' }
 		});
-		
+
 		if (result.isConfirmed) {
 			try {
 				if (action === "delete") {
 					await deleteMultipleUsers(token, selectedUsers);
 				} else if (action === "ban") {
-					await banMultipleUsers(token, selectedUsers, null, "Bulk ban");
+					await banMultipleUsers(token, selectedUsers, duration, reason || "Bulk ban");
 				} else if (action === "unban") {
 					await unbanMultipleUsers(token, selectedUsers);
 				}
@@ -246,10 +280,17 @@ const UserAdmin = () => {
 		}
 	};
 
+	// Pagination handlers
+	const goToPage = (page) => {
+		if (page < 1 || page > pagination.pages) return;
+		setSelectedUsers([]);
+		setFilters(prev => ({ ...prev, page }));
+	};
+
 	return (
 		<div className="container-fluid p-4">
 			<h2 className="mb-4">Quản lý người dùng</h2>
-			
+
 			{/* Statistics */}
 			{stats && (
 				<div className="row mb-4">
@@ -277,17 +318,10 @@ const UserAdmin = () => {
 							</div>
 						</div>
 					</div>
-					<div className="col-md-3">
-						<div className="card text-center">
-							<div className="card-body">
-								<h5>Admin</h5>
-								<h3 className="text-primary">{stats.usersByRole?.admin || 0}</h3>
-							</div>
-						</div>
-					</div>
+
 				</div>
 			)}
-			
+
 			{/* Filters */}
 			<div className="card mb-4">
 				<div className="card-body">
@@ -296,25 +330,26 @@ const UserAdmin = () => {
 							<Form.Control
 								type="text"
 								placeholder="Tìm kiếm theo username, email..."
-								value={filters.keyword}
-								onChange={(e) => setFilters({...filters, keyword: e.target.value, page: 1})}
+								value={pendingFilters.keyword}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, keyword: e.target.value })}
+								onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
 							/>
 						</div>
-						<div className="col-md-2">
+						{/* <div className="col-md-2">
 							<Form.Select
-								value={filters.role}
-								onChange={(e) => setFilters({...filters, role: e.target.value, page: 1})}
+								value={pendingFilters.role}
+								onChange={(e) => setPendingFilters({...pendingFilters, role: e.target.value})}
 							>
 								<option value="">Tất cả vai trò</option>
 								<option value="user">User</option>
 								<option value="moderator">Moderator</option>
 								<option value="admin">Admin</option>
 							</Form.Select>
-						</div>
+						</div> */}
 						<div className="col-md-2">
 							<Form.Select
-								value={filters.isBanned}
-								onChange={(e) => setFilters({...filters, isBanned: e.target.value, page: 1})}
+								value={pendingFilters.isBanned}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, isBanned: e.target.value })}
 							>
 								<option value="">Tất cả trạng thái</option>
 								<option value="false">Hoạt động</option>
@@ -323,8 +358,8 @@ const UserAdmin = () => {
 						</div>
 						<div className="col-md-2">
 							<Form.Select
-								value={filters.isOnline}
-								onChange={(e) => setFilters({...filters, isOnline: e.target.value, page: 1})}
+								value={pendingFilters.isOnline}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, isOnline: e.target.value })}
 							>
 								<option value="">Online/Offline</option>
 								<option value="true">Online</option>
@@ -333,8 +368,8 @@ const UserAdmin = () => {
 						</div>
 						<div className="col-md-2">
 							<Form.Select
-								value={filters.sortBy}
-								onChange={(e) => setFilters({...filters, sortBy: e.target.value})}
+								value={pendingFilters.sortBy}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, sortBy: e.target.value })}
 							>
 								<option value="createdAt">Ngày tạo</option>
 								<option value="username">Tên</option>
@@ -342,10 +377,18 @@ const UserAdmin = () => {
 								<option value="commentsCount">Số bình luận</option>
 							</Form.Select>
 						</div>
+						<div className="col-md-2 d-flex gap-2">
+							<button className="btn btn-primary w-100" onClick={applyFilters} type="button">
+								Tìm
+							</button>
+							<button className="btn btn-outline-secondary w-100" onClick={resetFilters} type="button">
+								Đặt lại
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>
-			
+
 			{/* Bulk actions */}
 			{selectedUsers.length > 0 && (
 				<div className="alert alert-info d-flex justify-content-between align-items-center">
@@ -363,7 +406,33 @@ const UserAdmin = () => {
 					</div>
 				</div>
 			)}
-			
+			<div className="mb-3">
+				<div className="d-flex justify-content-between align-items-center mb-2">
+					<small className="text-muted">
+						Hiển thị {users.length} / {pagination.total} người dùng
+					</small>
+					<div className="d-flex align-items-center">
+						<span className="me-2">Mỗi trang:</span>
+						<Form.Select
+							size="sm"
+							style={{ width: 100 }}
+							value={filters.limit}
+							onChange={(e) => {
+								const newLimit = Number(e.target.value) || 20;
+								setSelectedUsers([]);
+								setFilters(prev => ({ ...prev, limit: newLimit, page: 1 }));
+								setPendingFilters(prev => ({ ...prev, limit: newLimit }));
+							}}
+						>
+							<option value="10">10</option>
+							<option value="20">20</option>
+							<option value="50">50</option>
+							<option value="100">100</option>
+							<option value="500">500</option>
+						</Form.Select>
+					</div>
+				</div>
+			</div>
 			{loading ? (
 				<div className="text-center p-5">
 					<div className="spinner-border" role="status">
@@ -377,7 +446,7 @@ const UserAdmin = () => {
 							<thead>
 								<tr>
 									<th>
-										<Form.Check 
+										<Form.Check
 											type="checkbox"
 											onChange={handleSelectAll}
 											checked={selectedUsers.length === users.length && users.length > 0}
@@ -387,9 +456,11 @@ const UserAdmin = () => {
 									<th>Avatar</th>
 									<th>Username</th>
 									<th>Email</th>
+									<th>Phone</th>
 									<th>Vai trò</th>
 									<th>Bài viết</th>
 									<th>Bình luận</th>
+									<th>Last Seen</th>
 									<th>Trạng thái</th>
 									<th>Hành động</th>
 								</tr>
@@ -398,7 +469,7 @@ const UserAdmin = () => {
 								{users.map((user, idx) => (
 									<tr key={user._id}>
 										<td>
-											<Form.Check 
+											<Form.Check
 												type="checkbox"
 												checked={selectedUsers.includes(user._id)}
 												onChange={() => handleSelectUser(user._id)}
@@ -406,10 +477,10 @@ const UserAdmin = () => {
 										</td>
 										<td>{(filters.page - 1) * filters.limit + idx + 1}</td>
 										<td>
-											<img 
-												src={user.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"} 
+											<img
+												src={user.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
 												alt={user.username}
-												style={{width: "40px", height: "40px", borderRadius: "50%"}}
+												style={{ width: "40px", height: "40px", borderRadius: "50%" }}
 											/>
 										</td>
 										<td>
@@ -417,6 +488,7 @@ const UserAdmin = () => {
 											{user.isOnline && <span className="badge bg-success ms-2">Online</span>}
 										</td>
 										<td>{user.email}</td>
+										<td>{user.phone || '—'}</td>
 										<td>
 											<span className={`badge ${user.role === 'admin' ? 'bg-danger' : user.role === 'moderator' ? 'bg-warning' : 'bg-secondary'}`}>
 												{user.role}
@@ -424,12 +496,14 @@ const UserAdmin = () => {
 										</td>
 										<td>{user.postsCount || 0}</td>
 										<td>{user.commentsCount || 0}</td>
+										<td>{user.lastSeen ? new Date(user.lastSeen).toLocaleString() : '—'}</td>
 										<td>
 											{user.isBanned ? (
 												<span className="badge bg-danger">Bị cấm</span>
 											) : (
 												<span className="badge bg-success">Hoạt động</span>
 											)}
+											{user.isOnline && <span className="badge bg-info ms-2">Online</span>}
 										</td>
 										<td>
 											<div className="btn-group" role="group">
@@ -439,12 +513,7 @@ const UserAdmin = () => {
 												>
 													Xem
 												</button>
-												<button
-													className="btn btn-primary btn-sm"
-													onClick={() => handleChangeRole(user._id, user.role)}
-												>
-													Role
-												</button>
+
 												{user.isBanned ? (
 													<button
 														className="btn btn-success btn-sm"
@@ -485,17 +554,23 @@ const UserAdmin = () => {
 					{selectedUser && (
 						<div className="row">
 							<div className="col-md-4 text-center">
-								<img 
-									src={selectedUser.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"} 
+								<img
+									src={selectedUser.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
 									alt={selectedUser.username}
-									style={{width: "150px", height: "150px", borderRadius: "50%"}}
+									style={{ width: "150px", height: "150px", borderRadius: "50%" }}
 									className="mb-3"
 								/>
 								<h5>{selectedUser.displayName || selectedUser.username}</h5>
 								<span className={`badge ${selectedUser.role === 'admin' ? 'bg-danger' : selectedUser.role === 'moderator' ? 'bg-warning' : 'bg-secondary'}`}>
 									{selectedUser.role}
 								</span>
+								<span className="d-block mt-2">
+									<Link to={`/user/${selectedUser.username}`} target="_blank" rel="noopener noreferrer">
+										Xem trang cá nhân
+									</Link>
+								</span>
 							</div>
+
 							<div className="col-md-8">
 								<table className="table table-borderless">
 									<tbody>
@@ -506,6 +581,10 @@ const UserAdmin = () => {
 										<tr>
 											<td><strong>Email:</strong></td>
 											<td>{selectedUser.email}</td>
+										</tr>
+										<tr>
+											<td><strong>Phone:</strong></td>
+											<td>{selectedUser.phone || '—'}</td>
 										</tr>
 										<tr>
 											<td><strong>Khoa:</strong></td>
@@ -524,6 +603,10 @@ const UserAdmin = () => {
 											<td>{selectedUser.commentsCount || 0}</td>
 										</tr>
 										<tr>
+											<td><strong>Likes nhận được:</strong></td>
+											<td>{selectedUser.stats?.likesReceived ?? 0}</td>
+										</tr>
+										<tr>
 											<td><strong>Trạng thái:</strong></td>
 											<td>
 												{selectedUser.isBanned ? (
@@ -532,11 +615,26 @@ const UserAdmin = () => {
 													<span className="badge bg-success">Hoạt động</span>
 												)}
 												{selectedUser.isOnline && <span className="badge bg-info ms-2">Online</span>}
+												{selectedUser.bannedUntil && (
+													<span className="badge bg-warning ms-2">Đến: {new Date(selectedUser.bannedUntil).toLocaleString()}</span>
+												)}
 											</td>
 										</tr>
 										<tr>
 											<td><strong>Ngày tạo:</strong></td>
 											<td>{new Date(selectedUser.createdAt).toLocaleString()}</td>
+										</tr>
+										<tr>
+											<td><strong>Hoạt động gần nhất:</strong></td>
+											<td>{selectedUser.lastSeen ? new Date(selectedUser.lastSeen).toLocaleString() : '—'}</td>
+										</tr>
+										<tr>
+											<td><strong>Cài đặt email:</strong></td>
+											<td>{selectedUser.settings?.emailNotifications ? 'Bật' : 'Tắt'}</td>
+										</tr>
+										<tr>
+											<td><strong>Cài đặt push:</strong></td>
+											<td>{selectedUser.settings?.pushNotifications ? 'Bật' : 'Tắt'}</td>
 										</tr>
 										{selectedUser.bio && (
 											<tr>
@@ -556,6 +654,26 @@ const UserAdmin = () => {
 					</button>
 				</Modal.Footer>
 			</Modal>
+
+			{/* Pagination */}
+			<div className="mt-3">
+
+				{pagination.pages > 1 && (
+					<div className="d-flex justify-content-center">
+						<Pagination>
+							<Pagination.First onClick={() => goToPage(1)} disabled={pagination.page === 1} />
+							<Pagination.Prev onClick={() => goToPage(pagination.page - 1)} disabled={pagination.page === 1} />
+							{Array.from({ length: pagination.pages }, (_, i) => i + 1).map(p => (
+								<Pagination.Item key={p} active={p === pagination.page} onClick={() => goToPage(p)}>
+									{p}
+								</Pagination.Item>
+							))}
+							<Pagination.Next onClick={() => goToPage(pagination.page + 1)} disabled={pagination.page === pagination.pages} />
+							<Pagination.Last onClick={() => goToPage(pagination.pages)} disabled={pagination.page === pagination.pages} />
+						</Pagination>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 };

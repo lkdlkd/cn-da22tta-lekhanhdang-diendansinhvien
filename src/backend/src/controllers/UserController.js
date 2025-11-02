@@ -5,6 +5,26 @@ const Message = require('../models/Message');
 const fs = require('fs');
 const path = require('path');
 
+// Helper: remove a local uploaded file when given a full URL containing /uploads/
+function removeLocalUploadByUrl(fileUrl) {
+  try {
+    if (!fileUrl || typeof fileUrl !== 'string') return;
+    // Skip external avatars like gravatar
+    if (fileUrl.includes('gravatar.com')) return;
+    const marker = '/uploads/';
+    const idx = fileUrl.indexOf(marker);
+    if (idx === -1) return;
+    const relative = fileUrl.substring(idx + marker.length); // e.g., 'user/xxx.png' or 'posts/abc.jpg'
+    const filePath = path.join(__dirname, '..', 'uploads', ...relative.split('/'));
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log('Đã xóa file:', filePath);
+    }
+  } catch (e) {
+    console.error('Lỗi xoá file upload:', e?.message || e);
+  }
+}
+// ĐĂNG NHẬP
 exports.login = async (req, res) => {
   try {
     let { username, password } = req.body;
@@ -48,7 +68,7 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
         displayName: user.displayName,
-        avatar: user.avatar,
+        // avatar: user.avatar,
         faculty: user.faculty,
         class: user.class,
         bio: user.bio,
@@ -62,7 +82,7 @@ exports.login = async (req, res) => {
   }
 };
 
-
+// ĐĂNG KÝ
 exports.register = async (req, res) => {
   try {
     let { username, email, password, displayName, phone, faculty, class: userClass, bio } = req.body;
@@ -131,7 +151,7 @@ exports.register = async (req, res) => {
     return res.status(500).json({ error: "Có lỗi xảy ra. Vui lòng thử lại." });
   }
 };
-
+// THÔNG TIN CÁ NHÂN
 exports.getProfile = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -139,9 +159,9 @@ exports.getProfile = async (req, res) => {
     // const notifications = await Notification.find({ userId });
     // Lấy các cuộc trò chuyện có user tham gia, sắp xếp theo lastMessageAt
     // const messages = await Message.find({ participants: userId })
-      // .sort({ lastMessageAt: -1 })
-      // .populate('participants', 'username displayName avatar')
-      // .populate('messages.senderId', 'username displayName avatar');
+    // .sort({ lastMessageAt: -1 })
+    // .populate('participants', 'username displayName avatar')
+    // .populate('messages.senderId', 'username displayName avatar');
     // user = { ...user.toObject(), notifications, messages };
 
     if (!user) {
@@ -153,24 +173,24 @@ exports.getProfile = async (req, res) => {
     return res.status(500).json({ error: "Có lỗi xảy ra khi lấy thông tin người dùng" });
   }
 };
-
+// CẬP NHẬT THÔNG TIN CÁ NHÂN
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user._id;
     let updates = req.body;
-    
+
     // Nếu có file avatar upload lên
     if (req.file) {
       // Lấy thông tin user cũ để xóa avatar cũ
       const oldUser = await User.findById(userId);
-      
+
       // Xóa file avatar cũ nếu tồn tại và không phải avatar mặc định (gravatar)
       if (oldUser && oldUser.avatarUrl && !oldUser.avatarUrl.includes('gravatar.com')) {
         try {
           // Lấy tên file từ URL
           const oldFileName = oldUser.avatarUrl.split('/').pop();
           const oldFilePath = path.join(__dirname, '../../src/uploads/user', oldFileName);
-          
+
           // Kiểm tra file tồn tại rồi mới xóa
           if (fs.existsSync(oldFilePath)) {
             fs.unlinkSync(oldFilePath);
@@ -181,95 +201,43 @@ exports.updateProfile = async (req, res) => {
           // Không throw error, vẫn tiếp tục update avatar mới
         }
       }
-      
+
       // Đường dẫn backend để lưu URL
       const backendUrl = `${req.protocol}://${req.get('host')}`;
       // Lưu đường dẫn file avatar vào trường avatarUrl
       updates.avatarUrl = `${backendUrl}/uploads/user/${req.file.filename}`;
     }
-    
+
     const user = await User.findByIdAndUpdate(userId, updates, { new: true }).select('-password');
-    
+
     if (!user) {
       return res.status(404).json({ error: "Người dùng không tồn tại" });
     }
-    
+
     return res.status(200).json({ success: true, user });
   } catch (error) {
     console.error("Cập nhật thông tin người dùng lỗi:", error);
     return res.status(500).json({ error: "Có lỗi xảy ra khi cập nhật thông tin người dùng" });
   }
 };
-exports.getAllUsers = async (req, res) => {
-  try {
-    const users = await User.find().select('-password');
-    return res.status(200).json({ success: true, users });
-  } catch (error) {
-    console.error("Lấy danh sách người dùng lỗi:", error);
-    return res.status(500).json({ error: "Có lỗi xảy ra khi lấy danh sách người dùng" });
-  }
-};
 
-exports.banUser = async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ error: "Người dùng không tồn tại" });
-    }
-    user.isBanned = true;
-    await user.save();
-    return res.status(200).json({ success: true, message: "Người dùng đã bị cấm" });
-  } catch (error) {
-    console.error("Cấm người dùng lỗi:", error);
-    return res.status(500).json({ error: "Có lỗi xảy ra khi cấm người dùng" });
-  }
-};
-exports.unbanUser = async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ error: "Người dùng không tồn tại" });
-    }
-    user.isBanned = false;
-    await user.save();
-    return res.status(200).json({ success: true, message: "Người dùng đã được gỡ cấm" });
-  } catch (error) {
-    console.error("Gỡ cấm người dùng lỗi:", error);
-    return res.status(500).json({ error: "Có lỗi xảy ra khi gỡ cấm người dùng" });
-  }
-};
-exports.deleteUser = async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const user = await User.findByIdAndDelete(userId);
-    if (!user) {
-      return res.status(404).json({ error: "Người dùng không tồn tại" });
-    }
-    return res.status(200).json({ success: true, message: "Người dùng đã bị xóa" });
-  } catch (error) {
-    console.error("Xóa người dùng lỗi:", error);
-    return res.status(500).json({ error: "Có lỗi xảy ra khi xóa người dùng" });
-  }
-};
 
 exports.getActiveUsers = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
     const onlineOnly = req.query.onlineOnly === 'true';
-    
+
     // Match condition
-    const matchCondition = { 
+    const matchCondition = {
       isBanned: { $ne: true },
       role: { $ne: 'admin' }
     };
-    
+
     // Nếu chỉ lấy user online
     if (onlineOnly) {
       matchCondition.isOnline = true;
     }
-    
+
     // Lấy danh sách user có nhiều bài viết nhất
     const activeUsers = await User.aggregate([
       {
@@ -294,7 +262,7 @@ exports.getActiveUsers = async (req, res) => {
         }
       },
       {
-        $sort: { 
+        $sort: {
           isOnline: -1, // Online users trước
           postsCount: -1 // Sau đó sort theo số bài viết
         }
@@ -317,9 +285,9 @@ exports.getActiveUsers = async (req, res) => {
       }
     ]);
 
-    return res.status(200).json({ 
-      success: true, 
-      users: activeUsers 
+    return res.status(200).json({
+      success: true,
+      users: activeUsers
     });
   } catch (error) {
     console.error("Lấy danh sách thành viên tích cực lỗi:", error);
@@ -328,55 +296,55 @@ exports.getActiveUsers = async (req, res) => {
 };
 
 // API mới: Lấy chỉ user đang online
-exports.getOnlineUsers = async (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 50;
-    
-    const onlineUsers = await User.find({
-      isOnline: true,
-      isBanned: { $ne: true }
-    })
-    .select('_id username displayName avatar avatarUrl isOnline lastSeen')
-    .limit(limit)
-    .sort({ lastSeen: -1 });
+// exports.getOnlineUsers = async (req, res) => {
+//   try {
+//     const limit = parseInt(req.query.limit) || 50;
 
-    return res.status(200).json({ 
-      success: true, 
-      count: onlineUsers.length,
-      users: onlineUsers 
-    });
-  } catch (error) {
-    console.error("Lấy danh sách user online lỗi:", error);
-    return res.status(500).json({ error: "Có lỗi xảy ra khi lấy danh sách user online" });
-  }
-};
+//     const onlineUsers = await User.find({
+//       isOnline: true,
+//       isBanned: { $ne: true }
+//     })
+//       .select('_id username displayName avatar avatarUrl isOnline lastSeen')
+//       .limit(limit)
+//       .sort({ lastSeen: -1 });
+
+//     return res.status(200).json({
+//       success: true,
+//       count: onlineUsers.length,
+//       users: onlineUsers
+//     });
+//   } catch (error) {
+//     console.error("Lấy danh sách user online lỗi:", error);
+//     return res.status(500).json({ error: "Có lỗi xảy ra khi lấy danh sách user online" });
+//   }
+// };
 
 // API lấy thông tin user theo username (public profile)
 exports.getUserByUsername = async (req, res) => {
   try {
     const { username } = req.params;
-    
+
     // Tìm user theo username
     const user = await User.findOne({ username: username.toLowerCase() })
       .select('-password')
       .lean();
-    
+
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        error: "Không tìm thấy người dùng" 
+      return res.status(404).json({
+        success: false,
+        error: "Không tìm thấy người dùng"
       });
     }
-    
+
     // Lấy thống kê posts và comments của user
     const Post = require('../models/Post');
     const Comment = require('../models/Comment');
-    
+
     const [postsCount, commentsCount] = await Promise.all([
       Post.countDocuments({ authorId: user._id, isDeleted: false }),
       Comment.countDocuments({ authorId: user._id, isDeleted: false })
     ]);
-    
+
     // Trả về thông tin user kèm stats
     res.json({
       success: true,
@@ -399,40 +367,40 @@ exports.getUserByUsername = async (req, res) => {
 exports.getUserPosts = async (req, res) => {
   try {
     const { username } = req.params;
-    const { 
-      page = 1, 
+    const {
+      page = 1,
       limit = 10,
       sortBy = 'createdAt',
       order = 'desc'
     } = req.query;
-    
+
     // Tìm user
     const user = await User.findOne({ username: username.toLowerCase() })
       .select('_id')
       .lean();
-    
+
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        error: "Không tìm thấy người dùng" 
+      return res.status(404).json({
+        success: false,
+        error: "Không tìm thấy người dùng"
       });
     }
-    
+
     const skip = (page - 1) * limit;
     const sortOrder = order === 'desc' ? -1 : 1;
     const limitNum = parseInt(limit);
-    
+
     const Post = require('../models/Post');
     const Like = require('../models/Like');
     const Comment = require('../models/Comment');
     const Attachment = require('../models/Attachment');
-    
+
     // Query posts và total count song song
     const [posts, total] = await Promise.all([
-      Post.find({ 
-        authorId: user._id, 
+      Post.find({
+        authorId: user._id,
         isDeleted: false,
-        isDraft: false 
+        isDraft: false
       })
         .populate('authorId', 'username displayName avatar avatarUrl faculty class bio stats')
         .populate('categoryId', 'title slug description')
@@ -441,10 +409,10 @@ exports.getUserPosts = async (req, res) => {
         .limit(limitNum)
         .sort({ [sortBy]: sortOrder })
         .lean(),
-      Post.countDocuments({ 
-        authorId: user._id, 
+      Post.countDocuments({
+        authorId: user._id,
         isDeleted: false,
-        isDraft: false 
+        isDraft: false
       })
     ]);
 
@@ -477,7 +445,7 @@ exports.getUserPosts = async (req, res) => {
     ]);
 
     // Lấy likes cho comments trong 1 query
-    const likescmt = commentIds.length > 0 
+    const likescmt = commentIds.length > 0
       ? await Like.find({ targetType: 'comment', targetId: { $in: commentIds } })
         .populate('userId', 'username displayName avatarUrl faculty class')
         .sort({ createdAt: -1 })
@@ -527,7 +495,7 @@ exports.getUserPosts = async (req, res) => {
         comments: commentsByPost.get(postId) || []
       };
     });
-    
+
     res.json({
       success: true,
       data: postsWithComments,
@@ -546,12 +514,161 @@ exports.getUserPosts = async (req, res) => {
 
 // ==================== ADMIN FUNCTIONS ====================
 
+
+exports.banUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "Người dùng không tồn tại" });
+    }
+    user.isBanned = true;
+    await user.save();
+    return res.status(200).json({ success: true, message: "Người dùng đã bị cấm" });
+  } catch (error) {
+    console.error("Cấm người dùng lỗi:", error);
+    return res.status(500).json({ error: "Có lỗi xảy ra khi cấm người dùng" });
+  }
+};
+exports.unbanUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "Người dùng không tồn tại" });
+    }
+    user.isBanned = false;
+    await user.save();
+    return res.status(200).json({ success: true, message: "Người dùng đã được gỡ cấm" });
+  } catch (error) {
+    console.error("Gỡ cấm người dùng lỗi:", error);
+    return res.status(500).json({ error: "Có lỗi xảy ra khi gỡ cấm người dùng" });
+  }
+};
+exports.deleteUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    // Kiểm tra tồn tại user trước khi xoá
+    const user = await User.findById(userId).select('_id avatarUrl');
+    if (!user) {
+      return res.status(404).json({ error: "Người dùng không tồn tại" });
+    }
+
+    // Nạp model khi cần để tránh vòng lặp import
+    const Post = require('../models/Post');
+    const Comment = require('../models/Comment');
+    const Like = require('../models/Like');
+    const Attachment = require('../models/Attachment');
+    const Report = require('../models/Report');
+
+    // Lấy danh sách post và comment liên quan để xoá dữ liệu phụ thuộc (likes, reports...)
+    const posts = await Post.find({ authorId: userId }).select('_id attachments').lean();
+    const postIds = posts.map(p => p._id);
+    const postAttachmentIds = posts.flatMap(p => (p.attachments || []));
+
+    const comments = await Comment.find({
+      $or: [
+        { authorId: userId }, // comment do user viết
+        { postId: { $in: postIds } } // comment nằm trong post của user
+      ]
+    }).select('_id attachments authorId').lean();
+    const commentIds = comments.map(c => c._id);
+    const commentAttachmentIds = comments.flatMap(c => (c.attachments || []));
+
+    // Gom tất cả attachment IDs cần xoá (theo tham chiếu post/comment và theo chủ sở hữu)
+    const ownerAttachments = await Attachment.find({ ownerId: userId }).select('_id storageUrl').lean();
+    const allAttachmentIdSet = new Set([
+      ...postAttachmentIds.map(id => String(id)),
+      ...commentAttachmentIds.map(id => String(id)),
+      ...ownerAttachments.map(a => String(a._id))
+    ]);
+    const allAttachmentIds = Array.from(allAttachmentIdSet);
+    const attachmentsToDelete = allAttachmentIds.length > 0
+      ? await Attachment.find({ _id: { $in: allAttachmentIds } }).select('_id storageUrl').lean()
+      : [];
+
+    // Xoá file vật lý cho avatar (nếu là file local)
+    if (user.avatarUrl) {
+      removeLocalUploadByUrl(user.avatarUrl);
+    }
+
+    // Xoá file vật lý cho tất cả attachments liên quan
+    for (const att of attachmentsToDelete) {
+      removeLocalUploadByUrl(att.storageUrl);
+    }
+
+    // Thực thi các thao tác xoá song song
+    const [
+      delPosts,
+      delComments,
+      delLikes,
+      delAttachments,
+      delNotifications,
+      delMessages,
+      delReports,
+      delUser
+    ] = await Promise.all([
+      // Xoá bài viết của user
+      Post.deleteMany({ authorId: userId }),
+      // Xoá comment do user viết hoặc trên bài viết của user
+      Comment.deleteMany({
+        $or: [
+          { authorId: userId },
+          { postId: { $in: postIds } }
+        ]
+      }),
+      // Xoá likes: do user tạo hoặc nhắm tới post/comment của user
+      Like.deleteMany({
+        $or: [
+          { userId: userId },
+          { targetType: 'post', targetId: { $in: postIds } },
+          { targetType: 'comment', targetId: { $in: commentIds } }
+        ]
+      }),
+      // Xoá tất cả attachment document đã gom (post, comment, owner)
+      allAttachmentIds.length > 0 ? Attachment.deleteMany({ _id: { $in: allAttachmentIds } }) : { deletedCount: 0 },
+      // Xoá thông báo gửi tới user
+      Notification.deleteMany({ userId: userId }),
+      // Xoá các đoạn hội thoại mà user tham gia
+      Message.deleteMany({ participants: userId }),
+      // Xoá báo cáo do user gửi hoặc nhắm tới user/post/comment của user
+      Report.deleteMany({
+        $or: [
+          { reporterId: userId },
+          { targetType: 'user', targetId: userId },
+          { targetType: 'post', targetId: { $in: postIds } },
+          { targetType: 'comment', targetId: { $in: commentIds } }
+        ]
+      }),
+      // Cuối cùng xoá user
+      User.findByIdAndDelete(userId)
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Đã xoá người dùng và toàn bộ dữ liệu liên quan",
+      deleted: {
+        posts: delPosts?.deletedCount || 0,
+        comments: delComments?.deletedCount || 0,
+        likes: delLikes?.deletedCount || 0,
+        attachments: delAttachments?.deletedCount || 0,
+        notifications: delNotifications?.deletedCount || 0,
+        messages: delMessages?.deletedCount || 0,
+        reports: delReports?.deletedCount || 0,
+        users: delUser ? 1 : 0
+      }
+    });
+  } catch (error) {
+    console.error("Xóa người dùng lỗi:", error);
+    return res.status(500).json({ error: "Có lỗi xảy ra khi xóa người dùng" });
+  }
+};
 // [ADMIN] Lấy tất cả users với phân trang và tìm kiếm nâng cao
 exports.getAllUsersAdmin = async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
+    const {
+      page = 1,
+      limit = 20,
       keyword,
       role,
       isBanned,
@@ -561,7 +678,7 @@ exports.getAllUsersAdmin = async (req, res) => {
     } = req.query;
 
     const query = {};
-    
+
     // Tìm kiếm theo keyword
     if (keyword) {
       query.$or = [
@@ -574,12 +691,12 @@ exports.getAllUsersAdmin = async (req, res) => {
 
     // Lọc theo role
     if (role) query.role = role;
-    
+
     // Lọc theo trạng thái ban
     if (isBanned !== undefined) {
       query.isBanned = isBanned === 'true';
     }
-    
+
     // Lọc theo online status
     if (isOnline !== undefined) {
       query.isOnline = isOnline === 'true';
@@ -603,7 +720,7 @@ exports.getAllUsersAdmin = async (req, res) => {
     // Lấy stats cho tất cả users song song
     const Post = require('../models/Post');
     const Comment = require('../models/Comment');
-    
+
     const userIds = users.map(u => u._id);
     const [postsStats, commentsStats] = await Promise.all([
       Post.aggregate([
@@ -643,38 +760,6 @@ exports.getAllUsersAdmin = async (req, res) => {
   }
 };
 
-// [ADMIN] Cập nhật role user
-exports.updateUserRole = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { role } = req.body;
-
-    if (!['user', 'moderator', 'admin'].includes(role)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Role không hợp lệ' 
-      });
-    }
-
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { role },
-      { new: true }
-    ).select('-password');
-
-    if (!user) {
-      return res.status(404).json({ success: false, error: 'User không tồn tại' });
-    }
-
-    res.json({ 
-      success: true, 
-      data: user,
-      message: `Đã cập nhật role thành ${role}` 
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-};
 
 // [ADMIN] Ban nhiều users cùng lúc
 exports.banMultipleUsers = async (req, res) => {
@@ -682,9 +767,9 @@ exports.banMultipleUsers = async (req, res) => {
     const { userIds, duration, reason } = req.body;
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Vui lòng cung cấp danh sách user IDs' 
+      return res.status(400).json({
+        success: false,
+        error: 'Vui lòng cung cấp danh sách user IDs'
       });
     }
 
@@ -692,15 +777,15 @@ exports.banMultipleUsers = async (req, res) => {
 
     const result = await User.updateMany(
       { _id: { $in: userIds } },
-      { 
+      {
         isBanned: true,
         bannedUntil,
         bannedReason: reason || 'Vi phạm quy định'
       }
     );
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `Đã ban ${result.modifiedCount} users`,
       modifiedCount: result.modifiedCount
     });
@@ -715,23 +800,23 @@ exports.unbanMultipleUsers = async (req, res) => {
     const { userIds } = req.body;
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Vui lòng cung cấp danh sách user IDs' 
+      return res.status(400).json({
+        success: false,
+        error: 'Vui lòng cung cấp danh sách user IDs'
       });
     }
 
     const result = await User.updateMany(
       { _id: { $in: userIds } },
-      { 
+      {
         isBanned: false,
         bannedUntil: null,
         bannedReason: null
       }
     );
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `Đã unban ${result.modifiedCount} users`,
       modifiedCount: result.modifiedCount
     });
@@ -746,32 +831,115 @@ exports.deleteMultipleUsers = async (req, res) => {
     const { userIds } = req.body;
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Vui lòng cung cấp danh sách user IDs' 
+      return res.status(400).json({
+        success: false,
+        error: 'Vui lòng cung cấp danh sách user IDs'
       });
     }
-
-    // Xóa tất cả related data song song
+    // Xóa tất cả related data song song (bao gồm phụ thuộc vào post/comment của các user)
     const Post = require('../models/Post');
     const Comment = require('../models/Comment');
     const Like = require('../models/Like');
     const Attachment = require('../models/Attachment');
+    const Report = require('../models/Report');
 
-    const [deletedUsers] = await Promise.all([
-      User.deleteMany({ _id: { $in: userIds } }),
+    // Lấy danh sách postId của các user
+    const posts = await Post.find({ authorId: { $in: userIds } }).select('_id attachments').lean();
+    const postIds = posts.map(p => p._id);
+    const postAttachmentIds = posts.flatMap(p => (p.attachments || []));
+
+    // Lấy danh sách commentId: do user viết hoặc trên post của các user
+    const comments = await Comment.find({
+      $or: [
+        { authorId: { $in: userIds } },
+        { postId: { $in: postIds } }
+      ]
+    }).select('_id attachments authorId').lean();
+    const commentIds = comments.map(c => c._id);
+    const commentAttachmentIds = comments.flatMap(c => (c.attachments || []));
+
+    // Gom attachment IDs: từ posts, comments và của chính các users
+    const ownerAttachments = await Attachment.find({ ownerId: { $in: userIds } }).select('_id storageUrl').lean();
+    const allAttachmentIdSet = new Set([
+      ...postAttachmentIds.map(id => String(id)),
+      ...commentAttachmentIds.map(id => String(id)),
+      ...ownerAttachments.map(a => String(a._id))
+    ]);
+    const allAttachmentIds = Array.from(allAttachmentIdSet);
+    const attachmentsToDelete = allAttachmentIds.length > 0
+      ? await Attachment.find({ _id: { $in: allAttachmentIds } }).select('_id storageUrl').lean()
+      : [];
+
+    // Xoá file avatar local của các users (nếu có)
+    const usersWithAvatar = await User.find({ _id: { $in: userIds } }).select('avatarUrl').lean();
+    for (const u of usersWithAvatar) {
+      if (u.avatarUrl) removeLocalUploadByUrl(u.avatarUrl);
+    }
+
+    // Xoá file vật lý cho tất cả attachments liên quan
+    for (const att of attachmentsToDelete) {
+      removeLocalUploadByUrl(att.storageUrl);
+    }
+
+    const [
+      delPosts,
+      delComments,
+      delLikes,
+      delAttachments,
+      delNotifications,
+      delMessages,
+      delReports,
+      delUsers
+    ] = await Promise.all([
+      // Bài viết của các user
       Post.deleteMany({ authorId: { $in: userIds } }),
-      Comment.deleteMany({ authorId: { $in: userIds } }),
-      Like.deleteMany({ userId: { $in: userIds } }),
-      Attachment.deleteMany({ ownerId: { $in: userIds } }),
+      // Comment do các user viết hoặc trên bài viết của họ
+      Comment.deleteMany({
+        $or: [
+          { authorId: { $in: userIds } },
+          { postId: { $in: postIds } }
+        ]
+      }),
+      // Likes do các user tạo hoặc nhắm tới post/comment của họ
+      Like.deleteMany({
+        $or: [
+          { userId: { $in: userIds } },
+          { targetType: 'post', targetId: { $in: postIds } },
+          { targetType: 'comment', targetId: { $in: commentIds } }
+        ]
+      }),
+      // Tệp đính kèm đã gom từ post/comment/owner
+      allAttachmentIds.length > 0 ? Attachment.deleteMany({ _id: { $in: allAttachmentIds } }) : { deletedCount: 0 },
+      // Thông báo gửi tới các user
       Notification.deleteMany({ userId: { $in: userIds } }),
-      Message.deleteMany({ $or: [{ senderId: { $in: userIds } }, { receiverId: { $in: userIds } }] })
+      // Hội thoại có sự tham gia của bất kỳ user nào trong danh sách
+      Message.deleteMany({ participants: { $in: userIds } }),
+      // Báo cáo do các user gửi hoặc nhắm tới user/post/comment của họ
+      Report.deleteMany({
+        $or: [
+          { reporterId: { $in: userIds } },
+          { targetType: 'user', targetId: { $in: userIds } },
+          { targetType: 'post', targetId: { $in: postIds } },
+          { targetType: 'comment', targetId: { $in: commentIds } }
+        ]
+      }),
+      // Cuối cùng, xoá user
+      User.deleteMany({ _id: { $in: userIds } })
     ]);
 
-    res.json({ 
-      success: true, 
-      message: `Đã xóa ${deletedUsers.deletedCount} users`,
-      deletedCount: deletedUsers.deletedCount
+    res.json({
+      success: true,
+      message: `Đã xoá người dùng và dữ liệu liên quan`,
+      deleted: {
+        users: delUsers?.deletedCount || 0,
+        posts: delPosts?.deletedCount || 0,
+        comments: delComments?.deletedCount || 0,
+        likes: delLikes?.deletedCount || 0,
+        attachments: delAttachments?.deletedCount || 0,
+        notifications: delNotifications?.deletedCount || 0,
+        messages: delMessages?.deletedCount || 0,
+        reports: delReports?.deletedCount || 0
+      }
     });
   } catch (err) {
     console.error('Error in deleteMultipleUsers:', err);
@@ -784,13 +952,13 @@ exports.getUsersStats = async (req, res) => {
   try {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
+
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
     // Query tất cả stats song song
     const Post = require('../models/Post');
-    
+
     const [
       totalUsers,
       bannedUsers,

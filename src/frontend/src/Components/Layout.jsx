@@ -23,7 +23,7 @@ function fetchDocuments() {
 export default function Layout({ children }) {
     const [user, setUser] = useState(null);
     const [categories, setCategories] = useState([]);
-    const [featuredPosts, setFeaturedPosts] = useState([]);
+    // const [featuredPosts, setFeaturedPosts] = useState([]);
     const [activeUsers, setActiveUsers] = useState([]);
     const [documents, setDocuments] = useState([]);
     const [allPosts, setAllPosts] = useState([]);
@@ -34,13 +34,13 @@ export default function Layout({ children }) {
         Promise.all([
             getProfile(token),
             getCategories(),
-            getFeaturedPosts(),
+            // getFeaturedPosts(),
             getActiveUsers(5),
             fetchDocuments()
         ]).then(([userData, categoriesData, postsData, usersData, docsData]) => {
             setUser(userData.user);
             setCategories(categoriesData);
-            setFeaturedPosts(postsData);
+            // setFeaturedPosts(postsData);
             setActiveUsers(usersData.users || []);
             setDocuments(docsData);
             setLoading(false);
@@ -88,7 +88,7 @@ export default function Layout({ children }) {
             <div className="pc-container">
                 <div className="pc-content">
                     {/* Truyền dữ liệu qua Outlet */}
-                    <Outlet context={{ user, categories, featuredPosts, activeUsers, documents }} />
+                    <Outlet context={{ user, categories, activeUsers, documents }} />
                 </div>
             </div>
             <footer className="pc-footer">

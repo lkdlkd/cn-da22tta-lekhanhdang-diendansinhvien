@@ -166,7 +166,7 @@ const PostItem = ({
           </Link>
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-              <Link 
+              <Link
                 to={`/user/${post.authorId?.username}`}
                 style={{ fontWeight: "600", fontSize: "15px", color: "#050505", textDecoration: "none" }}
                 onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
@@ -343,7 +343,7 @@ const PostItem = ({
                     <button
                       onClick={async () => {
                         setShowOptionsMenu(false);
-                        
+
                         // Hiển thị dialog nhập lý do
                         const { value: reason } = await Swal.fire({
                           title: 'Báo cáo bài viết',
@@ -371,14 +371,14 @@ const PostItem = ({
                           try {
                             const { createReport } = await import("../Utils/api");
                             const token = localStorage.getItem('token');
-                            
+
                             if (!token) {
                               toast.error("Vui lòng đăng nhập để báo cáo");
                               return;
                             }
 
                             const result = await createReport(token, 'post', post._id, reason.trim());
-                            
+
                             if (result.success) {
                               toast.success("Đã gửi báo cáo thành công");
                             } else {
@@ -1073,59 +1073,61 @@ const PostItem = ({
               }}>
                 {post.likes && post.likes.length > 0 ? (
                   post.likes.map((like, index) => (
-                    <div
-                      key={like._id || index}
-                      style={{
-                        padding: "8px 16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                        cursor: "pointer",
-                        transition: "background-color 0.2s"
-                      }}
-                      onMouseOver={e => e.currentTarget.style.backgroundColor = "#f2f3f5"}
-                      onMouseOut={e => e.currentTarget.style.backgroundColor = "transparent"}
-                    >
-                      <img
-                        src={like.userId?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
-                        alt="Avatar"
+                    <Link to={`/user/${like.userId?.username}`} key={like._id || index}>
+                      <div
+                        key={like._id || index}
                         style={{
-                          width: "40px",
-                          height: "40px",
-                          borderRadius: "50%",
-                          objectFit: "cover"
+                          padding: "8px 16px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
+                          cursor: "pointer",
+                          transition: "background-color 0.2s"
                         }}
-                      />
-                      <div style={{ flex: 1 }}>
-                        <div style={{
-                          fontWeight: "600",
-                          fontSize: "15px",
-                          color: "#050505"
-                        }}>
-                          {like.userId?.displayName || like.userId?.username || "Người dùng"}
-                        </div>
-                        {like.userId?.faculty && (
+                        onMouseOver={e => e.currentTarget.style.backgroundColor = "#f2f3f5"}
+                        onMouseOut={e => e.currentTarget.style.backgroundColor = "transparent"}
+                      >
+                        <img
+                          src={like.userId?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
+                          alt="Avatar"
+                          style={{
+                            width: "40px",
+                            height: "40px",
+                            borderRadius: "50%",
+                            objectFit: "cover"
+                          }}
+                        />
+                        <div style={{ flex: 1 }}>
                           <div style={{
-                            fontSize: "13px",
-                            color: "#65676b"
+                            fontWeight: "600",
+                            fontSize: "15px",
+                            color: "#050505"
                           }}>
-                            {like.userId.faculty}
-                            {like.userId.class && ` - ${like.userId.class}`}
+                            {like.userId?.displayName || like.userId?.username || "Người dùng"}
                           </div>
-                        )}
+                          {like.userId?.faculty && (
+                            <div style={{
+                              fontSize: "13px",
+                              color: "#65676b"
+                            }}>
+                              {like.userId.faculty}
+                              {like.userId.class && ` - ${like.userId.class}`}
+                            </div>
+                          )}
+                        </div>
+                        <span style={{
+                          background: "#1877f2",
+                          color: "white",
+                          borderRadius: "50%",
+                          width: "24px",
+                          height: "24px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "12px"
+                        }}>👍</span>
                       </div>
-                      <span style={{
-                        background: "#1877f2",
-                        color: "white",
-                        borderRadius: "50%",
-                        width: "24px",
-                        height: "24px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "12px"
-                      }}>👍</span>
-                    </div>
+                    </Link>
                   ))
                 ) : (
                   <div style={{

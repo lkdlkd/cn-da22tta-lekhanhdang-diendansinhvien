@@ -6,8 +6,6 @@ import Home from "./Pages/Home";
 import { Login } from "./Pages/Login/Login";
 import { Register } from "./Pages/Register/register";
 import Layout from "./Components/Layout";
-import LayoutAdmin from "./Components/LayoutAdmin";
-import AdminDashboard from "./Pages/Admin/AdminDashboard/AdminDashboard";
 import CategoryAdmin from "./Pages/Admin/AdminDashboard/CategoryDashboard";
 import UserAdmin from "./Pages/Admin/AdminDashboard/UserAdmin"; 
 import PostAdmin from "./Pages/Admin/AdminDashboard/PostAdmin";
@@ -59,9 +57,9 @@ function App() {
               </AuthContext.Consumer>
             }
           >
-            <Route index element={<AdminDashboard />} />
             {/* <Route index element={<AdminDashboard />} /> */}
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            {/* <Route index element={<AdminDashboard />} /> */}
+            {/* <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}
             <Route path="/admin/categories" element={<CategoryAdmin />} />
             <Route path="/admin/users" element={<UserAdmin />} />
             <Route path="/admin/posts" element={<PostAdmin />} />

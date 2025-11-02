@@ -133,21 +133,70 @@ exports.searchCategories = async (req, res) => {
 		}
 
 		const skip = (page - 1) * limit;
+		const limitNum = parseInt(limit);
 		const categories = await Category.find(query)
 			.skip(skip)
-			.limit(parseInt(limit))
-			.sort({ createdAt: -1 });
+			.limit(limitNum)
+			.sort({ createdAt: -1 })
+			.lean();
+
+		// Tính postCount cho mỗi danh mục của trang hiện tại
+		const categoriesWithStats = await Promise.all(
+			categories.map(async (cat) => {
+				const postCount = await Post.countDocuments({ categoryId: cat._id });
+				return { ...cat, postCount };
+			})
+		);
 
 		const total = await Category.countDocuments(query);
 
 		res.json({
 			success: true,
-			data: categories,
+			data: categoriesWithStats,
 			pagination: {
 				page: parseInt(page),
-				limit: parseInt(limit),
+				limit: limitNum,
 				total,
-				pages: Math.ceil(total / limit)
+				pages: Math.ceil(total / limitNum)
+			}
+		});
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [ADMIN] Thống kê danh mục (tổng quan)
+exports.getCategoriesStats = async (req, res) => {
+	try {
+		const [totalCategories, totalPosts] = await Promise.all([
+			Category.countDocuments({}),
+			Post.countDocuments({})
+		]);
+
+		// Các danh mục đang có bài viết (distinct categoryId từ Post)
+		const distinctCategoryIds = await Post.distinct('categoryId', { categoryId: { $ne: null } });
+		const categoriesWithPosts = distinctCategoryIds.length;
+		const emptyCategories = Math.max(0, totalCategories - categoriesWithPosts);
+
+		// Top 5 danh mục theo số bài viết
+		const topAgg = await Post.aggregate([
+			{ $match: { categoryId: { $ne: null } } },
+			{ $group: { _id: '$categoryId', postCount: { $sum: 1 } } },
+			{ $sort: { postCount: -1 } },
+			{ $limit: 5 },
+			{ $lookup: { from: 'categories', localField: '_id', foreignField: '_id', as: 'category' } },
+			{ $unwind: '$category' },
+			{ $project: { _id: 0, categoryId: '$_id', postCount: 1, title: '$category.title', slug: '$category.slug' } }
+		]);
+
+		return res.json({
+			success: true,
+			stats: {
+				totalCategories,
+				totalPosts,
+				categoriesWithPosts,
+				emptyCategories,
+				topCategories: topAgg
 			}
 		});
 	} catch (err) {

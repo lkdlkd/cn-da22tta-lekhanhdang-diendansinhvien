@@ -3,9 +3,11 @@ import Swal from "sweetalert2";
 import Modal from "react-bootstrap/Modal";
 import Table from "react-bootstrap/Table";
 import Form from "react-bootstrap/Form";
+import Pagination from "react-bootstrap/Pagination";
 import { toast } from "react-toastify";
 import { 
     getAllCategoriesWithStats, 
+    getCategoriesStats,
     createCategory, 
     updateCategory, 
     deleteCategory,
@@ -21,40 +23,53 @@ export default function CategoryDashboard() {
     const [showFormModal, setShowFormModal] = useState(false);
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [searchKeyword, setSearchKeyword] = useState("");
+    const [stats, setStats] = useState(null);
+    const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
     const token = localStorage.getItem("token");
 
     // Fetch categories with stats
     const fetchCategories = async () => {
         setLoading(true);
         try {
-            const data = await getAllCategoriesWithStats(token);
-            setCategories(data.data || []);
+            // Luôn dùng searchCategories để có phân trang; khi không có keyword vẫn trả về đầy đủ theo page/limit
+            const result = await searchCategories(token, searchKeyword || "", pagination.page, pagination.limit);
+            setCategories(result.data || []);
+            if (result.pagination) setPagination(result.pagination);
         } catch (err) {
             toast.error("Lỗi khi tải danh sách danh mục");
         }
         setLoading(false);
     };
 
+    const fetchStats = async () => {
+        try {
+            const data = await getCategoriesStats(token);
+            setStats(data.stats);
+        } catch (err) {
+            console.error("Lỗi khi tải thống kê danh mục");
+        }
+    };
+
     useEffect(() => {
         fetchCategories();
+        fetchStats();
         // eslint-disable-next-line
     }, []);
     
     // Search categories
     const handleSearch = async () => {
-        if (!searchKeyword) {
-            fetchCategories();
-            return;
-        }
-        
-        setLoading(true);
-        try {
-            const data = await searchCategories(token, searchKeyword);
-            setCategories(data.data || []);
-        } catch (err) {
-            toast.error("Lỗi khi tìm kiếm danh mục");
-        }
-        setLoading(false);
+        // Áp dụng tìm kiếm theo submit; reset về trang 1
+        setSelectedCategories([]);
+        setPagination(prev => ({ ...prev, page: 1 }));
+        // Gọi fetchCategories sau khi setState, hoặc đơn giản gọi luôn vì fetchCategories đọc từ state hiện tại
+        // Nhưng để chắc chắn, gọi sau một microtick
+        setTimeout(fetchCategories, 0);
+    };
+
+    const goToPage = (page) => {
+        if (page < 1 || page > pagination.pages) return;
+        setSelectedCategories([]);
+        setPagination(prev => ({ ...prev, page }));
     };
     
     // Select all categories
@@ -181,6 +196,42 @@ export default function CategoryDashboard() {
     return (
         <div className="container-fluid p-4">
             <h2 className="mb-4">Quản lý danh mục</h2>
+            {stats && (
+                <div className="row mb-4">
+                    <div className="col-md-3">
+                        <div className="card text-center">
+                            <div className="card-body">
+                                <h6 className="mb-1">Tổng danh mục</h6>
+                                <h3>{stats.totalCategories || 0}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-md-3">
+                        <div className="card text-center">
+                            <div className="card-body">
+                                <h6 className="mb-1">Danh mục có bài viết</h6>
+                                <h3 className="text-success">{stats.categoriesWithPosts || 0}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-md-3">
+                        <div className="card text-center">
+                            <div className="card-body">
+                                <h6 className="mb-1">Danh mục trống</h6>
+                                <h3 className="text-warning">{stats.emptyCategories || 0}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-md-3">
+                        <div className="card text-center">
+                            <div className="card-body">
+                                <h6 className="mb-1">Tổng bài viết</h6>
+                                <h3 className="text-primary">{stats.totalPosts || 0}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             
             {/* Search and Actions */}
             <div className="row mb-4">
@@ -232,6 +283,42 @@ export default function CategoryDashboard() {
             {/* Table */}
             <div className="card">
                 <div className="card-body">
+                    {/* Summary and page size */}
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <small className="text-muted">
+                            Hiển thị {categories.length} / {pagination.total} danh mục
+                        </small>
+                        <div className="d-flex align-items-center">
+                            <span className="me-2">Mỗi trang:</span>
+                            <Form.Select
+                                size="sm"
+                                style={{ width: 100 }}
+                                value={pagination.limit}
+                                onChange={(e) => {
+                                    const newLimit = Number(e.target.value) || 20;
+                                    setSelectedCategories([]);
+                                    setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }));
+                                }}
+                            >
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </Form.Select>
+                        </div>
+                    </div>
+                    {stats?.topCategories?.length > 0 && (
+                        <div className="mb-3">
+                            <h6 className="mb-2">Top danh mục theo số bài viết</h6>
+                            <div className="d-flex flex-wrap" style={{ gap: '8px' }}>
+                                {stats.topCategories.map(tc => (
+                                    <span key={tc.categoryId} className="badge bg-light text-dark border">
+                                        {tc.title} <span className="text-muted">({tc.postCount})</span>
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     <Table bordered responsive striped hover>
                         <thead>
                             <tr>
@@ -285,6 +372,23 @@ export default function CategoryDashboard() {
                     </Table>
                 </div>
             </div>
+
+            {/* Pagination */}
+            {pagination.pages > 1 && (
+                <div className="d-flex justify-content-center mt-3">
+                    <Pagination>
+                        <Pagination.First onClick={() => goToPage(1)} disabled={pagination.page === 1} />
+                        <Pagination.Prev onClick={() => goToPage(pagination.page - 1)} disabled={pagination.page === 1} />
+                        {Array.from({ length: pagination.pages }, (_, i) => i + 1).map(p => (
+                            <Pagination.Item key={p} active={p === pagination.page} onClick={() => goToPage(p)}>
+                                {p}
+                            </Pagination.Item>
+                        ))}
+                        <Pagination.Next onClick={() => goToPage(pagination.page + 1)} disabled={pagination.page === pagination.pages} />
+                        <Pagination.Last onClick={() => goToPage(pagination.pages)} disabled={pagination.page === pagination.pages} />
+                    </Pagination>
+                </div>
+            )}
             {/* Modal form thêm/sửa chuyên mục */}
             <Modal show={showFormModal} onHide={handleCancel} centered>
                 <Modal.Header closeButton>

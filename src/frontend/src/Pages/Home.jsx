@@ -24,18 +24,51 @@ const Home = () => {
   const token = localStorage.getItem("token");
   const [loadingpost, setLoadingpost] = React.useState(true);
   const [posts, setPosts] = React.useState([]);
-  
+  const [page, setPage] = useState(1);
+  const [limit] = useState(30);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [searchText, setSearchText] = useState('');
+
   // State for PostDetail modal
   const [selectedPost, setSelectedPost] = useState(null);
   const [showPostDetailModal, setShowPostDetailModal] = useState(false);
-  const getPosts = React.useCallback(() => {
+  const getPosts = () => {
     setLoadingpost(true);
-    getAllPosts().then(data => {
-      setPosts(data);
+    const params = { page: 1, limit };
+    if (searchText.trim()) params.keyword = searchText.trim();
+    getAllPosts(params).then(data => {
+      setPosts(Array.isArray(data) ? data : []);
+      setPage(1);
+      setHasMore(Array.isArray(data) ? data.length === limit : false);
       setLoadingpost(false);
     });
     setShowUpdateBtn(false);
-  }, []);
+  };
+
+  const handleLoadMore = React.useCallback(() => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    const nextPage = page + 1;
+    const params = { page: nextPage, limit };
+    if (searchText.trim()) params.keyword = searchText.trim();
+    getAllPosts(params).then(data => {
+      const newItems = Array.isArray(data) ? data : [];
+      if (newItems.length > 0) {
+        setPosts(prev => {
+          const existingIds = new Set(prev.map(p => String(p._id)));
+          const merged = [...prev];
+          newItems.forEach(item => {
+            const id = String(item._id);
+            if (!existingIds.has(id)) merged.push(item);
+          });
+          return merged;
+        });
+      }
+      setPage(nextPage);
+      setHasMore(newItems.length === limit);
+    }).finally(() => setIsLoadingMore(false));
+  }, [page, limit, isLoadingMore, hasMore, searchText]);
 
 
   const [showUpdateBtn, setShowUpdateBtn] = React.useState(false);
@@ -227,7 +260,7 @@ const Home = () => {
       socket.off('comment:updated');
       socket.off('comment:deleted');
     };
-  }, [getPosts]);
+  }, []);
 
   // Open modal
   const handleOpenPostModal = () => {
@@ -347,10 +380,34 @@ const Home = () => {
                 </Link> */}
               </div>
               <div className="card-body p-0">
-                <PostList 
-                  posts={posts} 
-                  loadingpost={loadingpost} 
+                {/* Search bar */}
+                <div className="p-3" style={{ borderBottom: '1px solid #f0f2f5' }}>
+                  <div className="input-group">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Tìm kiếm bài viết..."
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') getPosts(); }}
+                      style={{ borderRadius: '8px 0 0 8px' }}
+                    />
+                    <button
+                      className="btn btn-primary"
+                      onClick={getPosts}
+                      style={{ borderRadius: '0 8px 8px 0' }}
+                    >
+                      <i className="ph ph-magnifying-glass">Tìm</i>
+                    </button>
+                  </div>
+                </div>
+                <PostList
+                  posts={posts}
+                  loadingpost={loadingpost}
                   onPostClick={handleOpenPostDetail}
+                  hasMore={hasMore}
+                  onLoadMore={handleLoadMore}
+                  isLoadingMore={isLoadingMore}
                 />
               </div>
             </div>
@@ -419,31 +476,33 @@ const Home = () => {
                   Thành viên tích cực
                 </h6>
                 {activeUsers && activeUsers.slice(0, 5).map((u, idx) => (
-                  <div
-                    key={u._id || idx}
-                    className="d-flex align-items-center mb-2 p-2"
-                    style={{
-                      borderRadius: '8px',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                  >
-                    <img
-                      src={u.avatarUrl || `https://ui-avatars.com/api/?background=random&name=${u.displayName || u.username}`}
-                      className="rounded-circle me-2"
-                      alt="Avatar"
-                      style={{ width: '36px', height: '36px', objectFit: 'cover' }}
-                    />
-                    <div className="flex-grow-1">
-                      <div style={{ fontSize: '13px', fontWeight: 600 }}>{u.displayName || u.username}</div>
-                      <small className="text-muted" style={{ fontSize: '11px' }}>{u.postsCount || 0} bài viết</small>
+                  <Link key={u._id || idx} to={`/user/${u.username}`}>
+                    <div
+                      key={u._id || idx}
+                      className="d-flex align-items-center mb-2 p-2"
+                      style={{
+                        borderRadius: '8px',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <img
+                        src={u.avatarUrl || `https://ui-avatars.com/api/?background=random&name=${u.displayName || u.username}`}
+                        className="rounded-circle me-2"
+                        alt="Avatar"
+                        style={{ width: '36px', height: '36px', objectFit: 'cover' }}
+                      />
+                      <div className="flex-grow-1">
+                        <div style={{ fontSize: '13px', fontWeight: 600 }}>{u.displayName || u.username}</div>
+                        <small className="text-muted" style={{ fontSize: '11px' }}>{u.postsCount || 0} bài viết</small>
+                      </div>
+                      <span className={`badge ${u.isOnline ? 'bg-success' : 'bg-secondary'}`} style={{ borderRadius: '20px', fontSize: '10px' }}>
+                        <i className={`ph ${u.isOnline ? 'ph-check-circle' : 'ph-clock'} me-1`}></i>
+                        {u.isOnline ? 'Online' : 'Offline'}
+                      </span>
                     </div>
-                    <span className={`badge ${u.isOnline ? 'bg-success' : 'bg-secondary'}`} style={{ borderRadius: '20px', fontSize: '10px' }}>
-                      <i className={`ph ${u.isOnline ? 'ph-check-circle' : 'ph-clock'} me-1`}></i>
-                      {u.isOnline ? 'Online' : 'Offline'}
-                    </span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -533,7 +592,7 @@ const Home = () => {
 
       {/* PostDetail Modal */}
       {showPostDetailModal && selectedPost && (
-        <PostDetail 
+        <PostDetail
           user={user}
           post={selectedPost}
           show={showPostDetailModal}

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { 
-  getUserByUsername, 
+import {
+  getUserByUsername,
   getUserPosts,
   createComment,
+  deletePost,
   updateComment,
   deleteComment,
   likePost,
@@ -11,10 +12,13 @@ import {
   likeComment,
   unlikeComment
 } from '../../Utils/api';
+import Swal from 'sweetalert2';
 import { useOutletContext } from 'react-router-dom';
 import PostItem from '../../Components/PostItem';
 import LoadingPost from '../../Components/LoadingPost';
 import { toast } from 'react-toastify';
+import EditPostModal from '../../Components/EditPostModal';
+const { socket } = require('../../Utils/socket');
 
 const UserProfile = () => {
   const { username } = useParams();
@@ -109,7 +113,7 @@ const UserProfile = () => {
         setLoading(true);
         setError('');
         const response = await getUserByUsername(username, token);
-        
+
         if (response.success) {
           setUser(response.user);
         } else {
@@ -134,7 +138,7 @@ const UserProfile = () => {
       try {
         setLoadingPosts(true);
         const response = await getUserPosts(username, { page, limit: 10 }, token);
-        
+
         if (response.success) {
           if (page === 1) {
             setPosts(response.data);
@@ -159,6 +163,173 @@ const UserProfile = () => {
     }
   }, [username, page, users, token]);
 
+  // Realtime updates for this user's posts and their comments/likes
+  useEffect(() => {
+    // New post by this user
+    const handleNewPost = (newPost) => {
+      const authorUsername = newPost?.authorId?.username || newPost?.author?.username;
+      if (authorUsername && authorUsername === username) {
+        setPosts(prev => {
+          if (prev.some(p => String(p._id) === String(newPost._id))) return prev;
+          return [newPost, ...prev];
+        });
+      }
+    };
+
+    // Post updated
+    const handlePostUpdated = ({ postId, post: updatedPost }) => {
+      setPosts(prev => prev.map(post => {
+        if (String(post._id) === String(postId)) {
+          return {
+            ...updatedPost,
+            comments: post.comments || [],
+            likes: post.likes || [],
+            likesCount: post.likesCount || 0,
+            commentsCount: post.commentsCount || 0
+          };
+        }
+        return post;
+      }));
+    };
+
+    // Post deleted
+    const handlePostDeleted = ({ postId }) => {
+      setPosts(prev => prev.filter(post => String(post._id) !== String(postId)));
+    };
+
+    // Post liked
+    const handlePostLiked = ({ postId, like }) => {
+      setPosts(prev => prev.map(post => {
+        if (String(post._id) === String(postId)) {
+          return {
+            ...post,
+            likes: [...(post.likes || []), like],
+            likesCount: (post.likesCount || 0) + 1
+          };
+        }
+        return post;
+      }));
+    };
+
+    // Post unliked
+    const handlePostUnliked = ({ postId, likeId }) => {
+      setPosts(prev => prev.map(post => {
+        if (String(post._id) === String(postId)) {
+          return {
+            ...post,
+            likes: (post.likes || []).filter(like => String(like._id) !== String(likeId)),
+            likesCount: Math.max(0, (post.likesCount || 0) - 1)
+          };
+        }
+        return post;
+      }));
+    };
+
+    // New comment on a post
+    const handleCommentNew = ({ postId, comment }) => {
+      setPosts(prev => prev.map(post => {
+        if (String(post._id) === String(postId)) {
+          if (post.comments && post.comments.some(c => String(c._id) === String(comment._id))) return post;
+          return {
+            ...post,
+            comments: [...(post.comments || []), comment],
+            commentsCount: (post.commentsCount || 0) + 1
+          };
+        }
+        return post;
+      }));
+    };
+
+    // Comment updated
+    const handleCommentUpdated = ({ commentId, postId, comment: updatedComment }) => {
+      setPosts(prev => prev.map(post => {
+        if (String(post._id) === String(postId)) {
+          return {
+            ...post,
+            comments: (post.comments || []).map(c => String(c._id) === String(commentId) ? { ...c, ...updatedComment } : c)
+          };
+        }
+        return post;
+      }));
+    };
+
+    // Comment deleted
+    const handleCommentDeleted = ({ commentId, postId }) => {
+      setPosts(prev => prev.map(post => {
+        if (String(post._id) === String(postId)) {
+          return {
+            ...post,
+            comments: (post.comments || []).filter(c => String(c._id) !== String(commentId)),
+            commentsCount: Math.max(0, (post.commentsCount || 0) - 1)
+          };
+        }
+        return post;
+      }));
+    };
+
+    // Comment liked
+    const handleCommentLiked = ({ commentId, postId, like }) => {
+      setPosts(prev => prev.map(post => {
+        if (String(post._id) === String(postId)) {
+          return {
+            ...post,
+            comments: (post.comments || []).map(c => {
+              if (String(c._id) === String(commentId)) {
+                return { ...c, likes: [...(c.likes || []), like] };
+              }
+              return c;
+            })
+          };
+        }
+        return post;
+      }));
+    };
+
+    // Comment unliked
+    const handleCommentUnliked = ({ commentId, postId, likeId }) => {
+      setPosts(prev => prev.map(post => {
+        if (String(post._id) === String(postId)) {
+          return {
+            ...post,
+            comments: (post.comments || []).map(c => {
+              if (String(c._id) === String(commentId)) {
+                return { ...c, likes: (c.likes || []).filter(l => String(l._id) !== String(likeId)) };
+              }
+              return c;
+            })
+          };
+        }
+        return post;
+      }));
+    };
+
+    // Register listeners
+    socket.on('post:new', handleNewPost);
+    socket.on('post:updated', handlePostUpdated);
+    socket.on('post:deleted', handlePostDeleted);
+    socket.on('post:liked', handlePostLiked);
+    socket.on('post:unliked', handlePostUnliked);
+    socket.on('comment:new', handleCommentNew);
+    socket.on('comment:updated', handleCommentUpdated);
+    socket.on('comment:deleted', handleCommentDeleted);
+    socket.on('comment:liked', handleCommentLiked);
+    socket.on('comment:unliked', handleCommentUnliked);
+
+    // Cleanup
+    return () => {
+      socket.off('post:new', handleNewPost);
+      socket.off('post:updated', handlePostUpdated);
+      socket.off('post:deleted', handlePostDeleted);
+      socket.off('post:liked', handlePostLiked);
+      socket.off('post:unliked', handlePostUnliked);
+      socket.off('comment:new', handleCommentNew);
+      socket.off('comment:updated', handleCommentUpdated);
+      socket.off('comment:deleted', handleCommentDeleted);
+      socket.off('comment:liked', handleCommentLiked);
+      socket.off('comment:unliked', handleCommentUnliked);
+    };
+  }, [username]);
+
   const loadMorePosts = () => {
     if (hasMore && !loadingPosts) {
       setPage(prev => prev + 1);
@@ -171,8 +342,8 @@ const UserProfile = () => {
   };
 
   const handlePostUpdated = (updatedPost) => {
-    setPosts(prevPosts => 
-      prevPosts.map(post => 
+    setPosts(prevPosts =>
+      prevPosts.map(post =>
         post._id === updatedPost._id ? { ...post, ...updatedPost } : post
       )
     );
@@ -228,14 +399,14 @@ const UserProfile = () => {
       });
 
       const response = await createComment(token, formData);
-      
+
       if (response.success) {
         // Refresh posts to get updated comments
         const updatedPosts = await getUserPosts(username, { page: 1, limit: posts.length }, token);
         if (updatedPosts.success) {
           setPosts(updatedPosts.data);
         }
-        
+
         setCommentTexts(prev => ({ ...prev, [postId]: '' }));
         setCommentAttachments(prev => ({ ...prev, [postId]: [] }));
         toast.success('Đã thêm bình luận');
@@ -285,14 +456,14 @@ const UserProfile = () => {
       });
 
       const response = await createComment(token, formData);
-      
+
       if (response.success) {
         // Refresh posts
         const updatedPosts = await getUserPosts(username, { page: 1, limit: posts.length }, token);
         if (updatedPosts.success) {
           setPosts(updatedPosts.data);
         }
-        
+
         setReplyTexts(prev => ({ ...prev, [parentId]: '' }));
         setReplyAttachments(prev => ({ ...prev, [parentId]: [] }));
         setReplyTo(null);
@@ -346,16 +517,56 @@ const UserProfile = () => {
       toast.error('Không thể thực hiện');
     }
   };
+  const [editingPost, setEditingPost] = useState(null);
 
   // Handle edit post
-  const handleEditPost = (post) => {
-    // This would open edit modal - implement if needed
-    toast.info('Chức năng chỉnh sửa sẽ được thêm');
+  const handleEditPost = (postId) => {
+    const postToEdit = posts.find(p => p._id === postId);
+    if (postToEdit) {
+      setEditingPost(postToEdit);
+    }
   };
 
-  // Handle delete post (only for own profile)
+  const handleCloseEditModal = () => {
+    setEditingPost(null);
+  };
+  const handleUpdateSuccess = (updatedPost) => {
+    // setPosts(prevPosts =>
+    //   prevPosts.map(post =>
+    //     post._id === updatedPost._id ? updatedPost : post
+    //   )
+    // );
+  };
   const handleDeletePost = async (postId) => {
-    // Already handled by handlePostDeleted
+
+    Swal.fire({
+      title: 'Bạn có chắc muốn xóa bài viết này?',
+      text: "Hành động này không thể hoàn tác!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy',
+      customClass: {
+        container: 'swal-on-modal'
+      }
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const result = await deletePost(token, postId);
+          if (result.success) {
+            toast.success("Đã xóa bài viết thành công!");
+
+          } else {
+            toast.error(result.error || "Lỗi xóa bài viết");
+          }
+        } catch (error) {
+          console.error("Error deleting post:", error);
+          toast.error(error.message || "Lỗi xóa bài viết");
+        }
+      }
+    });
   };
 
   // Handle post click
@@ -366,13 +577,7 @@ const UserProfile = () => {
 
   if (loading) {
     return (
-      <div className="container py-4">
-        <div className="text-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Đang tải...</span>
-          </div>
-        </div>
-      </div>
+      <LoadingPost />
     );
   }
 
@@ -420,7 +625,7 @@ const UserProfile = () => {
                 {users.bio && (
                   <p className="mb-3">{users.bio}</p>
                 )}
-                
+
                 {/* User Details */}
                 <div className="d-flex flex-wrap gap-3 mb-3">
                   {users.faculty && (
@@ -510,7 +715,7 @@ const UserProfile = () => {
       {/* Posts Section */}
       <div>
         <h4 className="mb-3">Bài viết của {users.displayName || users.username}</h4>
-        
+
         {loadingPosts && page === 1 ? (
           <>
             <LoadingPost />
@@ -545,7 +750,7 @@ const UserProfile = () => {
                 formatFileSize={formatFileSize}
                 organizeComments={organizeComments}
                 handleLike={handleLike}
-                handleDeletePost={handlePostDeleted}
+                handleDeletePost={handleDeletePost}
                 handleEditPost={handleEditPost}
                 toggleComments={toggleComments}
                 onPostClick={onPostClick}
@@ -588,8 +793,8 @@ const UserProfile = () => {
               <i className="ph ph-newspaper" style={{ fontSize: '64px', opacity: 0.3 }}></i>
               <h5 className="mt-3 mb-2">Chưa có bài viết nào</h5>
               <p className="text-muted">
-                {isOwnProfile 
-                  ? 'Bạn chưa đăng bài viết nào. Hãy chia sẻ suy nghĩ của bạn!' 
+                {isOwnProfile
+                  ? 'Bạn chưa đăng bài viết nào. Hãy chia sẻ suy nghĩ của bạn!'
                   : `${users.displayName || users.username} chưa đăng bài viết nào.`
                 }
               </p>
@@ -603,6 +808,13 @@ const UserProfile = () => {
           </div>
         )}
       </div>
+      {editingPost && (
+        <EditPostModal
+          post={editingPost}
+          onClose={handleCloseEditModal}
+          onUpdate={handleUpdateSuccess}
+        />
+      )}
     </div>
   );
 };
