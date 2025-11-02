@@ -42,6 +42,7 @@ const postRoutes = require('../controllers/PostController');
 const categoryRoutes = require('../controllers/CategoryController');
 const CommentController = require('../controllers/CommentController');
 const NotificationController = require('../controllers/NotificationController');
+const ReportController = require('../controllers/ReportController');
 
 router.post('/auth/login', userRoutes.login); // Đăng nhập
 router.post('/auth/register', userRoutes.register);// Đăng ký
@@ -50,6 +51,8 @@ router.get('/user', authenticateUser, userRoutes.getProfile);// Lấy thông tin
 router.put('/user', authenticateUser, uploadAvatar.single('avatar'), userRoutes.updateProfile);// Cập nhật thông tin người dùng
 router.get('/users/active', userRoutes.getActiveUsers);// Lấy danh sách thành viên tích cực
 router.get('/users/online', userRoutes.getOnlineUsers);// Lấy danh sách user đang online
+router.get('/users/:username', userRoutes.getUserByUsername);// Lấy thông tin user theo username (public profile)
+router.get('/users/:username/posts', userRoutes.getUserPosts);// Lấy bài viết của user theo username
 
 
 // ===== ADMIN - USER MANAGEMENT =====
@@ -121,5 +124,20 @@ router.get('/admin/notifications/stats', authenticateAdmin, NotificationControll
 router.delete('/admin/notifications/bulk-delete', authenticateAdmin, NotificationController.deleteMultipleNotifications);// Xóa nhiều thông báo
 router.delete('/admin/notifications/user/:userId', authenticateAdmin, NotificationController.deleteUserNotifications);// Xóa thông báo của user
 router.post('/admin/notifications/bulk-send', authenticateAdmin, NotificationController.sendBulkNotifications);// Gửi thông báo hàng loạt
+
+// ===== REPORT ROUTES =====
+router.post('/reports', authenticateUser, ReportController.createReport);// Tạo báo cáo
+router.get('/reports', authenticateUser, ReportController.getMyReports);// Lấy báo cáo của mình
+router.delete('/reports/:id', authenticateUser, ReportController.cancelReport);// Hủy báo cáo
+
+// ===== ADMIN - REPORT MANAGEMENT =====
+router.get('/admin/reports/all', authenticateAdmin, ReportController.getAllReportsAdmin);// Lấy tất cả báo cáo với filters
+router.get('/admin/reports/stats', authenticateAdmin, ReportController.getReportsStatsAdmin);// Thống kê báo cáo
+router.get('/admin/reports/:id', authenticateAdmin, ReportController.getReportDetailAdmin);// Lấy chi tiết báo cáo
+router.get('/admin/reports/target/:targetType/:targetId', authenticateAdmin, ReportController.getReportsByTargetAdmin);// Lấy báo cáo theo target
+router.put('/admin/reports/:id', authenticateAdmin, ReportController.updateReportStatusAdmin);// Cập nhật trạng thái báo cáo
+router.delete('/admin/reports/:id', authenticateAdmin, ReportController.deleteReportAdmin);// Xóa báo cáo
+router.delete('/admin/reports/bulk-delete', authenticateAdmin, ReportController.deleteMultipleReportsAdmin);// Xóa nhiều báo cáo
+router.post('/admin/reports/bulk-handle', authenticateAdmin, ReportController.bulkHandleReportsAdmin);// Xử lý hàng loạt báo cáo
 
 module.exports = router;

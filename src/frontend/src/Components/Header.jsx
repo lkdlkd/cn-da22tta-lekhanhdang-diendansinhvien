@@ -491,6 +491,19 @@ export default function Header({ user }) {
                         </div>
                         <div>
                           <h6 className="ms-3 mb-0 mt-2" style={{ fontSize: '16px' }}>
+                            <Link to={`/user/${user?.username}`} className="dropdown-item">
+                              <i className="ph ph-user-circle me-2" style={{ fontSize: '20px' }}></i>
+                              Trang cá nhân
+                            </Link>
+                          </h6>
+                        </div>
+                      </div>
+                      <div className="d-flex mb-1">
+                        <div className="flex-shrink-0">
+
+                        </div>
+                        <div>
+                          <h6 className="ms-3 mb-0 mt-2" style={{ fontSize: '16px' }}>
                             <Link to="/profile" className="dropdown-item">
                               <FilterSettingsIcon
                                 width={20}

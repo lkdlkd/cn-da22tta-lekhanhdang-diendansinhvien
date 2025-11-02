@@ -351,6 +351,199 @@ exports.getOnlineUsers = async (req, res) => {
   }
 };
 
+// API lấy thông tin user theo username (public profile)
+exports.getUserByUsername = async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    // Tìm user theo username
+    const user = await User.findOne({ username: username.toLowerCase() })
+      .select('-password')
+      .lean();
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        error: "Không tìm thấy người dùng" 
+      });
+    }
+    
+    // Lấy thống kê posts và comments của user
+    const Post = require('../models/Post');
+    const Comment = require('../models/Comment');
+    
+    const [postsCount, commentsCount] = await Promise.all([
+      Post.countDocuments({ authorId: user._id, isDeleted: false }),
+      Comment.countDocuments({ authorId: user._id, isDeleted: false })
+    ]);
+    
+    // Trả về thông tin user kèm stats
+    res.json({
+      success: true,
+      user: {
+        ...user,
+        stats: {
+          ...user.stats,
+          postsCount,
+          commentsCount
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Error in getUserByUsername:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// API lấy bài viết của một user cụ thể
+exports.getUserPosts = async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { 
+      page = 1, 
+      limit = 10,
+      sortBy = 'createdAt',
+      order = 'desc'
+    } = req.query;
+    
+    // Tìm user
+    const user = await User.findOne({ username: username.toLowerCase() })
+      .select('_id')
+      .lean();
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        error: "Không tìm thấy người dùng" 
+      });
+    }
+    
+    const skip = (page - 1) * limit;
+    const sortOrder = order === 'desc' ? -1 : 1;
+    const limitNum = parseInt(limit);
+    
+    const Post = require('../models/Post');
+    const Like = require('../models/Like');
+    const Comment = require('../models/Comment');
+    const Attachment = require('../models/Attachment');
+    
+    // Query posts và total count song song
+    const [posts, total] = await Promise.all([
+      Post.find({ 
+        authorId: user._id, 
+        isDeleted: false,
+        isDraft: false 
+      })
+        .populate('authorId', 'username displayName avatar avatarUrl faculty class bio stats')
+        .populate('categoryId', 'title slug description')
+        .populate('attachments')
+        .skip(skip)
+        .limit(limitNum)
+        .sort({ [sortBy]: sortOrder })
+        .lean(),
+      Post.countDocuments({ 
+        authorId: user._id, 
+        isDeleted: false,
+        isDraft: false 
+      })
+    ]);
+
+    if (posts.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        pagination: {
+          page: parseInt(page),
+          limit: limitNum,
+          total: 0,
+          pages: 0
+        }
+      });
+    }
+
+    const postIds = posts.map(p => p._id);
+
+    // Query song song tất cả data cần thiết (giống getAllPosts)
+    const [commentsRaw, likes, commentIds] = await Promise.all([
+      Comment.find({ postId: { $in: postIds } })
+        .populate('authorId', 'username displayName avatarUrl faculty class')
+        .populate('attachments')
+        .lean(),
+      Like.find({ targetType: 'post', targetId: { $in: postIds } })
+        .populate('userId', 'username displayName avatarUrl faculty class')
+        .sort({ createdAt: -1 })
+        .lean(),
+      Comment.find({ postId: { $in: postIds } }).distinct('_id')
+    ]);
+
+    // Lấy likes cho comments trong 1 query
+    const likescmt = commentIds.length > 0 
+      ? await Like.find({ targetType: 'comment', targetId: { $in: commentIds } })
+        .populate('userId', 'username displayName avatarUrl faculty class')
+        .sort({ createdAt: -1 })
+        .lean()
+      : [];
+
+    // Tạo maps để tra cứu nhanh O(1)
+    const commentMap = new Map();
+    const likesMap = new Map();
+    const commentLikesMap = new Map();
+
+    commentsRaw.forEach(c => commentMap.set(String(c._id), c));
+    likes.forEach(l => {
+      const key = String(l.targetId);
+      if (!likesMap.has(key)) likesMap.set(key, []);
+      likesMap.get(key).push(l);
+    });
+    likescmt.forEach(l => {
+      const key = String(l.targetId);
+      if (!commentLikesMap.has(key)) commentLikesMap.set(key, []);
+      commentLikesMap.get(key).push(l);
+    });
+
+    // Xử lý comments với O(n) complexity
+    const comments = commentsRaw.map(c => {
+      const commentId = String(c._id);
+      return {
+        ...c,
+        likes: commentLikesMap.get(commentId) || []
+      };
+    });
+
+    // Tạo comment map theo postId
+    const commentsByPost = new Map();
+    comments.forEach(c => {
+      const key = String(c.postId);
+      if (!commentsByPost.has(key)) commentsByPost.set(key, []);
+      commentsByPost.get(key).push(c);
+    });
+
+    // Gắn data vào posts
+    const postsWithComments = posts.map(post => {
+      const postId = String(post._id);
+      return {
+        ...post,
+        likes: likesMap.get(postId) || [],
+        comments: commentsByPost.get(postId) || []
+      };
+    });
+    
+    res.json({
+      success: true,
+      data: postsWithComments,
+      pagination: {
+        page: parseInt(page),
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    });
+  } catch (err) {
+    console.error('Error in getUserPosts:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 // ==================== ADMIN FUNCTIONS ====================
 
 // [ADMIN] Lấy tất cả users với phân trang và tìm kiếm nâng cao
@@ -394,43 +587,58 @@ exports.getAllUsersAdmin = async (req, res) => {
 
     const skip = (page - 1) * limit;
     const sortOrder = order === 'desc' ? -1 : 1;
+    const limitNum = parseInt(limit);
 
-    const users = await User.find(query)
-      .select('-password')
-      .skip(skip)
-      .limit(parseInt(limit))
-      .sort({ [sortBy]: sortOrder })
-      .lean();
+    // Query song song users và total
+    const [users, total] = await Promise.all([
+      User.find(query)
+        .select('-password')
+        .skip(skip)
+        .limit(limitNum)
+        .sort({ [sortBy]: sortOrder })
+        .lean(),
+      User.countDocuments(query)
+    ]);
 
-    // Thêm thống kê cho mỗi user
+    // Lấy stats cho tất cả users song song
     const Post = require('../models/Post');
     const Comment = require('../models/Comment');
     
-    const usersWithStats = await Promise.all(
-      users.map(async (user) => {
-        const postsCount = await Post.countDocuments({ authorId: user._id });
-        const commentsCount = await Comment.countDocuments({ authorId: user._id });
-        return {
-          ...user,
-          postsCount,
-          commentsCount
-        };
-      })
-    );
+    const userIds = users.map(u => u._id);
+    const [postsStats, commentsStats] = await Promise.all([
+      Post.aggregate([
+        { $match: { authorId: { $in: userIds } } },
+        { $group: { _id: '$authorId', count: { $sum: 1 } } }
+      ]),
+      Comment.aggregate([
+        { $match: { authorId: { $in: userIds } } },
+        { $group: { _id: '$authorId', count: { $sum: 1 } } }
+      ])
+    ]);
 
-    const total = await User.countDocuments(query);
+    // Tạo maps cho O(1) lookup
+    const postsMap = new Map(postsStats.map(s => [String(s._id), s.count]));
+    const commentsMap = new Map(commentsStats.map(s => [String(s._id), s.count]));
+
+    // Gắn stats vào users
+    const usersWithStats = users.map(user => ({
+      ...user,
+      postsCount: postsMap.get(String(user._id)) || 0,
+      commentsCount: commentsMap.get(String(user._id)) || 0
+    }));
 
     res.json({
       success: true,
       data: usersWithStats,
       pagination: {
         page: parseInt(page),
-        limit: parseInt(limit),
+        limit: limitNum,
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / limitNum)
       }
     });
   } catch (err) {
+    console.error('Error in getAllUsersAdmin:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -544,27 +752,29 @@ exports.deleteMultipleUsers = async (req, res) => {
       });
     }
 
-    // Xóa related data
+    // Xóa tất cả related data song song
     const Post = require('../models/Post');
     const Comment = require('../models/Comment');
     const Like = require('../models/Like');
     const Attachment = require('../models/Attachment');
 
-    await Post.deleteMany({ authorId: { $in: userIds } });
-    await Comment.deleteMany({ authorId: { $in: userIds } });
-    await Like.deleteMany({ userId: { $in: userIds } });
-    await Attachment.deleteMany({ ownerId: { $in: userIds } });
-    await Notification.deleteMany({ userId: { $in: userIds } });
-    await Message.deleteMany({ $or: [{ senderId: { $in: userIds } }, { receiverId: { $in: userIds } }] });
-
-    const result = await User.deleteMany({ _id: { $in: userIds } });
+    const [deletedUsers] = await Promise.all([
+      User.deleteMany({ _id: { $in: userIds } }),
+      Post.deleteMany({ authorId: { $in: userIds } }),
+      Comment.deleteMany({ authorId: { $in: userIds } }),
+      Like.deleteMany({ userId: { $in: userIds } }),
+      Attachment.deleteMany({ ownerId: { $in: userIds } }),
+      Notification.deleteMany({ userId: { $in: userIds } }),
+      Message.deleteMany({ $or: [{ senderId: { $in: userIds } }, { receiverId: { $in: userIds } }] })
+    ]);
 
     res.json({ 
       success: true, 
-      message: `Đã xóa ${result.deletedCount} users`,
-      deletedCount: result.deletedCount
+      message: `Đã xóa ${deletedUsers.deletedCount} users`,
+      deletedCount: deletedUsers.deletedCount
     });
   } catch (err) {
+    console.error('Error in deleteMultipleUsers:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -572,72 +782,77 @@ exports.deleteMultipleUsers = async (req, res) => {
 // [ADMIN] Thống kê users
 exports.getUsersStats = async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments();
-    const bannedUsers = await User.countDocuments({ isBanned: true });
-    const onlineUsers = await User.countDocuments({ isOnline: true });
-    
-    // Users đăng ký trong 7 ngày qua
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const newUsers = await User.countDocuments({ createdAt: { $gte: sevenDaysAgo } });
-
-    // Users theo role
-    const usersByRole = await User.aggregate([
-      {
-        $group: {
-          _id: '$role',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
-
-    // Users theo tháng (12 tháng gần nhất)
+    
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-    
-    const usersByMonth = await User.aggregate([
-      { $match: { createdAt: { $gte: twelveMonthsAgo } } },
-      {
-        $group: {
-          _id: {
-            year: { $year: '$createdAt' },
-            month: { $month: '$createdAt' }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { '_id.year': 1, '_id.month': 1 } }
-    ]);
 
-    // Top active users
+    // Query tất cả stats song song
     const Post = require('../models/Post');
-    const topUsers = await Post.aggregate([
-      {
-        $group: {
-          _id: '$authorId',
-          postsCount: { $sum: 1 }
+    
+    const [
+      totalUsers,
+      bannedUsers,
+      onlineUsers,
+      newUsers,
+      usersByRole,
+      usersByMonth,
+      topUsers
+    ] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ isBanned: true }),
+      User.countDocuments({ isOnline: true }),
+      User.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+      User.aggregate([
+        {
+          $group: {
+            _id: '$role',
+            count: { $sum: 1 }
+          }
         }
-      },
-      { $sort: { postsCount: -1 } },
-      { $limit: 10 },
-      {
-        $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'user'
+      ]),
+      User.aggregate([
+        { $match: { createdAt: { $gte: twelveMonthsAgo } } },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1 } }
+      ]),
+      Post.aggregate([
+        {
+          $group: {
+            _id: '$authorId',
+            postsCount: { $sum: 1 }
+          }
+        },
+        { $sort: { postsCount: -1 } },
+        { $limit: 10 },
+        {
+          $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'user'
+          }
+        },
+        { $unwind: '$user' },
+        {
+          $project: {
+            userId: '$_id',
+            username: '$user.username',
+            displayName: '$user.displayName',
+            avatarUrl: '$user.avatarUrl',
+            postsCount: 1
+          }
         }
-      },
-      { $unwind: '$user' },
-      {
-        $project: {
-          userId: '$_id',
-          username: '$user.username',
-          displayName: '$user.displayName',
-          avatarUrl: '$user.avatarUrl',
-          postsCount: 1
-        }
-      }
+      ])
     ]);
 
     res.json({
@@ -653,6 +868,7 @@ exports.getUsersStats = async (req, res) => {
       }
     });
   } catch (err) {
+    console.error('Error in getUsersStats:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 };

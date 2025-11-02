@@ -111,6 +111,12 @@ function Menu({ user, categories }) {
                                         <span className="pc-mtext">Hồ sơ cá nhân</span>
                                     </Link>
                                 </li>
+                                <li className="pc-item">
+                                    <Link to="/my-reports" className="pc-link" onClick={handleNavigation}>
+                                        <span className="pc-micon"><i className="ph-duotone ph-warning-circle"></i></span>
+                                        <span className="pc-mtext">Báo cáo của tôi</span>
+                                    </Link>
+                                </li>
 
                                 {/* ADMIN MENU */}
                                 {user.role === "admin" && (

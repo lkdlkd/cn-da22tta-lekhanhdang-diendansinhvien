@@ -407,7 +407,7 @@ const UserAdmin = () => {
 										<td>{(filters.page - 1) * filters.limit + idx + 1}</td>
 										<td>
 											<img 
-												src={user.avatarUrl || "/default-avatar.png"} 
+												src={user.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"} 
 												alt={user.username}
 												style={{width: "40px", height: "40px", borderRadius: "50%"}}
 											/>
@@ -486,7 +486,7 @@ const UserAdmin = () => {
 						<div className="row">
 							<div className="col-md-4 text-center">
 								<img 
-									src={selectedUser.avatarUrl || "/default-avatar.png"} 
+									src={selectedUser.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"} 
 									alt={selectedUser.username}
 									style={{width: "150px", height: "150px", borderRadius: "50%"}}
 									className="mb-3"

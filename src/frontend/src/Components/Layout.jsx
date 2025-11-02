@@ -38,12 +38,6 @@ export default function Layout({ children }) {
             getActiveUsers(5),
             fetchDocuments()
         ]).then(([userData, categoriesData, postsData, usersData, docsData]) => {
-            console.log("✅ Loaded data:", { 
-                user: userData.user?.id, 
-                activeUsersCount: usersData.users?.length,
-                firstUser: usersData.users?.[0]
-            });
-            
             setUser(userData.user);
             setCategories(categoriesData);
             setFeaturedPosts(postsData);
@@ -55,14 +49,12 @@ export default function Layout({ children }) {
             if (userData.user) {
                 const userId = userData.user.id || userData.user._id;
                 if (userId) {
-                    console.log("🟢 Setting user online:", userId);
                     setUserOnline(userId);
                 } else {
-                    console.warn("⚠️ User ID not found:", userData.user);
+                    
                 }
             }
         }).catch(error => {
-            console.error("❌ Error loading data:", error);
             setLoading(false);
         });
     }, []);

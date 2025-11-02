@@ -535,47 +535,57 @@ exports.getAllCommentsAdmin = async (req, res) => {
 
 		const skip = (page - 1) * limit;
 		const sortOrder = order === 'desc' ? -1 : 1;
+		const limitNum = parseInt(limit);
 
-		const comments = await Comment.find(query)
-			.populate('authorId', 'username displayName avatarUrl email')
-			.populate('postId', 'title slug')
-			.populate('attachments')
-			.skip(skip)
-			.limit(parseInt(limit))
-			.sort({ [sortBy]: sortOrder })
-			.lean();
+		// Query song song comments và total
+		const [comments, total] = await Promise.all([
+			Comment.find(query)
+				.populate('authorId', 'username displayName avatarUrl email')
+				.populate('postId', 'title slug')
+				.populate('attachments')
+				.skip(skip)
+				.limit(limitNum)
+				.sort({ [sortBy]: sortOrder })
+				.lean(),
+			Comment.countDocuments(query)
+		]);
 
-		// Thêm thông tin likes count
-		const commentsWithStats = await Promise.all(
-			comments.map(async (comment) => {
-				const likesCount = await Like.countDocuments({ 
-					targetType: 'comment', 
-					targetId: comment._id 
-				});
-				const repliesCount = await Comment.countDocuments({ 
-					parentId: comment._id 
-				});
-				return {
-					...comment,
-					likesCount,
-					repliesCount
-				};
-			})
-		);
+		// Lấy stats cho tất cả comments trong 1 aggregation
+		const commentIds = comments.map(c => c._id);
+		const [likesStats, repliesStats] = await Promise.all([
+			Like.aggregate([
+				{ $match: { targetType: 'comment', targetId: { $in: commentIds } } },
+				{ $group: { _id: '$targetId', count: { $sum: 1 } } }
+			]),
+			Comment.aggregate([
+				{ $match: { parentId: { $in: commentIds } } },
+				{ $group: { _id: '$parentId', count: { $sum: 1 } } }
+			])
+		]);
 
-		const total = await Comment.countDocuments(query);
+		// Tạo maps cho O(1) lookup
+		const likesMap = new Map(likesStats.map(s => [String(s._id), s.count]));
+		const repliesMap = new Map(repliesStats.map(s => [String(s._id), s.count]));
+
+		// Gắn stats vào comments
+		const commentsWithStats = comments.map(comment => ({
+			...comment,
+			likesCount: likesMap.get(String(comment._id)) || 0,
+			repliesCount: repliesMap.get(String(comment._id)) || 0
+		}));
 
 		res.json({
 			success: true,
 			data: commentsWithStats,
 			pagination: {
 				page: parseInt(page),
-				limit: parseInt(limit),
+				limit: limitNum,
 				total,
-				pages: Math.ceil(total / limit)
+				pages: Math.ceil(total / limitNum)
 			}
 		});
 	} catch (err) {
+		console.error('Error in getAllCommentsAdmin:', err);
 		res.status(500).json({ success: false, error: err.message });
 	}
 };
@@ -647,41 +657,62 @@ exports.deleteMultipleCommentsAdmin = async (req, res) => {
 		}
 
 		let totalDeleted = 0;
-		let postUpdates = {};
+		const postUpdates = {};
+		const userUpdates = {};
 
-		for (const commentId of ids) {
-			const comment = await Comment.findById(commentId);
-			if (!comment) continue;
+		// Lấy tất cả comments cần xóa
+		const comments = await Comment.find({ _id: { $in: ids } }).lean();
 
-			// Đếm replies
-			const repliesCount = await Comment.countDocuments({ parentId: commentId });
-			
-			// Xóa replies
-			await Comment.deleteMany({ parentId: commentId });
-			
-			// Xóa attachments
-			if (comment.attachments?.length > 0) {
-				await Attachment.deleteMany({ _id: { $in: comment.attachments } });
-			}
-			
-			// Xóa likes
-			await Like.deleteMany({ targetType: 'comment', targetId: commentId });
-			
-			// Xóa comment
-			await Comment.findByIdAndDelete(commentId);
+		if (comments.length === 0) {
+			return res.json({ 
+				success: true, 
+				message: 'Không có comment nào để xóa',
+				deletedCount: 0
+			});
+		}
 
-			// Track post updates
+		// Tính toán replies và thu thập dữ liệu cần xóa
+		const allCommentIds = [...ids];
+		for (const comment of comments) {
+			const replies = await Comment.find({ parentId: comment._id }).lean();
+			allCommentIds.push(...replies.map(r => r._id));
+			
 			const postId = String(comment.postId);
-			postUpdates[postId] = (postUpdates[postId] || 0) + (1 + repliesCount);
-
-			totalDeleted += (1 + repliesCount);
+			const userId = String(comment.authorId);
+			
+			postUpdates[postId] = (postUpdates[postId] || 0) + (1 + replies.length);
+			userUpdates[userId] = (userUpdates[userId] || 0) + (1 + replies.length);
 		}
 
-		// Cập nhật posts
+		// Xóa song song: attachments, likes, comments
+		await Promise.all([
+			Attachment.deleteMany({ 
+				_id: { 
+					$in: (await Comment.find({ _id: { $in: allCommentIds } })
+						.distinct('attachments'))
+				} 
+			}),
+			Like.deleteMany({ 
+				targetType: 'comment', 
+				targetId: { $in: allCommentIds } 
+			}),
+			Comment.deleteMany({ _id: { $in: allCommentIds } })
+		]);
+
+		totalDeleted = allCommentIds.length;
+
+		// Cập nhật posts và users song song
 		const Post = require('../models/Post');
-		for (const [postId, count] of Object.entries(postUpdates)) {
-			await Post.findByIdAndUpdate(postId, { $inc: { commentsCount: -count } });
-		}
+		const User = require('../models/User');
+		
+		await Promise.all([
+			...Object.entries(postUpdates).map(([postId, count]) =>
+				Post.findByIdAndUpdate(postId, { $inc: { commentsCount: -count } })
+			),
+			...Object.entries(userUpdates).map(([userId, count]) =>
+				User.findByIdAndUpdate(userId, { $inc: { "stats.commentsCount": -count } })
+			)
+		]);
 
 		res.json({ 
 			success: true, 
@@ -689,6 +720,7 @@ exports.deleteMultipleCommentsAdmin = async (req, res) => {
 			deletedCount: totalDeleted
 		});
 	} catch (err) {
+		console.error('Error in deleteMultipleCommentsAdmin:', err);
 		res.status(500).json({ success: false, error: err.message });
 	}
 };
@@ -696,64 +728,67 @@ exports.deleteMultipleCommentsAdmin = async (req, res) => {
 // [ADMIN] Thống kê comments
 exports.getCommentsStats = async (req, res) => {
 	try {
-		const totalComments = await Comment.countDocuments();
-		const totalReplies = await Comment.countDocuments({ parentId: { $ne: null } });
-		const totalRootComments = totalComments - totalReplies;
-
-		// Comments trong 7 ngày qua
 		const sevenDaysAgo = new Date();
 		sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-		const recentComments = await Comment.countDocuments({ 
-			createdAt: { $gte: sevenDaysAgo } 
-		});
-
-		// Top users có nhiều comments nhất
-		const topCommenters = await Comment.aggregate([
-			{
-				$group: {
-					_id: '$authorId',
-					count: { $sum: 1 }
-				}
-			},
-			{ $sort: { count: -1 } },
-			{ $limit: 10 },
-			{
-				$lookup: {
-					from: 'users',
-					localField: '_id',
-					foreignField: '_id',
-					as: 'user'
-				}
-			},
-			{ $unwind: '$user' },
-			{
-				$project: {
-					userId: '$_id',
-					username: '$user.username',
-					displayName: '$user.displayName',
-					avatarUrl: '$user.avatarUrl',
-					commentsCount: '$count'
-				}
-			}
-		]);
-
-		// Comments theo tháng (12 tháng gần nhất)
+		
 		const twelveMonthsAgo = new Date();
 		twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-		
-		const commentsByMonth = await Comment.aggregate([
-			{ $match: { createdAt: { $gte: twelveMonthsAgo } } },
-			{
-				$group: {
-					_id: {
-						year: { $year: '$createdAt' },
-						month: { $month: '$createdAt' }
-					},
-					count: { $sum: 1 }
+
+		// Query tất cả stats song song
+		const [
+			totalComments,
+			totalReplies,
+			recentComments,
+			topCommenters,
+			commentsByMonth
+		] = await Promise.all([
+			Comment.countDocuments(),
+			Comment.countDocuments({ parentId: { $ne: null } }),
+			Comment.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+			Comment.aggregate([
+				{
+					$group: {
+						_id: '$authorId',
+						count: { $sum: 1 }
+					}
+				},
+				{ $sort: { count: -1 } },
+				{ $limit: 10 },
+				{
+					$lookup: {
+						from: 'users',
+						localField: '_id',
+						foreignField: '_id',
+						as: 'user'
+					}
+				},
+				{ $unwind: '$user' },
+				{
+					$project: {
+						userId: '$_id',
+						username: '$user.username',
+						displayName: '$user.displayName',
+						avatarUrl: '$user.avatarUrl',
+						commentsCount: '$count'
+					}
 				}
-			},
-			{ $sort: { '_id.year': 1, '_id.month': 1 } }
+			]),
+			Comment.aggregate([
+				{ $match: { createdAt: { $gte: twelveMonthsAgo } } },
+				{
+					$group: {
+						_id: {
+							year: { $year: '$createdAt' },
+							month: { $month: '$createdAt' }
+						},
+						count: { $sum: 1 }
+					}
+				},
+				{ $sort: { '_id.year': 1, '_id.month': 1 } }
+			])
 		]);
+
+		const totalRootComments = totalComments - totalReplies;
 
 		res.json({
 			success: true,
@@ -767,6 +802,7 @@ exports.getCommentsStats = async (req, res) => {
 			}
 		});
 	} catch (err) {
+		console.error('Error in getCommentsStats:', err);
 		res.status(500).json({ success: false, error: err.message });
 	}
 };

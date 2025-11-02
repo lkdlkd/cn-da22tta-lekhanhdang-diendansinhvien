@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import CommentItem from "./CommentItem";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
+import Swal from "sweetalert2";
+
 const PostItem = ({
   post,
   user,
@@ -10,9 +12,7 @@ const PostItem = ({
   isLiked,
   isCommentsExpanded,
   commentTexts,
-  setCommentTexts,
   commentAttachments,
-  setCommentAttachments,
   handleCommentChange,
   handleAttachmentChange,
   removeAttachment,
@@ -20,9 +20,7 @@ const PostItem = ({
   replyTo,
   setReplyTo,
   replyTexts,
-  setReplyTexts,
   replyAttachments,
-  setReplyAttachments,
   handleReplyChange,
   handleReplyAttachmentChange,
   removeReplyAttachment,
@@ -159,16 +157,23 @@ const PostItem = ({
       {/* Header */}
       <div style={{ padding: "12px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <img
-            src={post.authorId?.avatarUrl || "/default-avatar.png"}
-            alt="Avatar"
-            style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }}
-          />
+          <Link to={`/user/${post.authorId?.username}`}>
+            <img
+              src={post.authorId?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
+              alt="Avatar"
+              style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover", cursor: "pointer" }}
+            />
+          </Link>
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-              <span style={{ fontWeight: "600", fontSize: "15px", color: "#050505" }}>
+              <Link 
+                to={`/user/${post.authorId?.username}`}
+                style={{ fontWeight: "600", fontSize: "15px", color: "#050505", textDecoration: "none" }}
+                onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
+                onMouseLeave={(e) => e.target.style.textDecoration = "none"}
+              >
                 {post.authorId?.displayName || post.authorId?.username || "Ẩn danh"}
-              </span>
+              </Link>
               {post.pinned && (
                 <span style={{ backgroundColor: "#fff3cd", color: "#856404", padding: "2px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "600" }}>📌 Ghim</span>
               )}
@@ -336,9 +341,54 @@ const PostItem = ({
 
                   {!isAuthor && (
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         setShowOptionsMenu(false);
-                        toast.info("Chức năng báo cáo đang được phát triển");
+                        
+                        // Hiển thị dialog nhập lý do
+                        const { value: reason } = await Swal.fire({
+                          title: 'Báo cáo bài viết',
+                          input: 'textarea',
+                          inputLabel: 'Lý do báo cáo',
+                          inputPlaceholder: 'Nhập lý do báo cáo...',
+                          inputAttributes: {
+                            'aria-label': 'Nhập lý do báo cáo'
+                          },
+                          showCancelButton: true,
+                          confirmButtonText: 'Gửi báo cáo',
+                          cancelButtonText: 'Hủy',
+                          confirmButtonColor: '#dc3545',
+                          inputValidator: (value) => {
+                            if (!value || !value.trim()) {
+                              return 'Vui lòng nhập lý do báo cáo!';
+                            }
+                            if (value.trim().length < 10) {
+                              return 'Lý do báo cáo phải có ít nhất 10 ký tự!';
+                            }
+                          }
+                        });
+
+                        if (reason) {
+                          try {
+                            const { createReport } = await import("../Utils/api");
+                            const token = localStorage.getItem('token');
+                            
+                            if (!token) {
+                              toast.error("Vui lòng đăng nhập để báo cáo");
+                              return;
+                            }
+
+                            const result = await createReport(token, 'post', post._id, reason.trim());
+                            
+                            if (result.success) {
+                              toast.success("Đã gửi báo cáo thành công");
+                            } else {
+                              toast.error(result.error || "Lỗi khi gửi báo cáo");
+                            }
+                          } catch (error) {
+                            console.error("Error reporting post:", error);
+                            toast.error("Lỗi khi gửi báo cáo");
+                          }
+                        }
                       }}
                       style={{
                         width: "100%",
@@ -629,10 +679,8 @@ const PostItem = ({
                   isReply={false}
                   replyTo={replyTo}
                   setReplyTo={setReplyTo}
-                  replyTexts={replyTexts}
-                  setReplyTexts={setReplyTexts}
-                  replyAttachments={replyAttachments}
-                  setReplyAttachments={setReplyAttachments}
+                  replyTexts={replyTexts ?? {}}
+                  replyAttachments={replyAttachments ?? {}}
                   handleReplyChange={handleReplyChange}
                   handleReplyAttachmentChange={handleReplyAttachmentChange}
                   removeReplyAttachment={removeReplyAttachment}
@@ -1039,7 +1087,7 @@ const PostItem = ({
                       onMouseOut={e => e.currentTarget.style.backgroundColor = "transparent"}
                     >
                       <img
-                        src={like.userId?.avatarUrl || "/default-avatar.png"}
+                        src={like.userId?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
                         alt="Avatar"
                         style={{
                           width: "40px",

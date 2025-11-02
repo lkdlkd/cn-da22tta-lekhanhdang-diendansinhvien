@@ -87,6 +87,40 @@ export const getOnlineUsers = async (limit = 50) => {
   return handleResponse(response);
 };
 
+// Lấy thông tin user theo username (public profile)
+export const getUserByUsername = async (username, token) => {
+  const headers = withNoStore({
+    "Content-Type": "application/json",
+  });
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const response = await fetch(`${API_BASE}/users/${username}`, {
+    method: "GET",
+    headers,
+  });
+  return handleResponse(response);
+};
+
+// Lấy bài viết của user theo username
+export const getUserPosts = async (username, params = {}, token) => {
+  const { page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = params;
+  const queryParams = new URLSearchParams({ page, limit, sortBy, order }).toString();
+  
+  const headers = withNoStore({
+    "Content-Type": "application/json",
+  });
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  
+  const response = await fetch(`${API_BASE}/users/${username}/posts?${queryParams}`, {
+    method: "GET",
+    headers,
+  });
+  return handleResponse(response);
+};
+
 export const changePassword = async (token, data) => {
   const response = await fetch(`${API_BASE}/user/change-password`, {
     method: "POST",
@@ -696,6 +730,148 @@ export const sendBulkNotifications = async (token, userIds, type, message, data 
 
 export const getNotificationsStats = async (token) => {
   const response = await fetch(`${API_BASE}/admin/notifications/stats`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+// ============================================
+// REPORT APIs
+// ============================================
+export const createReport = async (token, targetType, targetId, reason) => {
+  const response = await fetch(`${API_BASE}/reports`, {
+    method: "POST",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ targetType, targetId, reason }),
+  });
+  return handleResponse(response);
+};
+
+export const getMyReports = async (token, page = 1, limit = 20, status = null) => {
+  let url = `${API_BASE}/reports?page=${page}&limit=${limit}`;
+  if (status) url += `&status=${status}`;
+  
+  const response = await fetch(url, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const cancelReport = async (token, reportId) => {
+  const response = await fetch(`${API_BASE}/reports/${reportId}`, {
+    method: "DELETE",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+// ============================================
+// ADMIN - REPORT APIs
+// ============================================
+export const getAllReportsAdmin = async (token, page = 1, limit = 20, filters = {}) => {
+  let url = `${API_BASE}/admin/reports/all?page=${page}&limit=${limit}`;
+  
+  if (filters.status) url += `&status=${filters.status}`;
+  if (filters.targetType) url += `&targetType=${filters.targetType}`;
+  if (filters.keyword) url += `&keyword=${encodeURIComponent(filters.keyword)}`;
+  if (filters.sortBy) url += `&sortBy=${filters.sortBy}`;
+  if (filters.order) url += `&order=${filters.order}`;
+  
+  const response = await fetch(url, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const getReportDetailAdmin = async (token, reportId) => {
+  const response = await fetch(`${API_BASE}/admin/reports/${reportId}`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const getReportsByTargetAdmin = async (token, targetType, targetId) => {
+  const response = await fetch(`${API_BASE}/admin/reports/target/${targetType}/${targetId}`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const updateReportStatusAdmin = async (token, reportId, status, action = null) => {
+  const response = await fetch(`${API_BASE}/admin/reports/${reportId}`, {
+    method: "PUT",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ status, action }),
+  });
+  return handleResponse(response);
+};
+
+export const deleteReportAdmin = async (token, reportId) => {
+  const response = await fetch(`${API_BASE}/admin/reports/${reportId}`, {
+    method: "DELETE",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const deleteMultipleReportsAdmin = async (token, ids) => {
+  const response = await fetch(`${API_BASE}/admin/reports/bulk-delete`, {
+    method: "DELETE",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ ids }),
+  });
+  return handleResponse(response);
+};
+
+export const bulkHandleReportsAdmin = async (token, ids, status, action = null) => {
+  const response = await fetch(`${API_BASE}/admin/reports/bulk-handle`, {
+    method: "POST",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ ids, status, action }),
+  });
+  return handleResponse(response);
+};
+
+export const getReportsStatsAdmin = async (token) => {
+  const response = await fetch(`${API_BASE}/admin/reports/stats`, {
     method: "GET",
     headers: withNoStore({
       "Content-Type": "application/json",

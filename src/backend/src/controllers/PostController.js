@@ -7,6 +7,28 @@ const slugify = require('slugify');
 const comment = require('../models/Comment');
 const fs = require('fs');
 const path = require('path');
+
+// HÀM XỬ LÝ TAGS
+function processTags(tags) {
+	if (!tags) return [];
+	
+	if (Array.isArray(tags)) {
+		return tags
+			.filter(tag => tag && typeof tag === 'string')
+			.map(tag => tag.trim())
+			.filter(tag => tag.length > 0);
+	}
+	
+	if (typeof tags === 'string') {
+		return tags
+			.split(',')
+			.map(tag => tag.trim())
+			.filter(tag => tag.length > 0);
+	}
+	
+	return [];
+}
+
 // HÀM TẠO SLUG DUY NHẤT
 async function generateUniqueSlug(title) {
 	let slugBase = slugify(title, { lower: true, strict: true });
@@ -22,54 +44,95 @@ async function generateUniqueSlug(title) {
 // Lấy tất cả bài viết
 exports.getAllPosts = async (req, res) => {
 	try {
-		let posts = await Post.find()
+		// Sử dụng aggregation pipeline để tối ưu queries
+		const posts = await Post.find()
 			.populate('authorId', 'username displayName avatarUrl faculty class bio stats')
 			.populate('categoryId', 'title slug description')
 			.populate('attachments')
 			.sort({ createdAt: -1 })
 			.lean();
 
-		// Lấy tất cả comments, populate authorId và attachments
-		const commentsRaw = await comment.find({ postId: { $in: posts.map(p => p._id) } })
-			.populate('authorId attachments')
-			.lean();
+		if (posts.length === 0) {
+			return res.json([]);
+		}
 
-		// Tạo map commentId -> comment để tra cứu parent nhanh
-		const commentMap = {};
-		commentsRaw.forEach(c => {
-			commentMap[String(c._id)] = c;
+		const postIds = posts.map(p => p._id);
+
+		// Query song song tất cả data cần thiết
+		const [commentsRaw, likes, commentIds] = await Promise.all([
+			comment.find({ postId: { $in: postIds } })
+				.populate('authorId', 'username displayName avatarUrl')
+				.populate('attachments')
+				.lean(),
+			Like.find({ targetType: 'post', targetId: { $in: postIds } })
+				.populate('userId', 'username displayName avatarUrl')
+				.sort({ createdAt: -1 })
+				.lean(),
+			comment.find({ postId: { $in: postIds } }).distinct('_id')
+		]);
+
+		// Lấy likes cho comments trong 1 query
+		const likescmt = commentIds.length > 0 
+			? await Like.find({ targetType: 'comment', targetId: { $in: commentIds } })
+				.populate('userId', 'username displayName avatarUrl')
+				.sort({ createdAt: -1 })
+				.lean()
+			: [];
+
+		// Tạo maps để tra cứu nhanh O(1)
+		const commentMap = new Map();
+		const likesMap = new Map();
+		const commentLikesMap = new Map();
+
+		commentsRaw.forEach(c => commentMap.set(String(c._id), c));
+		likes.forEach(l => {
+			const key = String(l.targetId);
+			if (!likesMap.has(key)) likesMap.set(key, []);
+			likesMap.get(key).push(l);
 		});
-		const likes = await Like.find({ targetType: 'post', targetId: { $in: posts.map(p => p._id) } })
-			.populate('userId', 'username displayName avatarUrl')
-			.sort({ createdAt: -1 });
-		const likescmt = await Like.find({ targetType: 'comment', targetId: { $in: commentsRaw.map(c => c._id) } })
-			.populate('userId', 'username displayName avatarUrl')
-			.sort({ createdAt: -1 });
-		// Thêm displayName cho author và parentAuthor
+		likescmt.forEach(l => {
+			const key = String(l.targetId);
+			if (!commentLikesMap.has(key)) commentLikesMap.set(key, []);
+			commentLikesMap.get(key).push(l);
+		});
+
+		// Xử lý comments với O(n) complexity
 		const comments = commentsRaw.map(c => {
-			let authorName = c.authorId?.displayName || c.authorId?.username || 'Ẩn danh';
-			let parentAuthorName = null;
-			if (c.parentId && commentMap[String(c.parentId)]) {
-				const parent = commentMap[String(c.parentId)];
-				parentAuthorName = parent.authorId?.displayName || parent.authorId?.username || 'Ẩn danh';
-			}
+			const cId = String(c._id);
+			const parentId = c.parentId ? String(c.parentId) : null;
+			const parent = parentId ? commentMap.get(parentId) : null;
+
 			return {
 				...c,
-				authorName,
-				likes: likescmt.filter(like => String(like.targetId) === String(c._id)),
-				parentAuthorName
+				authorName: c.authorId?.displayName || c.authorId?.username || 'Ẩn danh',
+				parentAuthorName: parent 
+					? (parent.authorId?.displayName || parent.authorId?.username || 'Ẩn danh')
+					: null,
+				likes: commentLikesMap.get(cId) || []
 			};
 		});
 
-		// Gắn comment vào từng post
-		const postsWithComments = posts.map(post => ({
-			...post,
-			likes: likes.filter(like => String(like.targetId) === String(post._id)),
-			comments: comments.filter(c => String(c.postId) === String(post._id))
-		}));
+		// Tạo comment map theo postId
+		const commentsByPost = new Map();
+		comments.forEach(c => {
+			const key = String(c.postId);
+			if (!commentsByPost.has(key)) commentsByPost.set(key, []);
+			commentsByPost.get(key).push(c);
+		});
+
+		// Gắn data vào posts
+		const postsWithComments = posts.map(post => {
+			const pId = String(post._id);
+			return {
+				...post,
+				likes: likesMap.get(pId) || [],
+				comments: commentsByPost.get(pId) || []
+			};
+		});
 
 		res.json(postsWithComments);
 	} catch (err) {
+		console.error('Error in getAllPosts:', err);
 		res.status(500).json({ success: false, error: err.message });
 	}
 };
@@ -83,56 +146,67 @@ exports.getPostBySlug = async (req, res) => {
 			.populate('attachments')
 			.lean();
 
-		if (!post) return res.status(404).json({ success: false, error: 'Post not found' });
+		if (!post) {
+			return res.status(404).json({ success: false, error: 'Post not found' });
+		}
 
-		// Cập nhật lượt xem
-		await Post.findByIdAndUpdate(post._id, { $inc: { views: 1 } });
+		// Query song song: cập nhật views và lấy data
+		const [commentsRaw, likes] = await Promise.all([
+			comment.find({ postId: post._id })
+				.populate('authorId', 'username displayName avatarUrl faculty class')
+				.populate('attachments')
+				.lean(),
+			Like.find({ targetType: 'post', targetId: post._id })
+				.populate('userId', 'username displayName avatarUrl faculty class')
+				.sort({ createdAt: -1 })
+				.lean(),
+			Post.findByIdAndUpdate(post._id, { $inc: { views: 1 } })
+		]);
 
-		// Lấy danh sách likes cho bài viết
-		const likes = await Like.find({ targetType: 'post', targetId: post._id })
-			.populate('userId', 'username displayName avatarUrl faculty class')
-			.sort({ createdAt: -1 });
+		// Lấy likes cho comments nếu có comments
+		const likescmt = commentsRaw.length > 0
+			? await Like.find({ 
+				targetType: 'comment', 
+				targetId: { $in: commentsRaw.map(c => c._id) } 
+			})
+				.populate('userId', 'username displayName avatarUrl faculty class')
+				.sort({ createdAt: -1 })
+				.lean()
+			: [];
 
-		// Lấy tất cả comments cho bài viết
-		const commentsRaw = await comment.find({ postId: post._id })
-			.populate('authorId', 'username displayName avatarUrl faculty class')
-			.populate('attachments')
-			.lean();
-
-		// Tạo map commentId -> comment để tra cứu parent nhanh
-		const commentMap = {};
-		commentsRaw.forEach(c => {
-			commentMap[String(c._id)] = c;
+		// Tạo maps để tra cứu O(1)
+		const commentMap = new Map(commentsRaw.map(c => [String(c._id), c]));
+		const commentLikesMap = new Map();
+		
+		likescmt.forEach(l => {
+			const key = String(l.targetId);
+			if (!commentLikesMap.has(key)) commentLikesMap.set(key, []);
+			commentLikesMap.get(key).push(l);
 		});
 
-		// Lấy likes cho comments
-		const likescmt = await Like.find({ targetType: 'comment', targetId: { $in: commentsRaw.map(c => c._id) } })
-			.populate('userId', 'username displayName avatarUrl faculty class')
-			.sort({ createdAt: -1 });
-
-		// Thêm displayName cho author và parentAuthor, và thêm likes
+		// Xử lý comments
 		const comments = commentsRaw.map(c => {
-			let authorName = c.authorId?.displayName || c.authorId?.username || 'Ẩn danh';
-			let parentAuthorName = null;
-			if (c.parentId && commentMap[String(c.parentId)]) {
-				const parent = commentMap[String(c.parentId)];
-				parentAuthorName = parent.authorId?.displayName || parent.authorId?.username || 'Ẩn danh';
-			}
+			const cId = String(c._id);
+			const parentId = c.parentId ? String(c.parentId) : null;
+			const parent = parentId ? commentMap.get(parentId) : null;
+
 			return {
 				...c,
-				authorName,
-				parentAuthorName,
-				likes: likescmt.filter(like => String(like.targetId) === String(c._id))
+				authorName: c.authorId?.displayName || c.authorId?.username || 'Ẩn danh',
+				parentAuthorName: parent 
+					? (parent.authorId?.displayName || parent.authorId?.username || 'Ẩn danh')
+					: null,
+				likes: commentLikesMap.get(cId) || []
 			};
-		});		// Gắn likes và comments vào post
-		const postWithDetails = {
+		});
+
+		res.json({
 			...post,
 			likes,
 			comments
-		};
-
-		res.json(postWithDetails);
+		});
 	} catch (err) {
+		console.error('Error in getPostBySlug:', err);
 		res.status(500).json({ success: false, error: err.message });
 	}
 };
@@ -162,6 +236,9 @@ exports.createPost = async (req, res) => {
 			}));
 		}
 
+		// Xử lý tags - có thể là array hoặc string
+		const processedTags = processTags(tags);
+
 		// Tạo Post
 		const post = await Post.create({
 			authorId,
@@ -169,7 +246,7 @@ exports.createPost = async (req, res) => {
 			title,
 			slug,
 			content,
-			tags: Array.isArray(tags) ? tags : (tags ? tags.split(',') : []),
+			tags: processedTags,
 			attachments: attachmentIds
 		});
 
@@ -264,7 +341,12 @@ exports.updatePost = async (req, res) => {
 		post.title = req.body.title ?? post.title;
 		post.slug = req.body.slug ?? post.slug;
 		post.content = req.body.content ?? post.content;
-		post.tags = req.body.tags ? req.body.tags.split(',') : post.tags;
+		
+		// Xử lý tags - sử dụng helper function
+		if (req.body.tags !== undefined) {
+			post.tags = processTags(req.body.tags);
+		}
+		
 		post.categoryId = req.body.categoryId ?? post.categoryId;
 
 		await post.save();
@@ -414,53 +496,86 @@ exports.getFeaturedPosts = async (req, res) => {
 			.populate('attachments')
 			.lean();
 
-		// Lấy tất cả comments cho các bài viết nổi bật
-		const commentsRaw = await comment.find({ postId: { $in: posts.map(p => p._id) } })
-			.populate('authorId', 'username displayName avatarUrl faculty class')
-			.populate('attachments')
-			.lean();
+		if (posts.length === 0) {
+			return res.json([]);
+		}
 
-		// Tạo map commentId -> comment để tra cứu parent nhanh
-		const commentMap = {};
-		commentsRaw.forEach(c => {
-			commentMap[String(c._id)] = c;
+		const postIds = posts.map(p => p._id);
+
+		// Query song song
+		const [commentsRaw, likes, commentIds] = await Promise.all([
+			comment.find({ postId: { $in: postIds } })
+				.populate('authorId', 'username displayName avatarUrl faculty class')
+				.populate('attachments')
+				.lean(),
+			Like.find({ targetType: 'post', targetId: { $in: postIds } })
+				.populate('userId', 'username displayName avatarUrl faculty class')
+				.sort({ createdAt: -1 })
+				.lean(),
+			comment.find({ postId: { $in: postIds } }).distinct('_id')
+		]);
+
+		const likescmt = commentIds.length > 0
+			? await Like.find({ targetType: 'comment', targetId: { $in: commentIds } })
+				.populate('userId', 'username displayName avatarUrl faculty class')
+				.sort({ createdAt: -1 })
+				.lean()
+			: [];
+
+		// Tạo maps
+		const commentMap = new Map(commentsRaw.map(c => [String(c._id), c]));
+		const likesMap = new Map();
+		const commentLikesMap = new Map();
+
+		likes.forEach(l => {
+			const key = String(l.targetId);
+			if (!likesMap.has(key)) likesMap.set(key, []);
+			likesMap.get(key).push(l);
 		});
 
-		// Lấy likes cho các bài viết
-		const likes = await Like.find({ targetType: 'post', targetId: { $in: posts.map(p => p._id) } })
-			.populate('userId', 'username displayName avatarUrl faculty class')
-			.sort({ createdAt: -1 });
+		likescmt.forEach(l => {
+			const key = String(l.targetId);
+			if (!commentLikesMap.has(key)) commentLikesMap.set(key, []);
+			commentLikesMap.get(key).push(l);
+		});
 
-		// Lấy likes cho comments
-		const likescmt = await Like.find({ targetType: 'comment', targetId: { $in: commentsRaw.map(c => c._id) } })
-			.populate('userId', 'username displayName avatarUrl faculty class')
-			.sort({ createdAt: -1 });
-
-		// Thêm displayName cho author và parentAuthor, và thêm likes
+		// Xử lý comments
 		const comments = commentsRaw.map(c => {
-			let authorName = c.authorId?.displayName || c.authorId?.username || 'Ẩn danh';
-			let parentAuthorName = null;
-			if (c.parentId && commentMap[String(c.parentId)]) {
-				const parent = commentMap[String(c.parentId)];
-				parentAuthorName = parent.authorId?.displayName || parent.authorId?.username || 'Ẩn danh';
-			}
+			const cId = String(c._id);
+			const parentId = c.parentId ? String(c.parentId) : null;
+			const parent = parentId ? commentMap.get(parentId) : null;
+
 			return {
 				...c,
-				authorName,
-				parentAuthorName,
-				likes: likescmt.filter(like => String(like.targetId) === String(c._id))
+				authorName: c.authorId?.displayName || c.authorId?.username || 'Ẩn danh',
+				parentAuthorName: parent 
+					? (parent.authorId?.displayName || parent.authorId?.username || 'Ẩn danh')
+					: null,
+				likes: commentLikesMap.get(cId) || []
 			};
 		});
 
-		// Gắn likes và comments vào từng post
-		const postsWithDetails = posts.map(post => ({
-			...post,
-			likes: likes.filter(like => String(like.targetId) === String(post._id)),
-			comments: comments.filter(c => String(c.postId) === String(post._id))
-		}));
+		// Tạo comment map theo postId
+		const commentsByPost = new Map();
+		comments.forEach(c => {
+			const key = String(c.postId);
+			if (!commentsByPost.has(key)) commentsByPost.set(key, []);
+			commentsByPost.get(key).push(c);
+		});
+
+		// Gắn data vào posts
+		const postsWithDetails = posts.map(post => {
+			const pId = String(post._id);
+			return {
+				...post,
+				likes: likesMap.get(pId) || [],
+				comments: commentsByPost.get(pId) || []
+			};
+		});
 
 		res.json(postsWithDetails);
 	} catch (err) {
+		console.error('Error in getFeaturedPosts:', err);
 		res.status(500).json({ success: false, error: err.message });
 	}
 };
@@ -468,16 +583,11 @@ exports.getFeaturedPosts = async (req, res) => {
 // Lấy bài viết theo chuyên mục
 exports.getPostsByCategory = async (req, res) => {
 	try {
-		console.log('🔍 Searching for category with slug:', req.params.slug);
-
-		const category = await Category.findOne({ slug: req.params.slug });
+		const category = await Category.findOne({ slug: req.params.slug }).lean();
 		
 		if (!category) {
-			console.log('❌ Category not found with slug:', req.params.slug);
 			return res.status(404).json({ success: false, error: 'Category not found' });
 		}
-		
-		console.log('✅ Found category:', { _id: category._id, title: category.title, slug: category.slug });
 		
 		const posts = await Post.find({ categoryId: category._id })
 			.sort({ createdAt: -1 })
@@ -485,58 +595,87 @@ exports.getPostsByCategory = async (req, res) => {
 			.populate('categoryId', 'title slug description')
 			.populate('attachments')
 			.lean();
-		
-		console.log(`📝 Found ${posts.length} posts for category ${category.title}`);
-		
-		if (posts.length > 0) {
-			console.log('First post categoryId:', posts[0].categoryId);
+
+		if (posts.length === 0) {
+			return res.json([]);
 		}
 
-		// Lấy tất cả comments cho các bài viết trong chuyên mục
-		const commentsRaw = await comment.find({ postId: { $in: posts.map(p => p._id) } })
-			.populate('authorId', 'username displayName avatarUrl faculty class')
-			.populate('attachments')
-			.lean();
+		const postIds = posts.map(p => p._id);
 
-		// Tạo map commentId -> comment để tra cứu parent nhanh
-		const commentMap = {};
-		commentsRaw.forEach(c => {
-			commentMap[String(c._id)] = c;
+		// Query song song
+		const [commentsRaw, likes, commentIds] = await Promise.all([
+			comment.find({ postId: { $in: postIds } })
+				.populate('authorId', 'username displayName avatarUrl faculty class')
+				.populate('attachments')
+				.lean(),
+			Like.find({ targetType: 'post', targetId: { $in: postIds } })
+				.populate('userId', 'username displayName avatarUrl faculty class')
+				.sort({ createdAt: -1 })
+				.lean(),
+			comment.find({ postId: { $in: postIds } }).distinct('_id')
+		]);
+
+		const likescmt = commentIds.length > 0
+			? await Like.find({ targetType: 'comment', targetId: { $in: commentIds } })
+				.populate('userId', 'username displayName avatarUrl faculty class')
+				.sort({ createdAt: -1 })
+				.lean()
+			: [];
+
+		// Tạo maps
+		const commentMap = new Map(commentsRaw.map(c => [String(c._id), c]));
+		const likesMap = new Map();
+		const commentLikesMap = new Map();
+
+		likes.forEach(l => {
+			const key = String(l.targetId);
+			if (!likesMap.has(key)) likesMap.set(key, []);
+			likesMap.get(key).push(l);
 		});
 
-		// Lấy likes cho các bài viết
-		const likes = await Like.find({ targetType: 'post', targetId: { $in: posts.map(p => p._id) } })
-			.populate('userId', 'username displayName avatarUrl faculty class')
-			.sort({ createdAt: -1 });
+		likescmt.forEach(l => {
+			const key = String(l.targetId);
+			if (!commentLikesMap.has(key)) commentLikesMap.set(key, []);
+			commentLikesMap.get(key).push(l);
+		});
 
-		// Lấy likes cho comments
-		const likescmt = await Like.find({ targetType: 'comment', targetId: { $in: commentsRaw.map(c => c._id) } })
-			.populate('userId', 'username displayName avatarUrl faculty class')
-			.sort({ createdAt: -1 });
-
-		// Thêm displayName cho author và parentAuthor, và thêm likes
+		// Xử lý comments
 		const comments = commentsRaw.map(c => {
-			let authorName = c.authorId?.displayName || c.authorId?.username || 'Ẩn danh';
-			let parentAuthorName = null;
-			if (c.parentId && commentMap[String(c.parentId)]) {
-				const parent = commentMap[String(c.parentId)];
-				parentAuthorName = parent.authorId?.displayName || parent.authorId?.username || 'Ẩn danh';
-			}
+			const cId = String(c._id);
+			const parentId = c.parentId ? String(c.parentId) : null;
+			const parent = parentId ? commentMap.get(parentId) : null;
+
 			return {
 				...c,
-				authorName,
-				parentAuthorName,
-				likes: likescmt.filter(like => String(like.targetId) === String(c._id))
+				authorName: c.authorId?.displayName || c.authorId?.username || 'Ẩn danh',
+				parentAuthorName: parent 
+					? (parent.authorId?.displayName || parent.authorId?.username || 'Ẩn danh')
+					: null,
+				likes: commentLikesMap.get(cId) || []
 			};
-		});		// Gắn likes và comments vào từng post
-		const postsWithDetails = posts.map(post => ({
-			...post,
-			likes: likes.filter(like => String(like.targetId) === String(post._id)),
-			comments: comments.filter(c => String(c.postId) === String(post._id))
-		}));
+		});
+
+		// Tạo comment map theo postId
+		const commentsByPost = new Map();
+		comments.forEach(c => {
+			const key = String(c.postId);
+			if (!commentsByPost.has(key)) commentsByPost.set(key, []);
+			commentsByPost.get(key).push(c);
+		});
+
+		// Gắn data vào posts
+		const postsWithDetails = posts.map(post => {
+			const pId = String(post._id);
+			return {
+				...post,
+				likes: likesMap.get(pId) || [],
+				comments: commentsByPost.get(pId) || []
+			};
+		});
 
 		res.json(postsWithDetails);
 	} catch (err) {
+		console.error('Error in getPostsByCategory:', err);
 		res.status(500).json({ success: false, error: err.message });
 	}
 };
@@ -727,29 +866,33 @@ exports.getAllPostsAdmin = async (req, res) => {
 
 		const skip = (page - 1) * limit;
 		const sortOrder = order === 'desc' ? -1 : 1;
+		const limitNum = parseInt(limit);
 
-		const posts = await Post.find(query)
-			.populate('authorId', 'username displayName avatarUrl email')
-			.populate('categoryId', 'title slug')
-			.populate('attachments')
-			.skip(skip)
-			.limit(parseInt(limit))
-			.sort({ [sortBy]: sortOrder })
-			.lean();
-
-		const total = await Post.countDocuments(query);
+		// Query song song
+		const [posts, total] = await Promise.all([
+			Post.find(query)
+				.populate('authorId', 'username displayName avatarUrl email')
+				.populate('categoryId', 'title slug')
+				.populate('attachments')
+				.skip(skip)
+				.limit(limitNum)
+				.sort({ [sortBy]: sortOrder })
+				.lean(),
+			Post.countDocuments(query)
+		]);
 
 		res.json({
 			success: true,
 			data: posts,
 			pagination: {
 				page: parseInt(page),
-				limit: parseInt(limit),
+				limit: limitNum,
 				total,
-				pages: Math.ceil(total / limit)
+				pages: Math.ceil(total / limitNum)
 			}
 		});
 	} catch (err) {
+		console.error('Error in getAllPostsAdmin:', err);
 		res.status(500).json({ success: false, error: err.message });
 	}
 };
@@ -812,34 +955,39 @@ exports.deleteMultiplePosts = async (req, res) => {
 			});
 		}
 
-		// Xóa related data cho tất cả posts
-		await Comment.deleteMany({ postId: { $in: ids } });
-		await Like.deleteMany({ targetType: 'post', targetId: { $in: ids } });
-		await Report.deleteMany({ targetType: 'post', targetId: { $in: ids } });
-
-		// Xóa attachments
-		const posts = await Post.find({ _id: { $in: ids } });
+		// Lấy posts và attachments
+		const posts = await Post.find({ _id: { $in: ids } }).lean();
 		const attachmentIds = posts.flatMap(post => post.attachments || []);
+
+		// Xóa tất cả related data song song
+		const deletePromises = [
+			comment.deleteMany({ postId: { $in: ids } }),
+			Like.deleteMany({ targetType: 'post', targetId: { $in: ids } }),
+			Post.deleteMany({ _id: { $in: ids } })
+		];
+
 		if (attachmentIds.length > 0) {
-			await Attachment.deleteMany({ _id: { $in: attachmentIds } });
+			deletePromises.push(Attachment.deleteMany({ _id: { $in: attachmentIds } }));
 		}
 
-		const result = await Post.deleteMany({ _id: { $in: ids } });
+		const [commentsDeleted, likesDeleted, postsResult] = await Promise.all(deletePromises);
 
-		// Cập nhật user stats
-		const User = require('../models/User');
-		for (const post of posts) {
-			await User.findByIdAndUpdate(post.authorId, { 
-				$inc: { "stats.postsCount": -1 } 
-			});
-		}
+		// Cập nhật user stats song song
+		await Promise.all(
+			posts.map(post => 
+				User.findByIdAndUpdate(post.authorId, { 
+					$inc: { "stats.postsCount": -1 } 
+				})
+			)
+		);
 
 		res.json({ 
 			success: true, 
-			message: `Đã xóa ${result.deletedCount} bài viết`,
-			deletedCount: result.deletedCount
+			message: `Đã xóa ${postsResult.deletedCount} bài viết`,
+			deletedCount: postsResult.deletedCount
 		});
 	} catch (err) {
+		console.error('Error in deleteMultiplePosts:', err);
 		res.status(500).json({ success: false, error: err.message });
 	}
 };
@@ -891,78 +1039,81 @@ exports.movePosts = async (req, res) => {
 // [ADMIN] Thống kê posts
 exports.getPostsStats = async (req, res) => {
 	try {
-		const totalPosts = await Post.countDocuments();
-		const publishedPosts = await Post.countDocuments({ isDraft: false });
-		const draftPosts = await Post.countDocuments({ isDraft: true });
-		const pinnedPosts = await Post.countDocuments({ pinned: true });
-		const lockedPosts = await Post.countDocuments({ locked: true });
-
-		// Posts trong 7 ngày qua
 		const sevenDaysAgo = new Date();
 		sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-		const recentPosts = await Post.countDocuments({ 
-			createdAt: { $gte: sevenDaysAgo } 
-		});
-
-		// Posts theo category
-		const postsByCategory = await Post.aggregate([
-			{
-				$group: {
-					_id: '$categoryId',
-					count: { $sum: 1 }
-				}
-			},
-			{ $sort: { count: -1 } },
-			{
-				$lookup: {
-					from: 'categories',
-					localField: '_id',
-					foreignField: '_id',
-					as: 'category'
-				}
-			},
-			{ $unwind: '$category' },
-			{
-				$project: {
-					categoryId: '$_id',
-					categoryTitle: '$category.title',
-					categorySlug: '$category.slug',
-					postsCount: '$count'
-				}
-			}
-		]);
-
-		// Top posts (theo views, likes, comments)
-		const topPostsByViews = await Post.find({ isDraft: false })
-			.sort({ views: -1 })
-			.limit(10)
-			.select('title slug views likesCount commentsCount authorId')
-			.populate('authorId', 'username displayName')
-			.lean();
-
-		const topPostsByLikes = await Post.find({ isDraft: false })
-			.sort({ likesCount: -1 })
-			.limit(10)
-			.select('title slug views likesCount commentsCount authorId')
-			.populate('authorId', 'username displayName')
-			.lean();
-
-		// Posts theo tháng (12 tháng gần nhất)
+		
 		const twelveMonthsAgo = new Date();
 		twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-		
-		const postsByMonth = await Post.aggregate([
-			{ $match: { createdAt: { $gte: twelveMonthsAgo } } },
-			{
-				$group: {
-					_id: {
-						year: { $year: '$createdAt' },
-						month: { $month: '$createdAt' }
-					},
-					count: { $sum: 1 }
+
+		// Query song song tất cả stats
+		const [
+			totalPosts,
+			publishedPosts,
+			draftPosts,
+			pinnedPosts,
+			lockedPosts,
+			recentPosts,
+			postsByCategory,
+			topPostsByViews,
+			topPostsByLikes,
+			postsByMonth
+		] = await Promise.all([
+			Post.countDocuments(),
+			Post.countDocuments({ isDraft: false }),
+			Post.countDocuments({ isDraft: true }),
+			Post.countDocuments({ pinned: true }),
+			Post.countDocuments({ locked: true }),
+			Post.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+			// Posts theo category với aggregation
+			Post.aggregate([
+				{ $group: { _id: '$categoryId', count: { $sum: 1 } } },
+				{ $sort: { count: -1 } },
+				{
+					$lookup: {
+						from: 'categories',
+						localField: '_id',
+						foreignField: '_id',
+						as: 'category'
+					}
+				},
+				{ $unwind: '$category' },
+				{
+					$project: {
+						categoryId: '$_id',
+						categoryTitle: '$category.title',
+						categorySlug: '$category.slug',
+						postsCount: '$count'
+					}
 				}
-			},
-			{ $sort: { '_id.year': 1, '_id.month': 1 } }
+			]),
+			// Top posts theo views
+			Post.find({ isDraft: false })
+				.sort({ views: -1 })
+				.limit(10)
+				.select('title slug views likesCount commentsCount authorId')
+				.populate('authorId', 'username displayName')
+				.lean(),
+			// Top posts theo likes
+			Post.find({ isDraft: false })
+				.sort({ likesCount: -1 })
+				.limit(10)
+				.select('title slug views likesCount commentsCount authorId')
+				.populate('authorId', 'username displayName')
+				.lean(),
+			// Posts theo tháng
+			Post.aggregate([
+				{ $match: { createdAt: { $gte: twelveMonthsAgo } } },
+				{
+					$group: {
+						_id: {
+							year: { $year: '$createdAt' },
+							month: { $month: '$createdAt' }
+						},
+						count: { $sum: 1 }
+					}
+				},
+				{ $sort: { '_id.year': 1, '_id.month': 1 } }
+			])
 		]);
 
 		res.json({
@@ -981,6 +1132,7 @@ exports.getPostsStats = async (req, res) => {
 			}
 		});
 	} catch (err) {
+		console.error('Error in getPostsStats:', err);
 		res.status(500).json({ success: false, error: err.message });
 	}
 };

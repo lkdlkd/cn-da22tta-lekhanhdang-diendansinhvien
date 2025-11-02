@@ -23,6 +23,11 @@ const CommentItem = ({
   handleLikeComment,
   onCommentDeleted
 }) => {
+  // Ensure replyTexts and replyAttachments are always objects, even if null
+  const safeReplyTexts = replyTexts ?? {};
+  const safeReplyAttachments = replyAttachments ?? {};
+  const safeReplyTo = replyTo ?? {};
+  
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [showAllReplies, setShowAllReplies] = React.useState(false);
   const [showLikesModal, setShowLikesModal] = React.useState(false);
@@ -181,7 +186,7 @@ const CommentItem = ({
   }}>
     <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
       <img
-        src={comment.authorId?.avatarUrl || "/default-avatar.png"}
+        src={comment.authorId?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
         alt="Avatar"
         style={{
           width: "32px",
@@ -729,7 +734,7 @@ const CommentItem = ({
               fontSize: "12px",
               transition: "color 0.2s ease"
             }}
-            onClick={() => setReplyTo(prev => ({ ...prev, [comment._id]: !prev[comment._id] }))}
+            onClick={() => setReplyTo(prev => ({ ...(prev || {}), [comment._id]: !(prev && prev[comment._id]) }))}
             onMouseOver={(e) => {
               e.currentTarget.style.textDecoration = "underline";
               e.currentTarget.style.color = "#1877f2";
@@ -785,7 +790,7 @@ const CommentItem = ({
         </div>
 
         {/* Reply Input */}
-        {replyTo[comment._id] && (
+        {safeReplyTo[comment._id] && (
           <div style={{
             marginTop: "8px"
           }}>
@@ -795,7 +800,7 @@ const CommentItem = ({
               alignItems: "flex-start"
             }}>
               <img
-                src={user && user.avatarUrl ? user.avatarUrl : "/default-avatar.png"}
+                src={user && user.avatarUrl ? user.avatarUrl : "https://ui-avatars.com/api/?background=random&name=user"}
                 alt="Your avatar"
                 style={{
                   width: "32px",
@@ -808,7 +813,7 @@ const CommentItem = ({
               <div style={{ flex: 1 }}>
                 <div style={{ position: "relative" }}>
                   <textarea
-                    value={replyTexts[comment._id] || ''}
+                    value={safeReplyTexts[comment._id] || ''}
                     onChange={e => handleReplyChange(comment._id, e.target.value)}
                     placeholder={`Trả lời ${comment.authorId?.displayName || comment.authorId?.username || ""}...`}
                     style={{
@@ -849,14 +854,14 @@ const CommentItem = ({
                 </div>
 
                 {/* Attachment Previews */}
-                {replyAttachments[comment._id] && replyAttachments[comment._id].length > 0 && (
+                {safeReplyAttachments[comment._id] && safeReplyAttachments[comment._id].length > 0 && (
                   <div style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
                     gap: "6px",
                     marginTop: "8px"
                   }}>
-                    {replyAttachments[comment._id].map((file, fidx) => (
+                    {safeReplyAttachments[comment._id].map((file, fidx) => (
                       <div key={fidx} style={{
                         position: "relative",
                         backgroundColor: "#f0f2f5",
@@ -922,8 +927,8 @@ const CommentItem = ({
                 )}
 
                 {/* Send Button */}
-                {((replyTexts[comment._id] && replyTexts[comment._id].trim()) ||
-                  (replyAttachments[comment._id] && replyAttachments[comment._id].length > 0)) && (
+                {((safeReplyTexts[comment._id] && safeReplyTexts[comment._id].trim()) ||
+                  (safeReplyAttachments[comment._id] && safeReplyAttachments[comment._id].length > 0)) && (
                     <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
                       <button
                         onClick={() => handleSubmitReply(postId, comment._id)}
@@ -1004,8 +1009,8 @@ const CommentItem = ({
               depth={depth + 1}
               replyTo={replyTo}
               setReplyTo={setReplyTo}
-              replyTexts={replyTexts}
-              replyAttachments={replyAttachments}
+              replyTexts={safeReplyTexts}
+              replyAttachments={safeReplyAttachments}
               handleReplyChange={handleReplyChange}
               handleReplyAttachmentChange={handleReplyAttachmentChange}
               removeReplyAttachment={removeReplyAttachment}
@@ -1136,7 +1141,7 @@ const CommentItem = ({
                     onMouseOut={e => e.currentTarget.style.backgroundColor = "transparent"}
                   >
                     <img
-                      src={like.userId?.avatarUrl || "/default-avatar.png"}
+                      src={like.userId?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
                       alt="Avatar"
                       style={{
                         width: "40px",

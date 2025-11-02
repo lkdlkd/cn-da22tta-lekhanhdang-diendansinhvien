@@ -15,8 +15,11 @@ import CommentAdmin from "./Pages/Admin/AdminDashboard/CommentAdmin";
 import NotificationAdmin from "./Pages/Admin/AdminDashboard/NotificationAdmin";
 import PostDetail from "./Components/PostDetail";
 import Profile from "./Pages/Profile/Profile";
+import MyReports from "./Pages/Profile/MyReports";
+import UserProfile from "./Pages/Profile/UserProfile";
 import CategoryPosts from "./Pages/Category/CategoryPosts";
 import Categories from "./Pages/Category/Categories";
+import ReportAdmin from "./Pages/Admin/AdminDashboard/ReportAdmin";
 
 function App() {
   return (
@@ -36,6 +39,8 @@ function App() {
             <Route path="/category" element={<Categories />} />
             <Route path="/category/:slug" element={<CategoryPosts />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/my-reports" element={<MyReports />} />
+            <Route path="/user/:username" element={<UserProfile />} />
           </Route>
 
 
@@ -62,6 +67,7 @@ function App() {
             <Route path="/admin/posts" element={<PostAdmin />} />
             <Route path="/admin/comments" element={<CommentAdmin />} />
             <Route path="/admin/notifications" element={<NotificationAdmin />} />
+            <Route path="/admin/reports" element={<ReportAdmin />} />
             {/* <Route path="/admin/users" element={<UserAdmin />} />
             <Route path="/admin/documents" element={<DocumentAdmin />} />
             <Route path="/admin/categories" element={<CategoryAdmin />} />
