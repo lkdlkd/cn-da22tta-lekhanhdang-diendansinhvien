@@ -18,6 +18,7 @@ import UserProfile from "./Pages/Profile/UserProfile";
 import CategoryPosts from "./Pages/Category/CategoryPosts";
 import Categories from "./Pages/Category/Categories";
 import ReportAdmin from "./Pages/Admin/AdminDashboard/ReportAdmin";
+import Documents from "./Pages/Documents/Documents";
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
             <Route path="/post/:slug" element={<PostDetail />} />
             <Route path="/category" element={<Categories />} />
             <Route path="/category/:slug" element={<CategoryPosts />} />
+            <Route path="/documents" element={<Documents />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/my-reports" element={<MyReports />} />
             <Route path="/user/:username" element={<UserProfile />} />

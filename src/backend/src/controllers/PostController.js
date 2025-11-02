@@ -244,7 +244,7 @@ exports.createPost = async (req, res) => {
 			attachmentIds = await Promise.all(req.files.map(async (file) => {
 				const attachment = new Attachment({
 					ownerId: authorId,
-					filename: file.filename, // dùng tên file thực tế đã lưu
+					filename: file.originalname, // LƯU TÊN GỐC để hiển thị
 					mime: file.mimetype || 'application/octet-stream',
 					size: file.size || 0,
 					storageUrl: `${backendUrl}/uploads/${file.filename}`
@@ -313,18 +313,24 @@ exports.updatePost = async (req, res) => {
 			// Lấy thông tin file để xóa vật lý
 			const attachmentsToRemove = await Attachment.find({ _id: { $in: removeList } });
 
-			// Xóa file vật lý khỏi server
+			// Xóa file vật lý khỏi server (dựa trên storageUrl để lấy tên file đã lưu)
 			for (const attachment of attachmentsToRemove) {
 				try {
-					const filePath = path.join(__dirname, '../../src/uploads', attachment.filename);
+					const uploadsDir = path.join(__dirname, '../uploads');
+					const urlPath = String(attachment.storageUrl || '').replace(/^https?:\/\/[^/]+/i, '');
+					let filePath = path.join(uploadsDir, attachment.filename);
+					if (urlPath.startsWith('/uploads/')) {
+						const rel = urlPath.replace(/^\/uploads\//, '');
+						filePath = path.join(uploadsDir, rel);
+					}
 					if (fs.existsSync(filePath)) {
 						fs.unlinkSync(filePath);
-						console.log(`✅ Đã xóa file: ${attachment.filename}`);
+						console.log(`✅ Đã xóa file: ${filePath}`);
 					} else {
-						console.log(`⚠️ File không tồn tại: ${attachment.filename}`);
+						console.log(`⚠️ File không tồn tại: ${filePath}`);
 					}
 				} catch (err) {
-					console.error(`❌ Lỗi xóa file ${attachment.filename}:`, err);
+					console.error(`❌ Lỗi xóa file vật lý:`, err);
 				}
 			}
 
@@ -343,7 +349,7 @@ exports.updatePost = async (req, res) => {
 			const newFiles = await Promise.all(req.files.map(async file => {
 				const attachment = new Attachment({
 					ownerId: post.authorId,
-					filename: file.filename,
+					filename: file.originalname, // LƯU TÊN GỐC
 					mime: file.mimetype || 'application/octet-stream',
 					size: file.size || 0,
 					storageUrl: `${backendUrl}/uploads/${file.filename}`
@@ -410,7 +416,13 @@ exports.deletePost = async (req, res) => {
 			if (attachmentsToDelete.length > 0) {
 				for (const attachment of attachmentsToDelete) {
 					try {
-						const filePath = path.join(__dirname, '../../src/uploads', attachment.filename);
+						const uploadsDir = path.join(__dirname, '../uploads');
+						const urlPath = String(attachment.storageUrl || '').replace(/^https?:\/\/[^/]+/i, '');
+						let filePath = path.join(uploadsDir, attachment.filename);
+						if (urlPath.startsWith('/uploads/')) {
+							const rel = urlPath.replace(/^\/uploads\//, '');
+							filePath = path.join(uploadsDir, rel);
+						}
 						if (fs.existsSync(filePath)) {
 							fs.unlinkSync(filePath);
 							console.log(`✅ Đã xóa file bài viết: ${attachment.filename}`);
@@ -418,7 +430,7 @@ exports.deletePost = async (req, res) => {
 							console.log(`⚠️ File không tồn tại (có thể đã bị xóa): ${attachment.filename}`);
 						}
 					} catch (err) {
-						console.error(`❌ Lỗi xóa file ${attachment.filename}:`, err);
+						console.error(`❌ Lỗi xóa file vật lý:`, err);
 					}
 				}
 
@@ -447,15 +459,21 @@ exports.deletePost = async (req, res) => {
 			if (commentAttachments.length > 0) {
 				for (const attachment of commentAttachments) {
 					try {
-						const filePath = path.join(__dirname, '../../src/uploads', attachment.filename);
+						const uploadsDir = path.join(__dirname, '../uploads');
+						const urlPath = String(attachment.storageUrl || '').replace(/^https?:\/\/[^/]+/i, '');
+						let filePath = path.join(uploadsDir, attachment.filename);
+						if (urlPath.startsWith('/uploads/')) {
+							const rel = urlPath.replace(/^\/uploads\//, '');
+							filePath = path.join(uploadsDir, rel);
+						}
 						if (fs.existsSync(filePath)) {
 							fs.unlinkSync(filePath);
-							console.log(`✅ Đã xóa file comment: ${attachment.filename}`);
+							console.log(`✅ Đã xóa file comment: ${filePath}`);
 						} else {
-							console.log(`⚠️ File comment không tồn tại (có thể đã bị xóa): ${attachment.filename}`);
+							console.log(`⚠️ File comment không tồn tại (có thể đã bị xóa): ${filePath}`);
 						}
 					} catch (err) {
-						console.error(`❌ Lỗi xóa file comment ${attachment.filename}:`, err);
+						console.error(`❌ Lỗi xóa file comment vật lý:`, err);
 					}
 				}
 
@@ -1088,21 +1106,27 @@ exports.deleteMultiplePosts = async (req, res) => {
 		]));
 
 		const attachmentsToDelete = allAttachmentIds.length > 0
-			? await Attachment.find({ _id: { $in: allAttachmentIds } }).select('filename').lean()
+			? await Attachment.find({ _id: { $in: allAttachmentIds } }).select('filename storageUrl').lean()
 			: [];
 
 		// 4) Xoá file vật lý của toàn bộ attachments (post + comment)
 		for (const att of attachmentsToDelete) {
 			try {
-				const filePath = path.join(__dirname, '../../src/uploads', att.filename);
+				const uploadsDir = path.join(__dirname, '../uploads');
+				const urlPath = String(att.storageUrl || '').replace(/^https?:\/\/[^/]+/i, '');
+				let filePath = path.join(uploadsDir, att.filename);
+				if (urlPath.startsWith('/uploads/')) {
+					const rel = urlPath.replace(/^\/uploads\//, '');
+					filePath = path.join(uploadsDir, rel);
+				}
 				if (fs.existsSync(filePath)) {
 					fs.unlinkSync(filePath);
-					console.log(`✅ Đã xóa file: ${att.filename}`);
+					console.log(`✅ Đã xóa file: ${filePath}`);
 				} else {
-					console.log(`⚠️ File không tồn tại (có thể đã bị xóa): ${att.filename}`);
+					console.log(`⚠️ File không tồn tại (có thể đã bị xóa): ${filePath}`);
 				}
 			} catch (err) {
-				console.error(`❌ Lỗi xóa file ${att.filename}:`, err);
+				console.error(`❌ Lỗi xóa file vật lý:`, err);
 			}
 		}
 

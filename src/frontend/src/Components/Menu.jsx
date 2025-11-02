@@ -49,6 +49,13 @@ function Menu({ user, categories }) {
                             </Link>
                         </li>
 
+                        <li className="pc-item">
+                            <Link to="/documents" className="pc-link" onClick={handleNavigation}>
+                                <span className="pc-micon"><i className="ph-duotone ph-folder-open"></i></span>
+                                <span className="pc-mtext">Tài liệu</span>
+                            </Link>
+                        </li>
+
                         {/* DANH MỤC */}
                         <li className="pc-item pc-hasmenu">
                             <Link onClick={() => toggleMenu("categories")} className="pc-link d-flex justify-content-between align-items-center" style={{ cursor: "pointer" }}>
@@ -93,12 +100,12 @@ function Menu({ user, categories }) {
                         {/* Nếu ĐÃ đăng nhập */}
                         {user && (
                             <>
-                                <li className="pc-item">
+                                {/* <li className="pc-item">
                                     <Link to="/notifications" className="pc-link" onClick={handleNavigation}>
                                         <span className="pc-micon"><i className="ph-duotone ph-bell"></i></span>
                                         <span className="pc-mtext">Thông báo</span>
                                     </Link>
-                                </li>
+                                </li> */}
                                 <li className="pc-item">
                                     <Link to="/messages" className="pc-link" onClick={handleNavigation}>
                                         <span className="pc-micon"><i className="ph-duotone ph-chats"></i></span>
@@ -106,7 +113,7 @@ function Menu({ user, categories }) {
                                     </Link>
                                 </li>
                                 <li className="pc-item">
-                                    <Link to="/profile" className="pc-link" onClick={handleNavigation}>
+                                    <Link to={`/user/${user.username}`} className="pc-link" onClick={handleNavigation}>
                                         <span className="pc-micon"><i className="ph-duotone ph-user-circle"></i></span>
                                         <span className="pc-mtext">Hồ sơ cá nhân</span>
                                     </Link>

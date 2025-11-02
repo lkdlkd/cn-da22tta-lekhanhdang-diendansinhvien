@@ -15,7 +15,7 @@ exports.createComment = async (req, res) => {
 			attachmentIds = await Promise.all(req.files.map(async (file) => {
 				const attachment = new Attachment({
 					ownerId: authorId,
-					filename: file.filename,
+					filename: file.originalname, // LƯU TÊN GỐC để hiển thị
 					mime: file.mimetype || 'application/octet-stream',
 					size: file.size || 0,
 					storageUrl: `${backendUrl}/uploads/${file.filename}`
@@ -165,15 +165,21 @@ exports.deleteComment = async (req, res) => {
 			
 			for (const attachment of attachmentsToDelete) {
 				try {
-					const filePath = path.join(__dirname, '../../src/uploads', attachment.filename);
+					const uploadsDir = path.join(__dirname, '../uploads');
+					const urlPath = String(attachment.storageUrl || '').replace(/^https?:\/\/[^/]+/i, '');
+					let filePath = path.join(uploadsDir, attachment.filename);
+					if (urlPath.startsWith('/uploads/')) {
+						const rel = urlPath.replace(/^\/uploads\//, '');
+						filePath = path.join(uploadsDir, rel);
+					}
 					if (fs.existsSync(filePath)) {
 						fs.unlinkSync(filePath);
-						console.log(`✅ Đã xóa file comment: ${attachment.filename}`);
+						console.log(`✅ Đã xóa file comment: ${filePath}`);
 					} else {
-						console.log(`⚠️ File không tồn tại: ${attachment.filename}`);
+						console.log(`⚠️ File không tồn tại: ${filePath}`);
 					}
 				} catch (err) {
-					console.error(`❌ Lỗi xóa file ${attachment.filename}:`, err);
+					console.error(`❌ Lỗi xóa file comment vật lý:`, err);
 				}
 			}
 
@@ -206,15 +212,21 @@ exports.deleteComment = async (req, res) => {
 					
 					for (const attachment of replyAttachments) {
 						try {
-							const filePath = path.join(__dirname, '../../src/uploads', attachment.filename);
+							const uploadsDir = path.join(__dirname, '../uploads');
+							const urlPath = String(attachment.storageUrl || '').replace(/^https?:\/\/[^/]+/i, '');
+							let filePath = path.join(uploadsDir, attachment.filename);
+							if (urlPath.startsWith('/uploads/')) {
+								const rel = urlPath.replace(/^\/uploads\//, '');
+								filePath = path.join(uploadsDir, rel);
+							}
 							if (fs.existsSync(filePath)) {
 								fs.unlinkSync(filePath);
-								console.log(`✅ Đã xóa file reply: ${attachment.filename}`);
+								console.log(`✅ Đã xóa file reply: ${filePath}`);
 							} else {
-								console.log(`⚠️ File reply không tồn tại: ${attachment.filename}`);
+								console.log(`⚠️ File reply không tồn tại: ${filePath}`);
 							}
 						} catch (err) {
-							console.error(`❌ Lỗi xóa file ${attachment.filename}:`, err);
+							console.error(`❌ Lỗi xóa file reply vật lý:`, err);
 						}
 					}
 					await Attachment.deleteMany({ _id: { $in: reply.attachments } });
@@ -295,13 +307,19 @@ exports.updateComment = async (req, res) => {
 			// Xóa file vật lý khỏi server
 			for (const attachment of attachmentsToRemove) {
 				try {
-					const filePath = path.join(__dirname, '../../src/uploads', attachment.filename);
+					const uploadsDir = path.join(__dirname, '../uploads');
+					const urlPath = String(attachment.storageUrl || '').replace(/^https?:\/\/[^/]+/i, '');
+					let filePath = path.join(uploadsDir, attachment.filename);
+					if (urlPath.startsWith('/uploads/')) {
+						const rel = urlPath.replace(/^\/uploads\//, '');
+						filePath = path.join(uploadsDir, rel);
+					}
 					if (fs.existsSync(filePath)) {
 						fs.unlinkSync(filePath);
-						console.log(`✅ Đã xóa file: ${attachment.filename}`);
+						console.log(`✅ Đã xóa file: ${filePath}`);
 					}
 				} catch (err) {
-					console.error(`❌ Lỗi xóa file ${attachment.filename}:`, err);
+					console.error(`❌ Lỗi xóa file vật lý:`, err);
 				}
 			}
 
@@ -320,7 +338,7 @@ exports.updateComment = async (req, res) => {
 			const newFiles = await Promise.all(req.files.map(async file => {
 				const attachment = new Attachment({
 					ownerId: comment.authorId,
-					filename: file.filename,
+					filename: file.originalname, // LƯU TÊN GỐC
 					mime: file.mimetype || 'application/octet-stream',
 					size: file.size || 0,
 					storageUrl: `${backendUrl}/uploads/${file.filename}`

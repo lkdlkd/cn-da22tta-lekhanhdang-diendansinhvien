@@ -15,9 +15,24 @@ const postStorage = multer.diskStorage({
         cb(null, path.join(__dirname, '../uploads'));
     },
     filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+        // Đặt tên file theo tên gốc (sanitize) + hậu tố ngắn tránh trùng
+        // Hậu tố ngắn: 8 ký tự (4 ký tự thời gian base36 + 4 ký tự ngẫu nhiên)
+        const ext = path.extname(file.originalname).toLowerCase();
+        const base = path.parse(file.originalname).name || 'file';
+        // Loại bỏ dấu và ký tự đặc biệt để an toàn URL/hệ thống tệp
+        const normalized = base
+            .normalize('NFKD')
+            .replace(/[\u0300-\u036f]/g, '') // bỏ dấu tiếng Việt
+            .replace(/[^a-zA-Z0-9-_]+/g, '-') // chỉ giữ chữ/số/-/_
+            .replace(/-{2,}/g, '-')
+            .replace(/^[-_]+|[-_]+$/g, '')
+            .slice(0, 100) || 'file';
+
+        const ts = Date.now().toString(36).slice(-4);
+        const rnd = Math.random().toString(36).slice(2, 6);
+        const shortSuffix = ts + rnd;
+
+        cb(null, `${normalized}-${shortSuffix}${ext}`);
     }
 });
 
@@ -43,6 +58,7 @@ const categoryRoutes = require('../controllers/CategoryController');
 const CommentController = require('../controllers/CommentController');
 const NotificationController = require('../controllers/NotificationController');
 const ReportController = require('../controllers/ReportController');
+const AttchmentController = require('../controllers/AttchmentController');
 
 router.post('/auth/login', userRoutes.login); // Đăng nhập
 router.post('/auth/register', userRoutes.register);// Đăng ký
@@ -142,5 +158,12 @@ router.put('/admin/reports/:id', authenticateAdmin, ReportController.updateRepor
 router.delete('/admin/reports/:id', authenticateAdmin, ReportController.deleteReportAdmin);// Xóa báo cáo
 router.delete('/admin/reports/bulk-delete', authenticateAdmin, ReportController.deleteMultipleReportsAdmin);// Xóa nhiều báo cáo
 router.post('/admin/reports/bulk-handle', authenticateAdmin, ReportController.bulkHandleReportsAdmin);// Xử lý hàng loạt báo cáo
+
+// ===== DOCUMENT (ATTACHMENT) ROUTES =====
+// Yêu cầu đăng nhập để truy cập thư viện tài liệu
+router.get('/documents/categories', authenticateUser, AttchmentController.getDocumentCategories);
+router.get('/documents', authenticateUser, AttchmentController.getDocuments);
+router.get('/documents/by-category/:category', authenticateUser, AttchmentController.getDocumentsByCategory);
+router.get('/documents/:id', authenticateUser, AttchmentController.getDocumentDetail);
 
 module.exports = router;

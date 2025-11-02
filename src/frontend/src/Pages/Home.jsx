@@ -281,6 +281,33 @@ const Home = () => {
     setTimeout(() => setSelectedPost(null), 300); // Clear after animation
   };
 
+  // Helpers for documents widget
+  const getDocCategory = (d) => {
+    const mime = (d?.mime || '').toLowerCase();
+    const name = (d?.filename || '').toLowerCase();
+    if (mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(name)) return 'image';
+    if (mime.includes('pdf') || name.endsWith('.pdf')) return 'pdf';
+    if (mime.includes('word') || name.endsWith('.doc') || name.endsWith('.docx')) return 'word';
+    if (mime.includes('excel') || name.endsWith('.xls') || name.endsWith('.xlsx') || name.endsWith('.csv')) return 'excel';
+    if (mime.includes('powerpoint') || name.endsWith('.ppt') || name.endsWith('.pptx')) return 'ppt';
+    if (mime.startsWith('text/') || name.endsWith('.txt') || name.endsWith('.md')) return 'text';
+    if (mime.includes('zip') || name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z')) return 'archive';
+    return 'other';
+  };
+
+  const getDocIconClass = (cat) => {
+    switch (cat) {
+      case 'pdf': return 'ph ph-file-pdf text-danger';
+      case 'word': return 'ph ph-file-doc text-primary';
+      case 'excel': return 'ph ph-file-xls text-success';
+      case 'ppt': return 'ph ph-file-ppt text-warning';
+      case 'text': return 'ph ph-file-text text-secondary';
+      case 'image': return 'ph ph-image text-info';
+      case 'archive': return 'ph ph-file-zip text-muted';
+      default: return 'ph ph-file text-secondary';
+    }
+  };
+
   return (
     <div>
       <HeroSection />
@@ -515,31 +542,45 @@ const Home = () => {
                   Tài liệu mới
                 </h6>
                 <div className="list-group list-group-flush">
-                  {documents && documents.slice(0, 5).map((doc, idx) => (
-                    <Link
-                      key={doc.title || idx}
-                      to={doc.url}
-                      className="list-group-item list-group-item-action border-0 d-flex align-items-center"
-                      style={{
-                        padding: '10px 0',
-                        borderRadius: '8px',
-                        transition: 'all 0.2s',
-                        marginBottom: '4px',
-                        textDecoration: 'none'
-                      }}
-                      onMouseOver={(e) => {
-                        e.currentTarget.style.backgroundColor = '#f8f9fa';
-                        e.currentTarget.style.paddingLeft = '8px';
-                      }}
-                      onMouseOut={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.paddingLeft = '0';
-                      }}
-                    >
-                      <i className="ph ph-file-pdf text-danger me-2" style={{ fontSize: '18px' }}></i>
-                      <span style={{ fontSize: '13px' }}>{doc.title}</span>
-                    </Link>
-                  ))}
+                  {Array.isArray(documents) && documents.length > 0 ? (
+                    documents.slice(0, 5).map((doc) => {
+                      const cat = getDocCategory(doc);
+                      return (
+                        <a
+                          key={doc._id}
+                          href={doc.storageUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="list-group-item list-group-item-action border-0 d-flex align-items-center"
+                          style={{
+                            padding: '10px 0',
+                            borderRadius: '8px',
+                            transition: 'all 0.2s',
+                            marginBottom: '4px',
+                            textDecoration: 'none'
+                          }}
+                          onMouseOver={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f8f9fa';
+                            e.currentTarget.style.paddingLeft = '8px';
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.paddingLeft = '0';
+                          }}
+                        >
+                          <i className={`${getDocIconClass(cat)} me-2`} style={{ fontSize: '18px' }}></i>
+                          <span className="text-truncate" style={{ fontSize: '13px', maxWidth: '240px' }}>{doc.filename}</span>
+                          {/* <small className="text-muted" style={{ fontSize: '12px' }}>{formatBytes(doc.size)}</small> */}
+                          <div className="d-flex align-items-center ms-auto gap-2">
+                            <img src={doc.ownerId.avatarUrl} alt="" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                            <span className="text-muted" style={{ fontSize: '12px' }}>{doc.ownerId.displayName || doc.ownerId.username}</span>
+                          </div>
+                        </a>
+                      );
+                    })
+                  ) : (
+                    <div className="text-muted" style={{ fontSize: '12px' }}>Chưa có tài liệu</div>
+                  )}
                 </div>
               </div>
             </div>

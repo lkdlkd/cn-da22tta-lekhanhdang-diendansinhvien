@@ -921,3 +921,58 @@ export const getReportsStatsAdmin = async (token) => {
   });
   return handleResponse(response);
 };
+
+// ============================================
+// DOCUMENT LIBRARY APIs
+// ============================================
+export const getDocumentCategories = async (token) => {
+  const response = await fetch(`${API_BASE}/documents/categories`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const getDocuments = async (token, params = {}) => {
+  const { page = 1, limit = 20, keyword = '', category = '' } = params;
+  const query = new URLSearchParams({ page, limit });
+  if (keyword) query.set('keyword', keyword);
+  if (category) query.set('category', category);
+
+  const response = await fetch(`${API_BASE}/documents?${query.toString()}`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const getDocumentsByCategory = async (token, category, params = {}) => {
+  const { page = 1, limit = 20, keyword = '' } = params;
+  const q = new URLSearchParams({ page, limit });
+  if (keyword) q.set('keyword', keyword);
+  const response = await fetch(`${API_BASE}/documents/by-category/${category}?${q.toString()}`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const getDocumentDetail = async (token, id) => {
+  const response = await fetch(`${API_BASE}/documents/${id}`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};

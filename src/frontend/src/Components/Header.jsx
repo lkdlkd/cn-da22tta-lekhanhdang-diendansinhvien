@@ -485,7 +485,7 @@ export default function Header({ user }) {
                       </div>
 
                       <hr className="border-secondary border-opacity-50" />
-                      <div className="d-flex mb-1">
+                      {/* <div className="d-flex mb-1">
                         <div className="flex-shrink-0">
 
                         </div>
@@ -497,7 +497,7 @@ export default function Header({ user }) {
                             </Link>
                           </h6>
                         </div>
-                      </div>
+                      </div> */}
                       <div className="d-flex mb-1">
                         <div className="flex-shrink-0">
 
