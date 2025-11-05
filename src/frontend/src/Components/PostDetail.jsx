@@ -9,6 +9,7 @@ import { useOutletContext } from "react-router-dom";
 import LoadingPost from "./LoadingPost";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
+import EditPostModal from "./EditPostModal";
 const { socket } = require('../Utils/socket');
 
 export default function PostDetail({ post: initialPost, show, onClose }) {
@@ -41,6 +42,9 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
   const [replyTo, setReplyTo] = useState({});
   const [replyTexts, setReplyTexts] = useState({});
   const [replyAttachments, setReplyAttachments] = useState({});
+
+  // State for edit modal
+  const [editingPost, setEditingPost] = useState(null);
 
   // Use ref to avoid adding post to dependencies
   const postRef = useRef(null);
@@ -209,11 +213,43 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
       }
     };
 
+    // Realtime update post content when edited
+    const handlePostUpdated = ({ postId, post }) => {
+      const currentPost = postRef.current;
+      if (currentPost && String(currentPost._id) === String(postId)) {
+        setPost(prev => ({
+          ...prev,
+          title: post.title || prev.title,
+          content: post.content || prev.content,
+          excerpt: post.excerpt || prev.excerpt,
+          categoryId: post.categoryId || prev.categoryId,
+          tags: post.tags || prev.tags,
+          attachments: post.attachments || prev.attachments,
+          slug: post.slug || prev.slug
+
+        }));
+        // toast.info('Bài viết đã được cập nhật', { autoClose: 2000 });
+      }
+    };
+
+    // Handle post deletion
+    const handlePostDeleted = ({ postId }) => {
+      const currentPost = postRef.current;
+      if (currentPost && String(currentPost._id) === String(postId)) {
+        // toast.warning('Bài viết đã bị xóa');
+        setTimeout(() => {
+          navigate('/');
+        }, 1500);
+      }
+    };
+
     socket.on('post:liked', handlePostLiked);
     socket.on('post:unliked', handlePostUnliked);
     socket.on('comment:liked', handleCommentLiked);
     socket.on('comment:unliked', handleCommentUnliked);
     socket.on('comment:new', handleNewComment);
+    socket.on('post:updated', handlePostUpdated);
+    socket.on('post:deleted', handlePostDeleted);
 
     return () => {
       socket.off('post:liked', handlePostLiked);
@@ -221,8 +257,10 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
       socket.off('comment:liked', handleCommentLiked);
       socket.off('comment:unliked', handleCommentUnliked);
       socket.off('comment:new', handleNewComment);
+      socket.off('post:updated', handlePostUpdated);
+      socket.off('post:deleted', handlePostDeleted);
     };
-  }, []); // Empty dependencies - setup once  // Load liked posts từ localStorage
+  }, [navigate]); // Add navigate to dependencies  // Load liked posts từ localStorage
   useEffect(() => {
     const savedLikes = localStorage.getItem('likedPosts');
     if (savedLikes) {
@@ -321,7 +359,7 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
       const { deletePost } = await import("../Utils/api");
       await deletePost(token, postId);
       toast.success("Đã xóa bài viết thành công");
-      
+
       // Close modal if open, otherwise redirect
       if (onClose) {
         onClose();
@@ -335,7 +373,31 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
   };
 
   const handleEditPost = (postId) => {
-    window.location.href = `/edit-post/${postId}`;
+    console.log("Editing post:", postId);
+    if (post) {
+      setEditingPost(post);
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingPost(null);
+  };
+
+  const handleUpdateSuccess = async () => {
+    // Reload post data after successful update
+    if (post && post.slug) {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await getPostBySlug(post.slug);
+        if (res.success) {
+          setPost(res.data);
+          toast.success("Cập nhật bài viết thành công!");
+        }
+      } catch (error) {
+        console.error("Error reloading post:", error);
+      }
+    }
+    setEditingPost(null);
   };
 
   const toggleComments = (postId) => {
@@ -405,7 +467,7 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
       // Clear form
       setCommentTexts(prev => ({ ...prev, [postId]: '' }));
       setCommentAttachments(prev => ({ ...prev, [postId]: [] }));
-      
+
       // Cleanup previews
       attachments.forEach(att => {
         if (att.preview) URL.revokeObjectURL(att.preview);
@@ -468,7 +530,7 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
       setReplyTexts(prev => ({ ...prev, [parentId]: '' }));
       setReplyAttachments(prev => ({ ...prev, [parentId]: [] }));
       setReplyTo(prev => ({ ...prev, [parentId]: false }));
-      
+
       // Cleanup previews
       attachments.forEach(att => {
         if (att.preview) URL.revokeObjectURL(att.preview);
@@ -608,6 +670,36 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
           // backdrop="static"
           keyboard={true}
         >
+          <Modal.Header style={{ 
+            borderBottom: '1px solid #e4e6eb', 
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <button
+              onClick={handleCloseModal}
+              style={{
+                background: 'none',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                fontSize: '15px',
+                fontWeight: 600,
+                color: '#050505',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseOver={e => e.currentTarget.style.backgroundColor = '#f2f3f5'}
+              onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <span style={{ fontSize: '20px' }}>←</span>
+              <span>Trở về</span>
+            </button>
+          </Modal.Header>
           <Modal.Body>
             {loading ? (
               <div style={{ padding: '20px' }}>
@@ -677,6 +769,15 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
             )}
           </Modal.Body>
         </Modal>
+
+        {/* Edit Post Modal */}
+        {editingPost && (
+          <EditPostModal
+            post={editingPost}
+            onClose={handleCloseEditModal}
+            onUpdate={handleUpdateSuccess}
+          />
+        )}
       </>
     );
   }
@@ -684,6 +785,41 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
   // Mobile Full Page Layout
   return (
     <div className="container mt-4">
+      {/* Header with back button */}
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        padding: '12px 16px',
+        marginBottom: '16px',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px'
+      }}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            background: 'none',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            fontSize: '15px',
+            fontWeight: 600,
+            color: '#050505',
+            padding: '6px 12px',
+            borderRadius: '6px',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={e => e.currentTarget.style.backgroundColor = '#f2f3f5'}
+          onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}
+        >
+          <span style={{ fontSize: '20px' }}>←</span>
+          <span>Trở về</span>
+        </button>
+      </div>
+
       {loading ? (
         <LoadingPost />
       ) : error ? (
@@ -743,6 +879,15 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
         />
       ) : (
         <div className="alert alert-warning">Không có dữ liệu bài viết.</div>
+      )}
+
+      {/* Edit Post Modal */}
+      {editingPost && (
+        <EditPostModal
+          post={editingPost}
+          onClose={handleCloseEditModal}
+          onUpdate={handleUpdateSuccess}
+        />
       )}
     </div>
   );

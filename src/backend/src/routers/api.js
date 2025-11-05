@@ -65,10 +65,10 @@ router.post('/auth/register', userRoutes.register);// Đăng ký
 
 router.get('/user', authenticateUser, userRoutes.getProfile);// Lấy thông tin người dùng
 router.put('/user', authenticateUser, uploadAvatar.single('avatar'), userRoutes.updateProfile);// Cập nhật thông tin người dùng
-// router.get('/users/online', userRoutes.getOnlineUsers);// Lấy danh sách user đang online
+router.get('/users/online', userRoutes.getOnlineUsers);// Lấy danh sách user đang online
+router.get('/users/active', userRoutes.getActiveUsers);// Lấy danh sách thành viên tích cực
 router.get('/users/:username', userRoutes.getUserByUsername);// Lấy thông tin user theo username (public profile)
 router.get('/users/:username/posts', userRoutes.getUserPosts);// Lấy bài viết của user theo username
-router.get('/users/active', userRoutes.getActiveUsers);// Lấy danh sách thành viên tích cực
 
 
 // ===== ADMIN - USER MANAGEMENT =====
@@ -165,5 +165,11 @@ router.get('/documents/categories', authenticateUser, AttchmentController.getDoc
 router.get('/documents', authenticateUser, AttchmentController.getDocuments);
 router.get('/documents/by-category/:category', authenticateUser, AttchmentController.getDocumentsByCategory);
 router.get('/documents/:id', authenticateUser, AttchmentController.getDocumentDetail);
+
+// ===== CHAT ROUTES =====
+const ChatController = require('../controllers/ChatController');
+router.get('/chat/conversations', authenticateUser, ChatController.getMyConversations);// Lấy danh sách conversations
+router.get('/chat/private/:peerId', authenticateUser, ChatController.getPrivateChatHistory);// Lấy lịch sử chat với peer
+router.post('/chat/upload', authenticateUser, ChatController.uploadChatFiles);// Upload files cho chat
 
 module.exports = router;

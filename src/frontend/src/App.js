@@ -19,7 +19,9 @@ import CategoryPosts from "./Pages/Category/CategoryPosts";
 import Categories from "./Pages/Category/Categories";
 import ReportAdmin from "./Pages/Admin/AdminDashboard/ReportAdmin";
 import Documents from "./Pages/Documents/Documents";
-
+import GlobalChat from "./Pages/Forum/GlobaChat";
+import PrivateChat from "./Pages/Forum/PrivateChat";
+import ListChat from "./Pages/Forum/ListChat";
 function App() {
   return (
     <AuthProvider>
@@ -41,6 +43,9 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/my-reports" element={<MyReports />} />
             <Route path="/user/:username" element={<UserProfile />} />
+            <Route path="/forum" element={<GlobalChat />} />
+            <Route path="/messages" element={<ListChat />} />
+            <Route path="/message/:username" element={<ListChat />} />
           </Route>
 
 

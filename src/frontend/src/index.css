@@ -1,13 +1,18 @@
-
 /* Fix z-index for SweetAlert2 to appear above modals */
 .swal-on-modal .swal2-container {
   z-index: 100000 !important;
 }
+
 .swal2-shown .swal2-container {
   z-index: 100000 !important;
 }
+
 .swal2-container {
   z-index: 100000 !important;
+}
+
+.swal-report-container {
+  z-index: 100001 !important;
 }
 
 /* Ensure toast notifications appear above everything */

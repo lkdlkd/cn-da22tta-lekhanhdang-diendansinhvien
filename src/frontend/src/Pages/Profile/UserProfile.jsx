@@ -10,7 +10,8 @@ import {
   likePost,
   unlikePost,
   likeComment,
-  unlikeComment
+  unlikeComment,
+  createReport
 } from '../../Utils/api';
 import Swal from 'sweetalert2';
 import { useOutletContext } from 'react-router-dom';
@@ -32,10 +33,9 @@ const UserProfile = () => {
   const [hasMore, setHasMore] = useState(true);
   const { user } = useOutletContext();
   const token = localStorage.getItem('token');
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const currentUser = user;
   // Resolve current user id from context first, then localStorage as fallback
-  const currentUserId = (user && (user._id || user.id)) || currentUser._id || currentUser.id;
-
+  const currentUserId = currentUser && (currentUser._id || currentUser.id);
   // State for comments
   const [isCommentsExpanded, setIsCommentsExpanded] = useState({});
   const [commentTexts, setCommentTexts] = useState({});
@@ -517,6 +517,68 @@ const UserProfile = () => {
       toast.error('Không thể thực hiện');
     }
   };
+
+  // Handle report user
+  const handleReportUser = async () => {
+    if (!token) {
+      toast.error('Vui lòng đăng nhập để báo cáo');
+      return;
+    }
+
+    const { value: reason } = await Swal.fire({
+      title: 'Báo cáo người dùng',
+      html: `
+        <p class="text-start mb-3">Bạn muốn báo cáo <strong>@${users.username}</strong>?</p>
+        <select id="report-reason" class="form-select">
+          <option value="">-- Chọn lý do --</option>
+          <option value="spam">Spam hoặc quảng cáo</option>
+          <option value="Quấy rối hoặc bắt nạt">Quấy rối hoặc bắt nạt</option>
+          <option value="Ngôn từ thù ghét">Ngôn từ thù ghét</option>
+          <option value="Nội dung không phù hợp">Nội dung không phù hợp</option>
+          <option value="Mạo danh">Mạo danh</option>
+          <option value="Lý do khác">Lý do khác</option>
+        </select>
+        <textarea id="report-detail" class="form-control mt-3" rows="3" placeholder="Mô tả chi tiết (không bắt buộc)"></textarea>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Gửi báo cáo',
+      cancelButtonText: 'Hủy',
+      preConfirm: () => {
+        const reason = document.getElementById('report-reason').value;
+        const detail = document.getElementById('report-detail').value;
+        
+        if (!reason) {
+          Swal.showValidationMessage('Vui lòng chọn lý do báo cáo');
+          return false;
+        }
+        
+        return { reason, detail };
+      }
+    });
+
+    if (reason) {
+      try {
+        const reasonText = reason.detail 
+          ? `${reason.reason}: ${reason.detail}` 
+          : reason.reason;
+
+        const response = await createReport(token, 'user', users._id, reasonText);
+        
+        if (response.success) {
+          toast.success('Đã gửi báo cáo. Cảm ơn bạn đã giúp giữ cộng đồng an toàn!');
+        } else {
+          toast.error(response.error || 'Không thể gửi báo cáo');
+        }
+      } catch (error) {
+        console.error('Error reporting user:', error);
+        toast.error('Có lỗi xảy ra khi gửi báo cáo');
+      }
+    }
+  };
+
   const [editingPost, setEditingPost] = useState(null);
 
   // Handle edit post
@@ -595,8 +657,9 @@ const UserProfile = () => {
       </div>
     );
   }
-
-  const isOwnProfile = currentUser.username === users.username;
+  
+  // Kiểm tra currentUser trước khi truy cập username
+  const isOwnProfile = currentUser && users && currentUser.username === users.username;
 
   return (
     <div className="container py-4">
@@ -680,13 +743,13 @@ const UserProfile = () => {
                   </Link>
                 ) : (
                   <div className="d-flex gap-2">
-                    <button className="btn btn-primary">
+                    <Link to={`/message/${users.username}`} className="btn btn-primary">
                       <i className="ph ph-chat-circle me-2"></i>
                       Nhắn tin
-                    </button>
-                    <button className="btn btn-outline-secondary">
-                      <i className="ph ph-user-plus me-2"></i>
-                      Theo dõi
+                    </Link>
+                    <button className="btn btn-outline-danger" onClick={handleReportUser}>
+                      <i className="ph ph-warning me-2"></i>
+                      Báo cáo
                     </button>
                   </div>
                 )}

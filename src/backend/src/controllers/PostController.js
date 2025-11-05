@@ -773,6 +773,11 @@ exports.likePost = async (req, res) => {
 			req.app.get('io').emit('post:liked', { postId, like });
 		}
 
+		// Tăng số lượt like nhận được cho chủ bài viết
+		await User.findByIdAndUpdate(post.authorId._id, { 
+			$inc: { "stats.likesReceived": 1 } 
+		});
+
 		// Gửi thông báo cho chủ bài viết (nếu không phải tự like bài của mình)
 		if (String(post.authorId._id) !== String(userId)) {
 			const Notification = require('../models/Notification');
@@ -837,6 +842,11 @@ exports.unlikePost = async (req, res) => {
 
 		// Cập nhật likesCount
 		await Post.findByIdAndUpdate(postId, { $inc: { likesCount: -1 } });
+
+		// Giảm số lượt like nhận được cho chủ bài viết
+		await User.findByIdAndUpdate(post.authorId, { 
+			$inc: { "stats.likesReceived": -1 } 
+		});
 
 		// Emit socket event với thông tin like đã xóa
 		if (req.app.get('io')) {

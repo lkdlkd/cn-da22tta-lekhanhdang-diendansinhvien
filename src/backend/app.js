@@ -12,6 +12,7 @@ app.use(cors());
 // 🔥 Serve file uploads
 app.use('/uploads', express.static('src/uploads'));
 app.use('/uploads/user', express.static('src/uploads/user'));
+app.use('/uploads/chat', express.static('src/uploads/chat'));
 
 // API Routes
 const apiRoutes = require('./src/routers/api');
@@ -36,6 +37,7 @@ const server = app.listen(PORT, () => {
 
 // ✅ Khởi tạo Socket.IO
 const { Server } = require("socket.io");
+const jwt = require('jsonwebtoken');
 const io = new Server(server, {
   cors: {
     origin: "*", // Nếu muốn bảo mật: đổi * thành domain frontend
@@ -48,32 +50,95 @@ app.set('io', io);
 // ✅ Map để lưu userId -> socketId
 const onlineUsers = new Map();
 const User = require('./src/models/User');
+const Message = require('./src/models/Message');
+
+// ✅ Socket.IO Middleware - Authenticate socket connection
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token || socket.handshake.query.token;
+    
+    if (!token) {
+      console.log("⚠️ Socket connection without token:", socket.id);
+      // Allow connection but mark as unauthenticated
+      socket.userId = null;
+      return next();
+    }
+
+    // Verify JWT token
+    const secret = process.env.secretKey || process.env.JWT_SECRET;
+    console.log("🔐 JWT secret available:", !!secret);
+    
+    if (!secret) {
+      console.error("❌ No JWT secret found in environment");
+      socket.userId = null;
+      return next();
+    }
+    
+    const decoded = jwt.verify(token, secret);
+    socket.userId = decoded.id;
+    
+    console.log(`✅ Socket authenticated: ${socket.id} -> User: ${socket.userId}`);
+    next();
+  } catch (error) {
+    console.error("❌ Socket authentication error:", error.message);
+    socket.userId = null;
+    next(); // Allow connection but without userId
+  }
+});
 
 // ✅ Lắng nghe kết nối từ client
-io.on("connection", (socket) => {
-  console.log("📡 Client connected:", socket.id);
+io.on("connection", async (socket) => {
+  console.log("📡 Client connected:", socket.id, "userId:", socket.userId);
 
-  // Khi user đăng nhập, client sẽ emit 'user:online' với userId
-  socket.on("user:online", async (userId) => {
-    if (!userId) return;
-
+  // Auto-register user as online if authenticated
+  if (socket.userId) {
     try {
-
       // Cập nhật trạng thái online trong DB
-      await User.findByIdAndUpdate(userId, {
+      await User.findByIdAndUpdate(socket.userId, {
         isOnline: true,
         lastSeen: new Date(),
         socketId: socket.id
       });
 
       // Lưu vào Map
-      onlineUsers.set(userId, socket.id);
+      onlineUsers.set(socket.userId, socket.id);
 
-      console.log(`✅ User ${userId} is now online`);
+      console.log(`✅ User ${socket.userId} is now online`);
 
       // Broadcast cho tất cả client biết có user online mới
       io.emit("user:status:changed", {
-        userId,
+        userId: socket.userId,
+        isOnline: true,
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error("Error updating user online status:", error);
+    }
+  }
+
+  // Khi user đăng nhập, client sẽ emit 'user:online' với userId (backward compatibility)
+  socket.on("user:online", async (userId) => {
+    const targetUserId = userId || socket.userId;
+    if (!targetUserId) return;
+
+    try {
+      // Cập nhật trạng thái online trong DB
+      await User.findByIdAndUpdate(targetUserId, {
+        isOnline: true,
+        lastSeen: new Date(),
+        socketId: socket.id
+      });
+
+      // Lưu vào Map
+      onlineUsers.set(targetUserId, socket.id);
+      // Update socket.userId if it wasn't set
+      socket.userId = targetUserId;
+
+      console.log(`✅ User ${targetUserId} is now online (via event)`);
+
+      // Broadcast cho tất cả client biết có user online mới
+      io.emit("user:status:changed", {
+        userId: targetUserId,
         isOnline: true,
         timestamp: new Date()
       });
@@ -82,35 +147,177 @@ io.on("connection", (socket) => {
     }
   });
 
+  // ============================================
+  // PRIVATE CHAT HANDLERS
+  // ============================================
+  
+  // Join private chat room
+  socket.on("chat:private:join", (roomId) => {
+    socket.join(roomId);
+    console.log(`🚪 Socket ${socket.id} joined room ${roomId}`);
+  });
+
+  // Leave private chat room
+  socket.on("chat:private:leave", (roomId) => {
+    socket.leave(roomId);
+    console.log(`🚪 Socket ${socket.id} left room ${roomId}`);
+  });
+
+  // Send private message
+  socket.on("chat:private:message", async (data) => {
+    const { peerId, message } = data;
+
+    try {
+      // Use authenticated userId from socket
+      if (!socket.userId) {
+        console.error("⚠️ Unauthenticated socket tried to send message:", socket.id);
+        return;
+      }
+
+      const senderId = socket.userId;
+      const participants = [senderId, peerId].sort();
+      const roomId = participants.join("_");
+
+      // Find or create conversation
+      let conversation = await Message.findOne({
+        participants: { $all: participants }
+      });
+
+      if (!conversation) {
+        conversation = await Message.create({
+          participants,
+          messages: [],
+          lastMessageAt: new Date(),
+        });
+      }
+
+      // Add message
+      const newMessage = {
+        senderId,
+        text: message.text || "",
+        attachments: message.attachments || [],
+        createdAt: new Date(),
+      };
+
+      conversation.messages.push(newMessage);
+      conversation.lastMessageAt = new Date();
+      await conversation.save();
+      
+      console.log(`✅ Message saved to DB. Total messages in conversation: ${conversation.messages.length}`);
+
+      // Emit to room (for users already in the room)
+      io.to(roomId).emit("chat:private:new", {
+        fromUserId: senderId,
+        toUserId: peerId,
+        message: newMessage,
+      });
+
+      // Also emit directly to peer's socket (in case they're not in the room yet)
+      const peerSocketId = onlineUsers.get(peerId);
+      if (peerSocketId) {
+        io.to(peerSocketId).emit("chat:private:notify", {
+          fromUserId: senderId,
+          message: newMessage,
+        });
+      }
+
+      console.log(`💬 Private message from ${senderId} to ${peerId}`);
+    } catch (error) {
+      console.error("Error sending private message:", error);
+    }
+  });
+
+  // Typing indicator
+  socket.on("chat:private:typing", async (data) => {
+    const { peerId, isTyping } = data;
+
+    try {
+      if (!socket.userId) return;
+
+      const senderId = socket.userId;
+      const participants = [senderId, peerId].sort();
+      const roomId = participants.join("_");
+
+      io.to(roomId).emit("chat:private:typing", {
+        fromUserId: senderId,
+        isTyping,
+      });
+    } catch (error) {
+      console.error("Error sending typing indicator:", error);
+    }
+  });
+
+  // Mark as read
+  socket.on("chat:private:read", async (data) => {
+    const { peerId } = data;
+
+    try {
+      if (!socket.userId) return;
+
+      const readerId = socket.userId;
+      const participants = [readerId, peerId].sort();
+      const roomId = participants.join("_");
+
+      // Find conversation first
+      const conversation = await Message.findOne({
+        participants: { $all: participants }
+      });
+
+      if (conversation) {
+        // Convert readMarks to Map if it's an array (migration)
+        if (Array.isArray(conversation.readMarks)) {
+          conversation.readMarks = new Map();
+        } else if (!(conversation.readMarks instanceof Map)) {
+          conversation.readMarks = new Map(Object.entries(conversation.readMarks || {}));
+        }
+
+        // Set read mark
+        conversation.readMarks.set(readerId, {
+          userId: readerId,
+          lastReadAt: new Date(),
+        });
+
+        // Save using markModified for Map
+        conversation.markModified('readMarks');
+        await conversation.save();
+
+        io.to(roomId).emit("chat:private:read", {
+          fromUserId: readerId,
+          timestamp: new Date(),
+        });
+
+        console.log(`✅ User ${readerId} marked messages from ${peerId} as read`);
+      }
+    } catch (error) {
+      console.error("Error marking as read:", error);
+    }
+  });
+
   // Khi user disconnect
   socket.on("disconnect", async () => {
     console.log("❌ Client disconnected:", socket.id);
 
+    if (!socket.userId) return;
+
     try {
+      // Cập nhật trạng thái offline
+      await User.findByIdAndUpdate(socket.userId, {
+        isOnline: false,
+        lastSeen: new Date(),
+        socketId: null
+      });
 
-      // Tìm user có socketId này
-      const user = await User.findOne({ socketId: socket.id });
+      // Xóa khỏi Map
+      onlineUsers.delete(socket.userId);
 
-      if (user) {
-        // Cập nhật trạng thái offline
-        await User.findByIdAndUpdate(user._id, {
-          isOnline: false,
-          lastSeen: new Date(),
-          socketId: null
-        });
+      console.log(`❌ User ${socket.userId} is now offline`);
 
-        // Xóa khỏi Map
-        onlineUsers.delete(user._id.toString());
-
-        console.log(`❌ User ${user._id} is now offline`);
-
-        // Broadcast cho tất cả client biết user offline
-        io.emit("user:status:changed", {
-          userId: user._id,
-          isOnline: false,
-          lastSeen: new Date()
-        });
-      }
+      // Broadcast cho tất cả client biết user offline
+      io.emit("user:status:changed", {
+        userId: socket.userId,
+        isOnline: false,
+        lastSeen: new Date()
+      });
     } catch (error) {
       console.error("Error updating user offline status:", error);
     }

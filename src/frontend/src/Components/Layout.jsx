@@ -25,7 +25,7 @@ export default function Layout({ children }) {
                 const [userData, categoriesData, usersData] = await Promise.all([
                     getProfile(token),
                     getCategories(),
-                    getActiveUsers(5),
+                    getActiveUsers(token, 5, false), // Lấy active users (có nhiều bài viết)
                 ]);
 
                 if (!mounted) return;

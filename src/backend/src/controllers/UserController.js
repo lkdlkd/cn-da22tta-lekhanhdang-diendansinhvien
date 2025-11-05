@@ -246,8 +246,16 @@ exports.getActiveUsers = async (req, res) => {
       {
         $lookup: {
           from: 'posts',
-          localField: '_id',
-          foreignField: 'authorId',
+          let: { userId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$authorId', '$$userId'] },
+                isDeleted: { $ne: true },
+                isDraft: { $ne: true }
+              }
+            }
+          ],
           as: 'posts'
         }
       },
@@ -295,29 +303,30 @@ exports.getActiveUsers = async (req, res) => {
   }
 };
 
-// API mới: Lấy chỉ user đang online
-// exports.getOnlineUsers = async (req, res) => {
-//   try {
-//     const limit = parseInt(req.query.limit) || 50;
+// API riêng: Lấy chỉ user đang online (không cần có bài viết)
+exports.getOnlineUsers = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
 
-//     const onlineUsers = await User.find({
-//       isOnline: true,
-//       isBanned: { $ne: true }
-//     })
-//       .select('_id username displayName avatar avatarUrl isOnline lastSeen')
-//       .limit(limit)
-//       .sort({ lastSeen: -1 });
+    const onlineUsers = await User.find({
+      isOnline: true,
+      isBanned: { $ne: true },
+      role: { $ne: 'admin' }
+    })
+      .select('_id username displayName avatar avatarUrl isOnline lastSeen createdAt')
+      .limit(limit)
+      .sort({ lastSeen: -1 });
 
-//     return res.status(200).json({
-//       success: true,
-//       count: onlineUsers.length,
-//       users: onlineUsers
-//     });
-//   } catch (error) {
-//     console.error("Lấy danh sách user online lỗi:", error);
-//     return res.status(500).json({ error: "Có lỗi xảy ra khi lấy danh sách user online" });
-//   }
-// };
+    return res.status(200).json({
+      success: true,
+      count: onlineUsers.length,
+      users: onlineUsers
+    });
+  } catch (error) {
+    console.error("Lấy danh sách user online lỗi:", error);
+    return res.status(500).json({ error: "Có lỗi xảy ra khi lấy danh sách user online" });
+  }
+};
 
 // API lấy thông tin user theo username (public profile)
 exports.getUserByUsername = async (req, res) => {

@@ -67,17 +67,41 @@ export const updateProfile = async (token, data) => {
   return handleResponse(response);
 };
 
-export const getActiveUsers = async (limit = 10) => {
-  const response = await fetch(`${API_BASE}/users/active?limit=${limit}`, {
+export const getActiveUsers = async (token, limit = 10, onlineOnly = false) => {
+  const params = new URLSearchParams({ limit: limit.toString() });
+  if (onlineOnly) {
+    params.append('onlineOnly', 'true');
+  }
+  
+  const headers = withNoStore({
+    "Content-Type": "application/json",
+  });
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  
+  const response = await fetch(`${API_BASE}/users/active?${params.toString()}`, {
     method: "GET",
-    headers: withNoStore({
-      "Content-Type": "application/json",
-    }),
+    headers,
   });
   return handleResponse(response);
 };
 
-// export const getOnlineUsers = async (limit = 50) => {
+// API riêng: Lấy chỉ user đang online (không cần có bài viết)
+export const getOnlineUsers = async (token, limit = 50) => {
+  const headers = withNoStore({
+    "Content-Type": "application/json",
+  });
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  
+  const response = await fetch(`${API_BASE}/users/online?limit=${limit}`, {
+    method: "GET",
+    headers,
+  });
+  return handleResponse(response);
+};
 //   const response = await fetch(`${API_BASE}/users/online?limit=${limit}`, {
 //     method: "GET",
 //     headers: withNoStore({
@@ -973,6 +997,47 @@ export const getDocumentDetail = async (token, id) => {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     }),
+  });
+  return handleResponse(response);
+};
+
+// ============================================
+// CHAT APIs
+// ============================================
+export const getMyConversations = async (token) => {
+  const response = await fetch(`${API_BASE}/chat/conversations`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const getPrivateChatHistory = async (token, peerId, page = 1, limit = 50) => {
+  const response = await fetch(`${API_BASE}/chat/private/${peerId}?page=${page}&limit=${limit}`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const uploadChatFiles = async (token, files) => {
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append("files", file);
+  });
+
+  const response = await fetch(`${API_BASE}/chat/upload`, {
+    method: "POST",
+    headers: withNoStore({
+      Authorization: `Bearer ${token}`,
+    }),
+    body: formData,
   });
   return handleResponse(response);
 };
