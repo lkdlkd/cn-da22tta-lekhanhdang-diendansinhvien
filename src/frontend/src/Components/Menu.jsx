@@ -100,12 +100,12 @@ function Menu({ user, categories }) {
                         {/* Nếu ĐÃ đăng nhập */}
                         {user && (
                             <>
-                                {/* <li className="pc-item">
+                                <li className="pc-item">
                                     <Link to="/notifications" className="pc-link" onClick={handleNavigation}>
                                         <span className="pc-micon"><i className="ph-duotone ph-bell"></i></span>
                                         <span className="pc-mtext">Thông báo</span>
                                     </Link>
-                                </li> */}
+                                </li>
                                 <li className="pc-item">
                                     <Link to="/messages" className="pc-link" onClick={handleNavigation}>
                                         <span className="pc-micon"><i className="ph-duotone ph-chats"></i></span>
@@ -141,6 +141,7 @@ function Menu({ user, categories }) {
                                                 <li className="pc-item"><Link to="/admin/posts" className="pc-link" onClick={handleNavigation}>Quản lý bài viết</Link></li>
                                                 <li className="pc-item"><Link to="/admin/categories" className="pc-link" onClick={handleNavigation}>Quản lý danh mục</Link></li>
                                                 <li className="pc-item"><Link to="/admin/reports" className="pc-link" onClick={handleNavigation}>Xử lý báo cáo</Link></li>
+                                                <li className="pc-item"><Link to="/admin/notifications-management" className="pc-link" onClick={handleNavigation}>Quản lý thông báo</Link></li>
                                             </ul>
                                         )}
                                     </li>

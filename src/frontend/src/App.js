@@ -11,6 +11,7 @@ import UserAdmin from "./Pages/Admin/AdminDashboard/UserAdmin";
 import PostAdmin from "./Pages/Admin/AdminDashboard/PostAdmin";
 import CommentAdmin from "./Pages/Admin/AdminDashboard/CommentAdmin";
 import NotificationAdmin from "./Pages/Admin/AdminDashboard/NotificationAdmin";
+import NotificationsAdmin from "./Pages/Admin/AdminDashboard/NotificationsAdmin";
 import PostDetail from "./Components/PostDetail";
 import Profile from "./Pages/Profile/Profile";
 import MyReports from "./Pages/Profile/MyReports";
@@ -20,8 +21,9 @@ import Categories from "./Pages/Category/Categories";
 import ReportAdmin from "./Pages/Admin/AdminDashboard/ReportAdmin";
 import Documents from "./Pages/Documents/Documents";
 import GlobalChat from "./Pages/Forum/GlobaChat";
-import PrivateChat from "./Pages/Forum/PrivateChat";
+// import PrivateChat from "./Pages/Forum/PrivateChat";
 import ListChat from "./Pages/Forum/ListChat";
+import Notifications from "./Pages/Notifications/Notifications";
 function App() {
   return (
     <AuthProvider>
@@ -46,6 +48,7 @@ function App() {
             <Route path="/forum" element={<GlobalChat />} />
             <Route path="/messages" element={<ListChat />} />
             <Route path="/message/:username" element={<ListChat />} />
+            <Route path="/notifications" element={<Notifications />} />
           </Route>
 
 
@@ -72,6 +75,7 @@ function App() {
             <Route path="/admin/posts" element={<PostAdmin />} />
             <Route path="/admin/comments" element={<CommentAdmin />} />
             <Route path="/admin/notifications" element={<NotificationAdmin />} />
+            <Route path="/admin/notifications-management" element={<NotificationsAdmin />} />
             <Route path="/admin/reports" element={<ReportAdmin />} />
             {/* <Route path="/admin/users" element={<UserAdmin />} />
             <Route path="/admin/documents" element={<DocumentAdmin />} />

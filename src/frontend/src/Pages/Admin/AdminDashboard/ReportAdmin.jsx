@@ -294,7 +294,7 @@ const ReportAdmin = () => {
   };
 
   return (
-    <div className="container-fluid mt-4">
+    <div className="">
       <h2 className="mb-4">
         <i className="ph-warning-circle me-2"></i>
         Quản lý Báo cáo

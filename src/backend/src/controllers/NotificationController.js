@@ -12,6 +12,22 @@ exports.getMyNotifications = async (req, res) => {
       .skip(parseInt(skip))
       .lean();
 
+    // Populate thông tin người gửi (actor) cho từng notification
+    const User = require('../models/User');
+    for (let notification of notifications) {
+      if (notification.data?.actorId) {
+        const actor = await User.findById(notification.data.actorId)
+          .select('username displayName avatarUrl')
+          .lean();
+        
+        if (actor) {
+          notification.data.senderName = actor.displayName || actor.username;
+          notification.data.senderAvatar = actor.avatarUrl;
+          notification.data.senderUsername = actor.username;
+        }
+      }
+    }
+
     // Đếm số thông báo chưa đọc
     const unreadCount = await Notification.countDocuments({ userId, read: false });
 
@@ -105,6 +121,7 @@ exports.getAllNotificationsAdmin = async (req, res) => {
       page = 1, 
       limit = 20, 
       userId,
+      username,
       type,
       read,
       sortBy = 'createdAt',
@@ -113,8 +130,29 @@ exports.getAllNotificationsAdmin = async (req, res) => {
 
     const query = {};
     
-    // Lọc theo user
-    if (userId) query.userId = userId;
+    // Lọc theo user ID hoặc username
+    if (userId) {
+      query.userId = userId;
+    } else if (username) {
+      // Tìm user theo username trước
+      const User = require('../models/User');
+      const user = await User.findOne({ username: new RegExp(username, 'i') }).select('_id').lean();
+      if (user) {
+        query.userId = user._id;
+      } else {
+        // Nếu không tìm thấy user, trả về empty
+        return res.json({
+          success: true,
+          data: [],
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0,
+            pages: 0
+          }
+        });
+      }
+    }
     
     // Lọc theo type
     if (type) query.type = type;
@@ -209,7 +247,23 @@ exports.sendBulkNotifications = async (req, res) => {
       });
     }
 
-    const notifications = userIds.map(userId => ({
+    let targetUserIds = userIds;
+
+    // Nếu userIds = ['all'], lấy tất cả user IDs trong hệ thống
+    if (userIds.length === 1 && userIds[0] === 'all') {
+      const User = require('../models/User');
+      const allUsers = await User.find({}).select('_id').lean();
+      targetUserIds = allUsers.map(user => user._id);
+      
+      if (targetUserIds.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Không tìm thấy user nào trong hệ thống' 
+        });
+      }
+    }
+
+    const notifications = targetUserIds.map(userId => ({
       userId,
       type,
       data: {

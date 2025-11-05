@@ -219,7 +219,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="container mt-4 mb-5">
+    <div className="">
       <div className="row justify-content-center">
         <div className="col-lg-8">
           {/* Header Card */}

@@ -437,6 +437,9 @@ export const getNotifications = async (token, limit = 20, skip = 0) => {
   return handleResponse(response);
 };
 
+// Alias for getNotifications to match usage in components
+export const getMyNotifications = getNotifications;
+
 export const markNotificationAsRead = async (token, notificationId) => {
   const response = await fetch(`${API_BASE}/notifications/${notificationId}/read`, {
     method: "PUT",
@@ -448,6 +451,9 @@ export const markNotificationAsRead = async (token, notificationId) => {
   return handleResponse(response);
 };
 
+// Alias for markNotificationAsRead
+export const markAsRead = markNotificationAsRead;
+
 export const markAllNotificationsAsRead = async (token) => {
   const response = await fetch(`${API_BASE}/notifications/read-all`, {
     method: "PUT",
@@ -458,6 +464,9 @@ export const markAllNotificationsAsRead = async (token) => {
   });
   return handleResponse(response);
 };
+
+// Alias for markAllNotificationsAsRead
+export const markAllAsRead = markAllNotificationsAsRead;
 
 export const deleteNotification = async (token, notificationId) => {
   const response = await fetch(`${API_BASE}/notifications/${notificationId}`, {

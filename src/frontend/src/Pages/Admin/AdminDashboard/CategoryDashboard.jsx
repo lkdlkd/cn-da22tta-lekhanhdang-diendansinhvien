@@ -5,11 +5,11 @@ import Table from "react-bootstrap/Table";
 import Form from "react-bootstrap/Form";
 import Pagination from "react-bootstrap/Pagination";
 import { toast } from "react-toastify";
-import { 
-    getAllCategoriesWithStats, 
+import {
+    getAllCategoriesWithStats,
     getCategoriesStats,
-    createCategory, 
-    updateCategory, 
+    createCategory,
+    updateCategory,
     deleteCategory,
     deleteMultipleCategories,
     searchCategories
@@ -55,7 +55,7 @@ export default function CategoryDashboard() {
         fetchStats();
         // eslint-disable-next-line
     }, []);
-    
+
     // Search categories
     const handleSearch = async () => {
         // Áp dụng tìm kiếm theo submit; reset về trang 1
@@ -71,7 +71,7 @@ export default function CategoryDashboard() {
         setSelectedCategories([]);
         setPagination(prev => ({ ...prev, page }));
     };
-    
+
     // Select all categories
     const handleSelectAll = (e) => {
         if (e.target.checked) {
@@ -80,7 +80,7 @@ export default function CategoryDashboard() {
             setSelectedCategories([]);
         }
     };
-    
+
     // Select single category
     const handleSelectCategory = (categoryId) => {
         if (selectedCategories.includes(categoryId)) {
@@ -108,12 +108,12 @@ export default function CategoryDashboard() {
 
     const handleDelete = async id => {
         const category = categories.find(c => c._id === id);
-        
+
         if (category && category.postCount > 0) {
             toast.warning(`Không thể xóa! Có ${category.postCount} bài viết đang sử dụng danh mục này.`);
             return;
         }
-        
+
         const result = await Swal.fire({
             title: 'Bạn có chắc muốn xóa danh mục này?',
             icon: 'warning',
@@ -122,7 +122,7 @@ export default function CategoryDashboard() {
             cancelButtonText: 'Hủy',
             customClass: { container: 'swal-on-modal' }
         });
-        
+
         if (result.isConfirmed) {
             try {
                 await deleteCategory(token, id);
@@ -134,25 +134,25 @@ export default function CategoryDashboard() {
             }
         }
     };
-    
+
     // Bulk delete categories
     const handleBulkDelete = async () => {
         if (selectedCategories.length === 0) {
             toast.warning("Vui lòng chọn ít nhất một danh mục");
             return;
         }
-        
+
         // Check if any selected category has posts
-        const categoriesWithPosts = categories.filter(c => 
+        const categoriesWithPosts = categories.filter(c =>
             selectedCategories.includes(c._id) && c.postCount > 0
         );
-        
+
         if (categoriesWithPosts.length > 0) {
             const totalPosts = categoriesWithPosts.reduce((sum, c) => sum + c.postCount, 0);
             toast.warning(`Không thể xóa! Có ${totalPosts} bài viết đang sử dụng các danh mục đã chọn.`);
             return;
         }
-        
+
         const result = await Swal.fire({
             title: "Xác nhận",
             text: `Xóa ${selectedCategories.length} danh mục đã chọn?`,
@@ -162,7 +162,7 @@ export default function CategoryDashboard() {
             cancelButtonText: "Hủy",
             customClass: { container: 'swal-on-modal' }
         });
-        
+
         if (result.isConfirmed) {
             try {
                 await deleteMultipleCategories(token, selectedCategories);
@@ -194,7 +194,7 @@ export default function CategoryDashboard() {
     };
 
     return (
-        <div className="container-fluid p-4">
+        <div className="">
             <h2 className="mb-4">Quản lý danh mục</h2>
             {stats && (
                 <div className="row mb-4">
@@ -232,7 +232,7 @@ export default function CategoryDashboard() {
                     </div>
                 </div>
             )}
-            
+
             {/* Search and Actions */}
             <div className="row mb-4">
                 <div className="col-md-6">
@@ -258,16 +258,16 @@ export default function CategoryDashboard() {
                     </div>
                 </div>
                 <div className="col-md-6 text-end">
-                    <button className="btn btn-success" onClick={() => { 
-                        setEditing(null); 
-                        setForm({ title: "", slug: "", description: "" }); 
-                        setShowFormModal(true); 
+                    <button className="btn btn-success" onClick={() => {
+                        setEditing(null);
+                        setForm({ title: "", slug: "", description: "" });
+                        setShowFormModal(true);
                     }}>
                         Thêm danh mục
                     </button>
                 </div>
             </div>
-            
+
             {/* Bulk actions */}
             {selectedCategories.length > 0 && (
                 <div className="alert alert-info d-flex justify-content-between align-items-center">
@@ -279,7 +279,7 @@ export default function CategoryDashboard() {
                     </div>
                 </div>
             )}
-            
+
             {/* Table */}
             <div className="card">
                 <div className="card-body">
@@ -323,7 +323,7 @@ export default function CategoryDashboard() {
                         <thead>
                             <tr>
                                 <th>
-                                    <Form.Check 
+                                    <Form.Check
                                         type="checkbox"
                                         onChange={handleSelectAll}
                                         checked={selectedCategories.length === categories.length && categories.length > 0}
@@ -349,7 +349,7 @@ export default function CategoryDashboard() {
                             ) : categories.map((cat, idx) => (
                                 <tr key={cat._id}>
                                     <td>
-                                        <Form.Check 
+                                        <Form.Check
                                             type="checkbox"
                                             checked={selectedCategories.includes(cat._id)}
                                             onChange={() => handleSelectCategory(cat._id)}

@@ -37,7 +37,7 @@ export default function Categories() {
   }
 
   return (
-    <div className="container mt-4">
+    <div className="">
       {/* Header */}
       <div className="card border-0 shadow-sm mb-4" style={{ 
         borderRadius: '12px',

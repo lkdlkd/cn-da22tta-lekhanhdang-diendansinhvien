@@ -96,7 +96,7 @@ const MyReports = () => {
   };
 
   return (
-    <div className="container mt-4">
+    <div className="">
       <div className="row">
         <div className="col-12">
           <div className="card">

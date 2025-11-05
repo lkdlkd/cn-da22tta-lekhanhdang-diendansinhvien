@@ -288,7 +288,7 @@ const UserAdmin = () => {
 	};
 
 	return (
-		<div className="container-fluid p-4">
+		<div className="">
 			<h2 className="mb-4">Quản lý người dùng</h2>
 
 			{/* Statistics */}

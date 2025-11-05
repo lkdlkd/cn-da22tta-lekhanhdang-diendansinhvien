@@ -18,17 +18,25 @@ async function createNotification({ userId, type, data }, io) {
       read: false
     });
 
-    // Populate thông tin để gửi về client
-    await notification.populate([
-      { path: 'data.actorId', select: 'username displayName avatarUrl' },
-      { path: 'data.postId', select: 'title slug' }
-    ]);
+    // Populate thông tin người gửi (actor)
+    const User = require('../models/User');
+    if (data.actorId) {
+      const actor = await User.findById(data.actorId)
+        .select('username displayName avatarUrl')
+        .lean();
+      
+      if (actor) {
+        notification.data.senderName = actor.displayName || actor.username;
+        notification.data.senderAvatar = actor.avatarUrl;
+        notification.data.senderUsername = actor.username;
+      }
+    }
 
     // Emit socket event để gửi thông báo realtime
     if (io) {
       io.emit('notification:new', {
         userId,
-        notification
+        notification: notification.toObject()
       });
     }
 

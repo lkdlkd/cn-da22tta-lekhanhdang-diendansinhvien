@@ -662,7 +662,7 @@ const UserProfile = () => {
   const isOwnProfile = currentUser && users && currentUser.username === users.username;
 
   return (
-    <div className="container py-4">
+    <div className="">
       {/* Profile Header */}
       <div className="card mb-4">
         <div className="card-body">

@@ -15,6 +15,7 @@ import './assets/fonts/feather.css';
 import './assets/fonts/fontawesome.css';
 import './assets/fonts/material.css';
 import './assets/fonts/phosphor/duotone/style.css';
+import "bootstrap-icons/font/bootstrap-icons.css";
 
 import reportWebVitals from './reportWebVitals';
 import { HelmetProvider } from 'react-helmet-async';

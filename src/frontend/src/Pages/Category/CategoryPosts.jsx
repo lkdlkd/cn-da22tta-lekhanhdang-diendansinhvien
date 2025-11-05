@@ -312,7 +312,7 @@ const CategoryPosts = () => {
   }
 
   return (
-    <div className="container mt-4">
+    <div className="">
       {/* Header với thông tin chuyên mục */}
       <div className="card border-0 shadow-sm mb-4" style={{ 
         borderRadius: '12px',

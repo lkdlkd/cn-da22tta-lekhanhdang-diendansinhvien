@@ -65,9 +65,12 @@ const ListChat = () => {
       console.log('➡️ Setting from URL:', username);
       setSelectedUsername(username);
     }
-    // CHỈ clear khi đang ở route /messages và có selectedUsername
-    // KHÔNG clear khi đang ở route /messages (component embedded mode)
-  }, [username, selectedUsername]);
+    // Nếu không có username trong URL và đang có selectedUsername, clear nó
+    else if (!username && selectedUsername) {
+      console.log('🗑️ Clearing selected username');
+      setSelectedUsername(null);
+    }
+  }, [username]); // ❌ Removed selectedUsername from dependencies to prevent loop
 
   // Handle browser back/forward buttons
   useEffect(() => {
@@ -252,7 +255,7 @@ const ListChat = () => {
   }
 
   return (
-    <div className="container-fluid p-0" style={{ height: "calc(100vh - 70px)", overflow: "hidden" }}>
+    <div className="card p-0" style={{ height: "calc(100vh - 70px)", overflow: "hidden" }}>
       <div className="row g-0 h-100">
         {/* Sidebar - Conversations List */}
         <div 
@@ -263,9 +266,9 @@ const ListChat = () => {
           <div className="p-2 p-md-3 border-bottom bg-white" style={{ flexShrink: 0 }}>
             <div className="d-flex justify-content-between align-items-center mb-2 mb-md-3">
               <h5 className="mb-0 fw-bold" style={{ fontSize: "1.1rem" }}>Tin nhắn</h5>
-              <Link to="/forum/start-chat" className="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
+              {/* <Link to="/forum/start-chat" className="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
                 <i className="bi bi-pencil-square"></i>
-              </Link>
+              </Link> */}
             </div>
 
             {/* Search Box */}

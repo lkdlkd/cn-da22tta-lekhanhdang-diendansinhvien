@@ -184,9 +184,8 @@ const NotificationAdmin = () => {
 	};
 
 	return (
-		<div className="container-fluid p-4">
+		<div className="">
 			<h2 className="mb-4">Quản lý thông báo</h2>
-			
 			{/* Statistics */}
 			{stats && (
 				<div className="row mb-4">

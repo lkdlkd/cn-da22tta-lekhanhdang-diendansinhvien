@@ -320,7 +320,7 @@ const PostAdmin = () => {
 	};
 
 	return (
-		<div className="container-fluid p-4">
+		<div className="">
 			<h2 className="mb-4">Quản lý bài viết</h2>
 
 			{/* Statistics */}

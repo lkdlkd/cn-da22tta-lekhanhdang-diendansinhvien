@@ -25,11 +25,11 @@ exports.getMyConversations = async (req, res) => {
       // Filter out null/undefined participants and find peer
       const validParticipants = conv.participants.filter(p => p);
       const peerId = validParticipants.find(p => String(p) !== String(userId));
-      
+
       if (!peerId) continue; // Skip if no valid peer found
-      
+
       const peer = await User.findById(peerId).select('_id username displayName avatar avatarUrl isOnline lastSeen').lean();
-      
+
       if (peer) {
         const lastMsg = conv.messages.length > 0 ? conv.messages[conv.messages.length - 1] : null;
         result.push({
@@ -65,7 +65,7 @@ exports.getPrivateChatHistory = async (req, res) => {
     const limit = parseInt(req.query.limit) || 50;
 
     const participants = [String(userId), String(peerId)].sort(); // Ensure strings
-    
+
     console.log('🔍 Loading chat history:', {
       userId: String(userId),
       peerId: String(peerId),
@@ -99,7 +99,7 @@ exports.getPrivateChatHistory = async (req, res) => {
     const startIdx = Math.max(0, allMessages.length - (page * limit));
     const endIdx = allMessages.length - ((page - 1) * limit);
     const paginatedMessages = allMessages.slice(startIdx, endIdx);
-    
+
     console.log('📄 Pagination:', {
       totalMessages: allMessages.length,
       startIdx,
@@ -107,13 +107,23 @@ exports.getPrivateChatHistory = async (req, res) => {
       paginatedCount: paginatedMessages.length
     });
 
-    // Populate sender info
+    // Populate sender info and attachments
     const messagesWithSender = await Promise.all(
       paginatedMessages.map(async (msg) => {
         const sender = await User.findById(msg.senderId).select('_id username displayName avatar avatarUrl').lean();
+        
+        // Populate attachments nếu có
+        let populatedAttachments = [];
+        if (msg.attachments && msg.attachments.length > 0) {
+          populatedAttachments = await Attachment.find({
+            _id: { $in: msg.attachments }
+          }).select('_id filename mime size storageUrl createdAt').lean();
+        }
+        
         return {
           ...msg,
           senderId: sender || { _id: msg.senderId, username: 'Unknown', displayName: 'Unknown User' },
+          attachments: populatedAttachments,
         };
       })
     );
@@ -140,7 +150,7 @@ exports.getPrivateChatHistory = async (req, res) => {
 // ============================================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../uploads/chat');
+    const uploadDir = path.join(__dirname, '../../src/uploads/chat');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -155,6 +165,36 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    // Allowed file types
+    const allowedMimes = [
+      // Documents
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+      // Archives
+      'application/zip',
+      'application/x-rar-compressed',
+      'application/x-7z-compressed',
+      // Images
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/svg+xml',
+    ];
+
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('File type not allowed. Allowed types: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, ZIP, RAR, 7Z, JPG, PNG, GIF, WEBP, SVG'));
+    }
+  }
 }).array('files', 5);
 
 exports.uploadChatFiles = async (req, res) => {
@@ -163,7 +203,7 @@ exports.uploadChatFiles = async (req, res) => {
       console.error('Upload error:', err);
       return res.status(400).json({
         success: false,
-        message: 'File upload failed',
+        message: err.message || 'File upload failed',
       });
     }
 
@@ -179,13 +219,15 @@ exports.uploadChatFiles = async (req, res) => {
       }
 
       const attachments = [];
+      const backendUrl = `${req.protocol}://${req.get('host')}`;
+
       for (const file of files) {
         const attachment = await Attachment.create({
           ownerId: userId,
           filename: file.originalname,
           mime: file.mimetype,
           size: file.size,
-          storageUrl: `/uploads/chat/${file.filename}`,
+          storageUrl: `${backendUrl}/uploads/chat/${file.filename}`,
         });
         attachments.push(attachment);
       }
@@ -193,6 +235,7 @@ exports.uploadChatFiles = async (req, res) => {
       res.status(200).json({
         success: true,
         data: attachments,
+        message: `${attachments.length} file(s) uploaded successfully`,
       });
     } catch (error) {
       console.error('Error saving attachments:', error);

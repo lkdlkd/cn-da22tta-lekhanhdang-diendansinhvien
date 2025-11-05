@@ -64,6 +64,7 @@ export default function Header({ user }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   const searchRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -76,6 +77,7 @@ export default function Header({ user }) {
       const token = localStorage.getItem('token');
       if (!token) return;
 
+      setLoadingNotifications(true);
       try {
         const data = await getNotifications(token);
         if (data.success) {
@@ -84,6 +86,8 @@ export default function Header({ user }) {
         }
       } catch (error) {
         console.error('Error fetching notifications:', error);
+      } finally {
+        setLoadingNotifications(false);
       }
     };
 
@@ -241,6 +245,71 @@ export default function Header({ user }) {
 
   return (
     <header className="pc-header">
+      <style>{`
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.8;
+            transform: scale(1.05);
+          }
+        }
+
+        @keyframes bellRing {
+          0%, 100% {
+            transform: rotate(0deg);
+          }
+          10%, 30%, 50%, 70% {
+            transform: rotate(-10deg);
+          }
+          20%, 40%, 60%, 80% {
+            transform: rotate(10deg);
+          }
+          90% {
+            transform: rotate(0deg);
+          }
+        }
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .notification-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .notification-scroll::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+
+        .notification-scroll::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 10px;
+        }
+
+        .notification-scroll::-webkit-scrollbar-thumb:hover {
+          background: #a8a8a8;
+        }
+
+        .list-group-item:hover {
+          background-color: #f8f9fa !important;
+          transform: translateX(2px);
+        }
+
+        .list-group-item:active {
+          transform: scale(0.98);
+        }
+      `}</style>
       <div className="header-wrapper">
         {/* [Mobile Media Block] */}
         <div className="me-auto pc-mob-drp">
@@ -306,94 +375,255 @@ export default function Header({ user }) {
             <li className="dropdown pc-h-item header-user-profile" ref={notificationRef}>
               <button
                 type="button"
-                className="pc-head-link dropdown-toggle arrow-none me-0 btn btn-link p-0 border-0"
+                className="pc-head-link dropdown-toggle arrow-none me-0 btn btn-link p-0 border-0 position-relative"
                 onClick={() => setShowNotifications(!showNotifications)}
                 aria-haspopup="true"
                 aria-expanded={showNotifications}
+                style={{ transition: 'all 0.3s ease' }}
               >
-                <i className="ph-duotone ph-bell icon-notification"></i>
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="24" 
+                  height="24" 
+                  viewBox="0 0 24 24" 
+                  fill="none"
+                  style={{ 
+                    filter: unreadCount > 0 ? 'drop-shadow(0 0 8px rgba(220, 53, 69, 0.5))' : 'none',
+                    animation: unreadCount > 0 ? 'bellRing 2s infinite' : 'none'
+                  }}
+                >
+                  <path 
+                    d="M12 2C11.4477 2 11 2.44772 11 3V3.17071C8.83481 3.58254 7.23129 5.37852 7.02393 7.57442L6.65896 11.3178C6.56559 12.2831 6.1256 13.186 5.41602 13.8486L3.51472 15.6087C2.64031 16.4186 3.21735 18 4.41472 18H19.5853C20.7827 18 21.3597 16.4186 20.4853 15.6087L18.584 13.8486C17.8744 13.186 17.4344 12.2831 17.341 11.3178L16.9761 7.57442C16.7687 5.37852 15.1652 3.58254 13 3.17071V3C13 2.44772 12.5523 2 12 2Z" 
+                    fill="currentColor"
+                    opacity="0.2"
+                  />
+                  <path 
+                    d="M12 2C11.4477 2 11 2.44772 11 3V3.17071C8.83481 3.58254 7.23129 5.37852 7.02393 7.57442L6.65896 11.3178C6.56559 12.2831 6.1256 13.186 5.41602 13.8486L3.51472 15.6087C2.64031 16.4186 3.21735 18 4.41472 18H19.5853C20.7827 18 21.3597 16.4186 20.4853 15.6087L18.584 13.8486C17.8744 13.186 17.4344 12.2831 17.341 11.3178L16.9761 7.57442C16.7687 5.37852 15.1652 3.58254 13 3.17071V3C13 2.44772 12.5523 2 12 2Z" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    fill="none"
+                  />
+                  <path 
+                    d="M9 18C9 19.1046 10.3431 20 12 20C13.6569 20 15 19.1046 15 18" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  />
+                  {unreadCount > 0 && (
+                    <circle 
+                      cx="18" 
+                      cy="6" 
+                      r="4" 
+                      fill="#dc3545"
+                      stroke="white"
+                      strokeWidth="2"
+                    />
+                  )}
+                </svg>
                 {unreadCount > 0 && (
-                  <span className="notification-badge">{unreadCount}</span>
+                  <span 
+                    className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                    style={{
+                      fontSize: '10px',
+                      padding: '3px 6px',
+                      minWidth: '18px',
+                      animation: 'pulse 2s infinite',
+                      boxShadow: '0 0 10px rgba(220, 53, 69, 0.5)'
+                    }}
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
                 )}
               </button>
               {showNotifications && (
-                <div className="dropdown-menu dropdown-menu-end pc-h-dropdown show">
-                  <div className="dropdown-header d-flex align-items-center justify-content-between">
-                    <h5 className="m-0">Thông báo</h5>
+                <div 
+                  className="dropdown-menu dropdown-menu-end pc-h-dropdown show"
+                  style={{
+                    width: '360px',
+                    maxWidth: '90vw',
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+                    border: '1px solid rgba(0,0,0,0.1)',
+                    borderRadius: '12px',
+                    animation: 'slideDown 0.3s ease'
+                  }}
+                >
+                  <div 
+                    className="dropdown-header d-flex align-items-center justify-content-between py-3 px-4"
+                    style={{ borderBottom: '1px solid #e9ecef' }}
+                  >
+                    <h5 className="m-0 fw-bold" style={{ fontSize: '18px' }}>
+                      Thông báo
+                      {unreadCount > 0 && (
+                        <span className="badge bg-primary ms-2" style={{ fontSize: '11px' }}>
+                          {unreadCount} mới
+                        </span>
+                      )}
+                    </h5>
                     {unreadCount > 0 && (
                       <button
-                        className="btn btn-link btn-sm text-decoration-none p-0"
+                        className="btn btn-link btn-sm text-primary text-decoration-none p-0"
                         onClick={handleMarkAllAsRead}
-                        style={{ fontSize: '12px' }}
+                        style={{ fontSize: '13px', fontWeight: '500' }}
                       >
-                        Đánh dấu tất cả đã đọc
+                        <i className="ph ph-check-circle me-1"></i>
+                        Đánh dấu đã đọc
                       </button>
                     )}
                   </div>
-                  <div className="dropdown-body">
+                  <div className="dropdown-body p-0">
                     <div
                       className="notification-scroll position-relative"
-                      style={{ maxHeight: "calc(100vh - 225px)", overflowY: "auto" }}
+                      style={{ 
+                        maxHeight: "400px", 
+                        overflowY: "auto",
+                        overflowX: "hidden"
+                      }}
                     >
-                      {notifications.length === 0 ? (
-                        <div className="dropdown-item text-center text-muted py-4">
-                          <i className="ph-duotone ph-bell-slash" style={{ fontSize: '48px' }}></i>
-                          <p className="mb-0 mt-2">Không có thông báo</p>
+                      {loadingNotifications ? (
+                        <div className="text-center py-5">
+                          <div className="spinner-border text-primary" role="status">
+                            <span className="visually-hidden">Loading...</span>
+                          </div>
+                          <p className="text-muted mt-2 mb-0">Đang tải thông báo...</p>
+                        </div>
+                      ) : notifications.length === 0 ? (
+                        <div className="text-center text-muted py-5">
+                          <i className="ph-duotone ph-bell-slash" style={{ fontSize: '64px', opacity: 0.3 }}></i>
+                          <p className="mb-0 mt-3 fw-semibold">Không có thông báo</p>
+                          <small className="text-muted">Bạn sẽ nhận được thông báo tại đây</small>
                         </div>
                       ) : (
-                        notifications.map((notification) => (
-                          <div
-                            key={notification._id}
-                            className={`dropdown-item ${!notification.read ? 'bg-light' : ''}`}
-                            onClick={() => handleNotificationClick(notification)}
-                            style={{
-                              cursor: 'pointer',
-                              borderLeft: !notification.read ? '3px solid #1877f2' : 'none',
-                              transition: 'background-color 0.2s'
-                            }}
-                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = !notification.read ? '#f8f9fa' : 'white'}
-                          >
-                            <div className="d-flex align-items-start">
-                              <div className="flex-shrink-0">
-                                {notification.type === 'like' ? (
-                                  <i className="ph-duotone ph-heart text-danger" style={{ fontSize: '24px' }}></i>
-                                ) : (
-                                  <i className="ph-duotone ph-chat-circle-text text-primary" style={{ fontSize: '24px' }}></i>
-                                )}
-                              </div>
-                              <div className="flex-grow-1 ms-3">
-                                <h6 className="mb-1" style={{ fontSize: '14px' }}>
-                                  {notification.data?.message || 'Thông báo mới'}
-                                </h6>
-                                {notification.data?.postTitle && (
-                                  <p className="text-muted mb-1" style={{ fontSize: '12px' }}>
-                                    {notification.data.postTitle}
-                                  </p>
-                                )}
-                                {notification.data?.commentContent && (
-                                  <p className="text-muted mb-1" style={{ fontSize: '12px', fontStyle: 'italic' }}>
-                                    "{notification.data.commentContent.substring(0, 50)}..."
-                                  </p>
-                                )}
-                                <small className="text-muted">
-                                  {formatTimeAgo(notification.createdAt)}
-                                </small>
-                              </div>
-                              {!notification.read && (
-                                <div className="flex-shrink-0">
-                                  <span
-                                    className="badge bg-primary rounded-pill"
-                                    style={{ width: '8px', height: '8px', padding: 0 }}
-                                  ></span>
+                        <div className="list-group list-group-flush">
+                          {notifications.map((notification) => (
+                            <div
+                              key={notification._id}
+                              className={`list-group-item list-group-item-action border-0 ${!notification.read ? 'bg-light' : ''}`}
+                              onClick={() => handleNotificationClick(notification)}
+                              style={{
+                                cursor: 'pointer',
+                                borderLeft: !notification.read ? '3px solid #0d6efd' : '3px solid transparent',
+                                transition: 'all 0.2s ease',
+                                padding: '12px 16px'
+                              }}
+                            >
+                              <div className="d-flex align-items-start gap-3">
+                                {/* Avatar */}
+                                <div className="flex-shrink-0 position-relative">
+                                  <img
+                                    src={notification.data?.senderAvatar || `https://ui-avatars.com/api/?name=${notification.data?.senderName || 'User'}&background=random`}
+                                    alt="avatar"
+                                    className="rounded-circle"
+                                    style={{
+                                      width: '48px',
+                                      height: '48px',
+                                      objectFit: 'cover',
+                                      border: '2px solid white',
+                                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                    }}
+                                  />
+                                  {/* Type badge */}
+                                  <div
+                                    className="position-absolute bottom-0 end-0 rounded-circle d-flex align-items-center justify-content-center"
+                                    style={{
+                                      width: '20px',
+                                      height: '20px',
+                                      backgroundColor: notification.type === 'like' ? '#ff4757' : '#0d6efd',
+                                      border: '2px solid white'
+                                    }}
+                                  >
+                                    {notification.type === 'like' ? (
+                                      <i className="ph-fill ph-heart text-white" style={{ fontSize: '11px' }}></i>
+                                    ) : (
+                                      <i className="ph-fill ph-chat-circle-text text-white" style={{ fontSize: '11px' }}></i>
+                                    )}
+                                  </div>
                                 </div>
-                              )}
+
+                                {/* Content */}
+                                <div className="flex-grow-1 min-width-0">
+                                  <p className="mb-1 text-dark" style={{ fontSize: '14px', lineHeight: '1.4' }}>
+                                    <strong>{notification.data?.senderName || 'Người dùng'}</strong>
+                                    {' '}
+                                    <span className="text-muted">
+                                      {notification.type === 'like' ? 'đã thích bài viết của bạn' : 
+                                       notification.type === 'comment' ? 'đã bình luận bài viết của bạn' :
+                                       'có hoạt động mới'}
+                                    </span>
+                                  </p>
+                                  
+                                  {notification.data?.postTitle && (
+                                    <p 
+                                      className="text-muted mb-1 text-truncate" 
+                                      style={{ fontSize: '13px' }}
+                                      title={notification.data.postTitle}
+                                    >
+                                      <i className="ph ph-article me-1"></i>
+                                      {notification.data.postTitle}
+                                    </p>
+                                  )}
+                                  
+                                  {notification.data?.commentContent && (
+                                    <p 
+                                      className="text-muted mb-1 fst-italic text-truncate" 
+                                      style={{ 
+                                        fontSize: '12px',
+                                        backgroundColor: 'rgba(13, 110, 253, 0.05)',
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        borderLeft: '2px solid rgba(13, 110, 253, 0.3)'
+                                      }}
+                                    >
+                                      "{notification.data.commentContent.substring(0, 60)}{notification.data.commentContent.length > 60 ? '...' : ''}"
+                                    </p>
+                                  )}
+                                  
+                                  <small className="text-muted d-flex align-items-center gap-1" style={{ fontSize: '12px' }}>
+                                    <i className="ph ph-clock"></i>
+                                    {formatTimeAgo(notification.createdAt)}
+                                  </small>
+                                </div>
+
+                                {/* Unread indicator */}
+                                {!notification.read && (
+                                  <div className="flex-shrink-0">
+                                    <span
+                                      className="d-inline-block rounded-circle bg-primary"
+                                      style={{ 
+                                        width: '10px', 
+                                        height: '10px',
+                                        boxShadow: '0 0 0 3px rgba(13, 110, 253, 0.2)'
+                                      }}
+                                    ></span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
+                  {notifications.length > 0 && (
+                    <div 
+                      className="dropdown-footer text-center py-2 border-top"
+                      style={{ backgroundColor: '#f8f9fa' }}
+                    >
+                      <button 
+                        className="btn btn-link btn-sm text-primary text-decoration-none"
+                        onClick={() => {
+                          navigate('/notifications');
+                          setShowNotifications(false);
+                        }}
+                        style={{ fontSize: '13px', fontWeight: '500' }}
+                      >
+                        Xem tất cả thông báo
+                        <i className="ph ph-arrow-right ms-1"></i>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </li>

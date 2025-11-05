@@ -172,7 +172,7 @@ const Documents = () => {
   }
 
   return (
-    <div className="container-fluid mt-4">
+    <div className="">
       <h2 className="mb-3">
         <i className="ph-folder-open me-2"></i>
         Thư viện tài liệu
