@@ -19,6 +19,7 @@ const PostCreate = ({ user, categories, token, onPostCreated }) => {
     const [preview, setPreview] = useState(null);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedEmoji, setSelectedEmoji] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Danh sách emoji phổ biến
     const emojis = [
@@ -112,10 +113,17 @@ const PostCreate = ({ user, categories, token, onPostCreated }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Prevent double submission
+        if (isSubmitting) return;
+        
         if (!postForm.title || !postForm.content || !postForm.categoryId) {
             toast.error("Vui lòng điền đầy đủ thông tin bài viết!");
             return;
         }
+        
+        setIsSubmitting(true);
+        
         try {
             // Prepare FormData for file upload
             const formData = new FormData();
@@ -149,6 +157,8 @@ const PostCreate = ({ user, categories, token, onPostCreated }) => {
             if (onPostCreated) onPostCreated();
         } catch (err) {
             toast.error("Lỗi khi đăng bài");
+        } finally {
+            setIsSubmitting(false);
         }
     };
     return (
@@ -706,22 +716,57 @@ const PostCreate = ({ user, categories, token, onPostCreated }) => {
                     }}>
                         <button
                             type="submit"
+                            disabled={isSubmitting}
                             style={{
                                 width: "100%",
-                                backgroundColor: "#1877f2",
-                                color: "white",
+                                backgroundColor: isSubmitting ? "#e4e6eb" : "#1877f2",
+                                color: isSubmitting ? "#bcc0c4" : "white",
                                 border: "none",
                                 borderRadius: "6px",
                                 padding: "12px",
                                 fontSize: "15px",
                                 fontWeight: "600",
-                                cursor: "pointer",
-                                transition: "background-color 0.2s"
+                                cursor: isSubmitting ? "not-allowed" : "pointer",
+                                transition: "background-color 0.2s",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: "8px"
                             }}
-                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#166fe5"}
-                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#1877f2"}
+                            onMouseOver={(e) => {
+                                if (!isSubmitting) {
+                                    e.currentTarget.style.backgroundColor = "#166fe5";
+                                }
+                            }}
+                            onMouseOut={(e) => {
+                                if (!isSubmitting) {
+                                    e.currentTarget.style.backgroundColor = "#1877f2";
+                                }
+                            }}
                         >
-                            Đăng
+                            {isSubmitting ? (
+                                <>
+                                    <div style={{
+                                        width: "16px",
+                                        height: "16px",
+                                        border: "2px solid #bcc0c4",
+                                        borderTopColor: "transparent",
+                                        borderRadius: "50%",
+                                        animation: "spin 0.8s linear infinite"
+                                    }} />
+                                    <span>Đang đăng...</span>
+                                    <style>
+                                        {`
+                                            @keyframes spin {
+                                                0% { transform: rotate(0deg); }
+                                                100% { transform: rotate(360deg); }
+                                            }
+                                        `}
+                                    </style>
+                                </>
+                            ) : (
+                                "Đăng"
+                            )}
                         </button>
                     </div>
                 </form>

@@ -45,6 +45,10 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
 
   // State for edit modal
   const [editingPost, setEditingPost] = useState(null);
+  
+  // Loading states
+  const [isSubmittingComment, setIsSubmittingComment] = useState({});
+  const [isSubmittingReply, setIsSubmittingReply] = useState({});
 
   // Use ref to avoid adding post to dependencies
   const postRef = useRef(null);
@@ -448,6 +452,11 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
     const attachments = commentAttachments[postId] || [];
 
     if ((!text || !text.trim()) && attachments.length === 0) return;
+    
+    // Prevent double submission
+    if (isSubmittingComment[postId]) return;
+    
+    setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));
 
     try {
       const token = localStorage.getItem('token');
@@ -475,6 +484,8 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
     } catch (err) {
       console.error('Error posting comment:', err);
       toast.error('Có lỗi khi đăng bình luận');
+    } finally {
+      setIsSubmittingComment(prev => ({ ...prev, [postId]: false }));
     }
   };
 
@@ -510,6 +521,12 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
     const text = replyTexts[parentId];
     const attachments = replyAttachments[parentId] || [];
     if ((!text || !text.trim()) && attachments.length === 0) return;
+    
+    // Prevent double submission
+    if (isSubmittingReply[parentId]) return;
+    
+    setIsSubmittingReply(prev => ({ ...prev, [parentId]: true }));
+    
     try {
       const token = localStorage.getItem('token');
       let formData;
@@ -538,6 +555,8 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
     } catch (err) {
       console.error('Error posting reply:', err);
       toast.error('Có lỗi khi đăng trả lời');
+    } finally {
+      setIsSubmittingReply(prev => ({ ...prev, [parentId]: false }));
     }
   };
 
@@ -760,6 +779,8 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
                 handleEditPost={handleEditPost}
                 toggleComments={toggleComments}
                 onPostClick={() => { }} // Empty function to prevent navigation in modal
+                isSubmittingComment={isSubmittingComment[post._id]}
+                isSubmittingReply={isSubmittingReply}
               />
             ) : (
               <div style={{ padding: '40px', textAlign: 'center' }}>
@@ -876,6 +897,8 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
           handleDeletePost={handleDeletePost}
           handleEditPost={handleEditPost}
           toggleComments={toggleComments}
+          isSubmittingComment={isSubmittingComment[post._id]}
+          isSubmittingReply={isSubmittingReply}
         />
       ) : (
         <div className="alert alert-warning">Không có dữ liệu bài viết.</div>

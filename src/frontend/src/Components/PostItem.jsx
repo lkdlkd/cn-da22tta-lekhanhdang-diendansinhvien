@@ -32,7 +32,9 @@ const PostItem = ({
   handleDeletePost,
   handleEditPost,
   toggleComments,
-  onPostClick
+  onPostClick,
+  isSubmittingComment,
+  isSubmittingReply
 }) => {
   const hasComments = post.comments && post.comments.length > 0;
   const organizedComments = hasComments ? organizeComments(post.comments) : [];
@@ -153,7 +155,16 @@ const PostItem = ({
   const navigate = useNavigate();
 
   return (
-    <div style={{ backgroundColor: "white", borderRadius: "8px", boxShadow: "0 1px 2px rgba(0,0,0,0.1)", marginBottom: "16px", overflow: "hidden" }}>
+    <>
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
+      <div style={{ backgroundColor: "white", borderRadius: "8px", boxShadow: "0 1px 2px rgba(0,0,0,0.1)", marginBottom: "16px", overflow: "hidden" }}>
       {/* Header */}
       <div style={{ padding: "12px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -751,6 +762,7 @@ const PostItem = ({
                   currentUserId={currentUserId}
                   likedComments={likedComments}
                   handleLikeComment={handleLikeComment}
+                  isSubmittingReply={isSubmittingReply}
                 />
               ))}
             </div>
@@ -907,22 +919,44 @@ const PostItem = ({
                 (commentAttachments[post._id] && commentAttachments[post._id].length > 0)) && (
                   <button
                     onClick={() => handleSubmitComment(post._id)}
+                    disabled={isSubmittingComment}
                     style={{
                       marginTop: "8px",
-                      backgroundColor: "#1877f2",
-                      color: "white",
+                      backgroundColor: isSubmittingComment ? "#e4e6eb" : "#1877f2",
+                      color: isSubmittingComment ? "#bcc0c4" : "white",
                       border: "none",
                       borderRadius: "6px",
                       padding: "6px 14px",
                       fontSize: "13px",
                       fontWeight: "600",
-                      cursor: "pointer",
-                      transition: "background-color 0.2s"
+                      cursor: isSubmittingComment ? "not-allowed" : "pointer",
+                      transition: "background-color 0.2s",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px"
                     }}
-                    onMouseOver={e => e.currentTarget.style.backgroundColor = "#166fe5"}
-                    onMouseOut={e => e.currentTarget.style.backgroundColor = "#1877f2"}
+                    onMouseOver={e => {
+                      if (!isSubmittingComment) {
+                        e.currentTarget.style.backgroundColor = "#166fe5";
+                      }
+                    }}
+                    onMouseOut={e => {
+                      if (!isSubmittingComment) {
+                        e.currentTarget.style.backgroundColor = "#1877f2";
+                      }
+                    }}
                   >
-                    Gửi
+                    {isSubmittingComment && (
+                      <div style={{
+                        width: "12px",
+                        height: "12px",
+                        border: "2px solid #bcc0c4",
+                        borderTopColor: "transparent",
+                        borderRadius: "50%",
+                        animation: "spin 0.8s linear infinite"
+                      }} />
+                    )}
+                    {isSubmittingComment ? "Đang gửi..." : "Gửi"}
                   </button>
                 )}
             </div>
@@ -1205,7 +1239,8 @@ const PostItem = ({
           </div>
         </>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 

@@ -27,6 +27,10 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
     
     // State for edit modal
     const [editingPost, setEditingPost] = useState(null);
+    
+    // Loading states
+    const [isSubmittingComment, setIsSubmittingComment] = useState({});
+    const [isSubmittingReply, setIsSubmittingReply] = useState({});
 
     // State for client-side pagination (fallback if server pagination not provided)
     const [visibleCount, setVisibleCount] = useState(30);
@@ -74,6 +78,12 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
         const text = replyTexts[parentId];
         const attachments = replyAttachments[parentId] || [];
         if ((!text || !text.trim()) && attachments.length === 0) return;
+        
+        // Prevent double submission
+        if (isSubmittingReply[parentId]) return;
+        
+        setIsSubmittingReply(prev => ({ ...prev, [parentId]: true }));
+        
         try {
             const token = localStorage.getItem('token');
             let formData;
@@ -99,6 +109,8 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
             }
         } catch (err) {
             console.error(err.message || 'Lỗi gửi trả lời');
+        } finally {
+            setIsSubmittingReply(prev => ({ ...prev, [parentId]: false }));
         }
     };
 
@@ -302,6 +314,11 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
         const attachments = commentAttachments[postId] || [];
 
         if ((!text || !text.trim()) && attachments.length === 0) return;
+        
+        // Prevent double submission
+        if (isSubmittingComment[postId]) return;
+        
+        setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));
 
         try {
             const token = localStorage.getItem('token');
@@ -332,6 +349,8 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
             }
         } catch (err) {
             console.error(err.message || 'Lỗi gửi bình luận');
+        } finally {
+            setIsSubmittingComment(prev => ({ ...prev, [postId]: false }));
         }
     };
 
@@ -496,6 +515,8 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
                     removeReplyAttachment={removeReplyAttachment}
                     handleSubmitReply={handleSubmitReply}
                     onPostClick={onPostClick}
+                    isSubmittingComment={isSubmittingComment[post._id]}
+                    isSubmittingReply={isSubmittingReply}
                 />
             ))}
 

@@ -21,7 +21,8 @@ const CommentItem = ({
   currentUserId,
   likedComments,
   handleLikeComment,
-  onCommentDeleted
+  onCommentDeleted,
+  isSubmittingReply
 }) => {
   // Ensure replyTexts and replyAttachments are always objects, even if null
   const safeReplyTexts = replyTexts ?? {};
@@ -179,11 +180,20 @@ const CommentItem = ({
   const hiddenRepliesCount = totalReplies - INITIAL_REPLIES_COUNT;
 
   return (
-    <div style={{
-      marginBottom: "8px",
-      marginLeft: getMarginLeft(),
-      position: "relative"
-    }}>
+    <>
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
+      <div style={{
+        marginBottom: "8px",
+        marginLeft: getMarginLeft(),
+        position: "relative"
+      }}>
       <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
         <Link to={`/user/${comment.authorId?.username}`}>
           <img
@@ -1003,18 +1013,32 @@ const CommentItem = ({
                       <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
                         <button
                           onClick={() => handleSubmitReply(postId, comment._id)}
+                          disabled={isSubmittingReply && isSubmittingReply[comment._id]}
                           style={{
-                            background: "#1877f2",
-                            color: "white",
+                            background: (isSubmittingReply && isSubmittingReply[comment._id]) ? "#e4e6eb" : "#1877f2",
+                            color: (isSubmittingReply && isSubmittingReply[comment._id]) ? "#bcc0c4" : "white",
                             border: "none",
                             borderRadius: "6px",
                             padding: "6px 14px",
                             fontSize: "13px",
                             fontWeight: "600",
-                            cursor: "pointer"
+                            cursor: (isSubmittingReply && isSubmittingReply[comment._id]) ? "not-allowed" : "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px"
                           }}
                         >
-                          Gửi
+                          {(isSubmittingReply && isSubmittingReply[comment._id]) && (
+                            <div style={{
+                              width: "12px",
+                              height: "12px",
+                              border: "2px solid #bcc0c4",
+                              borderTopColor: "transparent",
+                              borderRadius: "50%",
+                              animation: "spin 0.8s linear infinite"
+                            }} />
+                          )}
+                          {(isSubmittingReply && isSubmittingReply[comment._id]) ? "Đang gửi..." : "Gửi"}
                         </button>
                         <button
                           onClick={() => setReplyTo(prev => ({ ...prev, [comment._id]: false }))}
@@ -1092,6 +1116,7 @@ const CommentItem = ({
                 likedComments={likedComments}
                 handleLikeComment={handleLikeComment}
                 onCommentDeleted={onCommentDeleted}
+                isSubmittingReply={isSubmittingReply}
               />
             </div>
           ))}
@@ -1271,7 +1296,8 @@ const CommentItem = ({
           </div>
         </>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
