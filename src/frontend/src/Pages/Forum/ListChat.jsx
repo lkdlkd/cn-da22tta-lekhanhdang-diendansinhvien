@@ -9,6 +9,7 @@ import {
   offPrivateNotify,
 } from "../../Utils/socket";
 import PrivateChat from "./PrivateChat";
+import LoadingPost from "@/Components/LoadingPost";
 
 const ListChat = () => {
   const { auth } = useContext(AuthContext);
@@ -246,11 +247,7 @@ const ListChat = () => {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: "80vh" }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <LoadingPost />
     );
   }
 

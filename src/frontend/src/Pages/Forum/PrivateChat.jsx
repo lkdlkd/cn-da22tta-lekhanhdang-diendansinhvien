@@ -17,6 +17,7 @@ import {
   onUserStatusChanged,
   offUserStatusChanged,
 } from "../../Utils/socket";
+import LoadingPost from "@/Components/LoadingPost";
 
 const PrivateChat = ({ usernameOverride, onBack }) => {
   const { username: urlUsername } = useParams();
@@ -422,11 +423,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
 
   if (loading || !peer) {
     return (
-      <div className="d-flex justify-content-center align-items-center w-100" style={{ height: "100%" }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <LoadingPost />
     );
   }
 

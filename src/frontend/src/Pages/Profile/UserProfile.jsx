@@ -703,7 +703,7 @@ const UserProfile = () => {
                       {users.class}
                     </span>
                   )}
-                  {users.email && (
+                  {/* {users.email && (
                     <span className="text-muted">
                       <i className="ph ph-envelope me-1"></i>
                       {users.email}
@@ -714,7 +714,7 @@ const UserProfile = () => {
                       <i className="ph ph-phone me-1"></i>
                       {users.phone}
                     </span>
-                  )}
+                  )} */}
                 </div>
 
                 {/* Stats */}

@@ -268,6 +268,13 @@ const Home = () => {
     setPreview(null);
     setPostForm({ title: "", content: "", categoryId: "" });
   };
+  
+  // Trigger post create modal
+  const handleCreatePost = () => {
+    // This will be handled by PostCreate component's internal state
+    // We can trigger it by programmatically clicking the PostCreate button
+    document.querySelector('[data-create-post-trigger]')?.click();
+  };
 
   // Open PostDetail modal
   const handleOpenPostDetail = (post) => {
@@ -485,7 +492,7 @@ const Home = () => {
                 </div>
                 {categories && categories.length > 6 && (
                   <Link
-                    to="/categories"
+                    to="/category"
                     className="btn btn-sm btn-outline-primary w-100 mt-2"
                     style={{ borderRadius: '8px', fontWeight: 600, fontSize: '13px' }}
                   >
@@ -595,7 +602,7 @@ const Home = () => {
                 <div className="d-grid gap-2">
                   <button
                     className="btn btn-primary d-flex align-items-center justify-content-center"
-                    onClick={handleOpenPostModal}
+                    onClick={handleCreatePost}
                     style={{
                       borderRadius: '8px',
                       padding: '10px',
@@ -609,21 +616,21 @@ const Home = () => {
                     Tạo bài viết
                   </button>
                   <Link
-                    to="/upload-document"
+                    to="/documents"
                     className="btn btn-outline-primary d-flex align-items-center justify-content-center"
                     style={{ borderRadius: '8px', padding: '10px', fontWeight: 600, fontSize: '13px' }}
                   >
                     <i className="ph ph-upload-simple me-2"></i>
                     Tải tài liệu
                   </Link>
-                  <Link
+                  {/* <Link
                     to="/find-study-group"
                     className="btn btn-outline-secondary d-flex align-items-center justify-content-center"
                     style={{ borderRadius: '8px', padding: '10px', fontWeight: 600, fontSize: '13px' }}
                   >
                     <i className="ph ph-users me-2"></i>
                     Tìm nhóm học
-                  </Link>
+                  </Link> */}
                 </div>
               </div>
             </div>

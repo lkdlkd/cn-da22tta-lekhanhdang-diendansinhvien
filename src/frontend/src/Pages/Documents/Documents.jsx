@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import Pagination from 'react-bootstrap/Pagination';
 import { getDocumentCategories, getDocuments } from '../../Utils/api';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate,Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-
 const CATEGORY_LABELS = {
   pdf: 'PDF',
   word: 'Word',
@@ -32,7 +31,7 @@ const Documents = () => {
   useEffect(() => {
     if (!token) return;
     fetchCategories();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   useEffect(() => {
@@ -200,20 +199,20 @@ const Documents = () => {
               </div>
               <div className="d-flex align-items-center gap-2">
                 <span>Kích thước trang:</span>
-              <select
-                className="form-select form-select-sm"
-                style={{ width: 'auto' }}
-                value={pagination.limit}
-                onChange={(e) => {
-                  const newLimit = parseInt(e.target.value, 10);
-                  setPagination(prev => ({ ...prev, page: 1, limit: newLimit }));
-                }}
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
+                <select
+                  className="form-select form-select-sm"
+                  style={{ width: 'auto' }}
+                  value={pagination.limit}
+                  onChange={(e) => {
+                    const newLimit = parseInt(e.target.value, 10);
+                    setPagination(prev => ({ ...prev, page: 1, limit: newLimit }));
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
               </div>
             </div>
           </div>
@@ -326,10 +325,13 @@ const Documents = () => {
                         <small>{typeof d.size === 'number' ? `${(d.size / 1024).toFixed(1)} KB` : '-'}</small>
                       </td>
                       <td>
-                        <div className="d-flex align-items-center">
-                          <img src={d.ownerId?.avatarUrl || 'https://via.placeholder.com/28'} alt="avatar" className="rounded-circle me-2" style={{ width: 28, height: 28, objectFit: 'cover' }} />
-                          <small>{d.ownerId?.displayName || d.ownerId?.username || '-'}</small>
-                        </div>
+                        <Link to={`/user/${d.ownerId?.username || ''}`} className="d-flex align-items-center gap-2 text-truncate" style={{ maxWidth: 150 }} title={d.ownerId?.displayName || d.ownerId?.username || '-'}>
+                          <div className="d-flex align-items-center">
+                            <img src={d.ownerId?.avatarUrl || 'https://via.placeholder.com/28'} alt="avatar" className="rounded-circle me-2" style={{ width: 28, height: 28, objectFit: 'cover' }} />
+                            <small>{d.ownerId?.displayName || d.ownerId?.username || '-'}</small>
+                          </div>
+                        </Link>
+
                       </td>
                       <td><small>{new Date(d.createdAt).toLocaleString('vi-VN')}</small></td>
                       <td>

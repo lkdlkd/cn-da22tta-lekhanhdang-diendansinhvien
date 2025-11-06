@@ -166,6 +166,7 @@ const PostCreate = ({ user, categories, token, onPostCreated }) => {
             {/* Facebook-style Create Post Button */}
             <div
                 onClick={openModal}
+                data-create-post-trigger
                 style={{
                     backgroundColor: "white",
                     borderRadius: "8px",
