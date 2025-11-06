@@ -1,3 +1,23 @@
+# Robots.txt for Diễn đàn Sinh viên
 # https://www.robotstxt.org/robotstxt.html
+
+# Allow all crawlers
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /private/
+Disallow: /*.json$
+Disallow: /static/
+
+# Crawl-delay for specific bots
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 0
+
+# Sitemap location
+Sitemap: https://sinhvientvu.com/sitemap.xml

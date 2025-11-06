@@ -1,6 +1,8 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Diễn đàn SV",
+  "name": "Diễn đàn Sinh viên - Kết nối và Học tập",
+  "description": "Nền tảng diễn đàn dành cho sinh viên Việt Nam. Kết nối, chia sẻ kiến thức và tài liệu học tập.",
+  "lang": "vi",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,16 +12,28 @@
     {
       "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "orientation": "portrait-primary",
+  "theme_color": "#667eea",
+  "background_color": "#ffffff",
+  "categories": ["education", "social", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "screenshot1.png",
+      "type": "image/png",
+      "sizes": "540x720"
+    }
+  ]
 }

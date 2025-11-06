@@ -7,7 +7,7 @@ import { Login } from "./Pages/Login/Login";
 import { Register } from "./Pages/Register/register";
 import Layout from "./Components/Layout";
 import CategoryAdmin from "./Pages/Admin/AdminDashboard/CategoryDashboard";
-import UserAdmin from "./Pages/Admin/AdminDashboard/UserAdmin"; 
+import UserAdmin from "./Pages/Admin/AdminDashboard/UserAdmin";
 import PostAdmin from "./Pages/Admin/AdminDashboard/PostAdmin";
 import CommentAdmin from "./Pages/Admin/AdminDashboard/CommentAdmin";
 import NotificationAdmin from "./Pages/Admin/AdminDashboard/NotificationAdmin";
@@ -31,13 +31,14 @@ function App() {
         <Routes>
           {/* Landing Page - hiển thị khi chưa có token */}
           {/* Routes không có Layout */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+
           {/* <Route path="/" element={<Home />} /> */}
 
 
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/post/:slug" element={<PostDetail />} />
             <Route path="/category" element={<Categories />} />
             <Route path="/category/:slug" element={<CategoryPosts />} />
@@ -49,6 +50,7 @@ function App() {
             <Route path="/messages" element={<ListChat />} />
             <Route path="/message/:username" element={<ListChat />} />
             <Route path="/notifications" element={<Notifications />} />
+            <Route path="*" element={<Navigate to="/" />} />
           </Route>
 
 
