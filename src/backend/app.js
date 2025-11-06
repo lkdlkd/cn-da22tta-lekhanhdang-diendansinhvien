@@ -148,6 +148,80 @@ io.on("connection", async (socket) => {
   });
 
   // ============================================
+  // GLOBAL CHAT HANDLERS
+  // ============================================
+  
+  // Join global chat room
+  socket.on("chat:global:join", () => {
+    socket.join("global_chat");
+    console.log(`🌍 Socket ${socket.id} joined global chat`);
+  });
+
+  // Leave global chat room
+  socket.on("chat:global:leave", () => {
+    socket.leave("global_chat");
+    console.log(`🌍 Socket ${socket.id} left global chat`);
+  });
+
+  // Send global message
+  socket.on("chat:global:message", async (data) => {
+    try {
+      if (!socket.userId) {
+        console.error("⚠️ Unauthenticated socket tried to send global message");
+        return;
+      }
+
+      const { message } = data;
+      const GlobalMessage = require('./src/models/GlobalMessage');
+      const Attachment = require('./src/models/Attachment');
+      
+      // Save message to DB
+      const newMessage = await GlobalMessage.create({
+        senderId: socket.userId,
+        text: message.text || "",
+        attachments: message.attachments || [],
+      });
+
+      // Populate sender info and attachments
+      const populatedMessage = await GlobalMessage.findById(newMessage._id)
+        .populate('senderId', '_id username displayName avatar avatarUrl')
+        .populate('attachments', '_id filename mime size storageUrl createdAt')
+        .lean();
+
+      // Broadcast to all users in global chat room
+      io.to("global_chat").emit("chat:global:new", {
+        message: populatedMessage,
+      });
+
+      console.log(`🌍 Global message from ${socket.userId}${message.attachments?.length ? ` with ${message.attachments.length} attachments` : ''}`);
+    } catch (error) {
+      console.error("Error sending global message:", error);
+    }
+  });
+
+  // Global typing indicator
+  socket.on("chat:global:typing", async (data) => {
+    try {
+      if (!socket.userId) return;
+
+      const { isTyping } = data;
+      
+      // Get user info
+      const user = await User.findById(socket.userId).select('username displayName').lean();
+      
+      // Broadcast to others in global chat (exclude sender)
+      socket.to("global_chat").emit("chat:global:typing", {
+        userId: socket.userId,
+        username: user?.username,
+        displayName: user?.displayName,
+        isTyping,
+      });
+    } catch (error) {
+      console.error("Error sending global typing indicator:", error);
+    }
+  });
+
+  // ============================================
   // PRIVATE CHAT HANDLERS
   // ============================================
   

@@ -172,4 +172,9 @@ router.get('/chat/conversations', authenticateUser, ChatController.getMyConversa
 router.get('/chat/private/:peerId', authenticateUser, ChatController.getPrivateChatHistory);// Lấy lịch sử chat với peer
 router.post('/chat/upload', authenticateUser, ChatController.uploadChatFiles);// Upload files cho chat
 
+// ===== GLOBAL CHAT ROUTES =====
+const GlobalChatController = require('../controllers/GlobalChatController');
+router.get('/chat/global/history', authenticateUser, GlobalChatController.getGlobalChatHistory);// Lấy lịch sử chat global
+router.get('/chat/global/online-count', authenticateUser, GlobalChatController.getOnlineUsersCount);// Lấy số người online
+
 module.exports = router;

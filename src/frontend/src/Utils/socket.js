@@ -26,12 +26,12 @@ export const connectSocket = () => {
     
     if (!socket.connected) {
       socket.connect();
-      // console.log("🔌 Connecting socket with authentication...");
+     // console.log("🔌 Connecting socket with authentication...");
     } else {
-     // console.log("✅ Socket already connected");
+    //  console.log("✅ Socket already connected");
     }
   } else {
-    // console.warn("⚠️ No token found, socket not connected");
+   // console.warn("⚠️ No token found, socket not connected");
   }
 };
 
@@ -54,16 +54,16 @@ socket.io.on("reconnect_attempt", () => {
 
 // Khi socket kết nối, re-emit user:online (backward compatibility)
 socket.on("connect", () => {
- //  console.log("✅ Socket connected:", socket.id);
+  // console.log("✅ Socket connected:", socket.id);
   const userId = localStorage.getItem("userId");
   if (userId) {
     socket.emit("user:online", userId);
-    // console.log("🔄 Re-announcing online status for:", userId);
+   // console.log("🔄 Re-announcing online status for:", userId);
   }
 });
 
 socket.on("disconnect", (reason) => {
-  // console.log("❌ Socket disconnected:", reason);
+ // console.log("❌ Socket disconnected:", reason);
 });
 
 socket.on("connect_error", (error) => {
@@ -151,4 +151,42 @@ export const offPrivateTyping = (callback) => {
 
 export const offPrivateRead = (callback) => {
   socket.off("chat:private:read", callback);
+};
+
+// ============================================
+// GLOBAL CHAT HELPERS
+// ============================================
+export const joinGlobalChat = () => {
+  socket.emit("chat:global:join");
+  // console.log("🌍 Joined global chat");
+};
+
+export const leaveGlobalChat = () => {
+  socket.emit("chat:global:leave");
+  // console.log("🌍 Left global chat");
+};
+
+export const sendGlobalMessage = (message) => {
+  socket.emit("chat:global:message", { message });
+  // console.log("📤 Sent global message");
+};
+
+export const sendGlobalTyping = (isTyping) => {
+  socket.emit("chat:global:typing", { isTyping });
+};
+
+export const onGlobalMessage = (callback) => {
+  socket.on("chat:global:new", callback);
+};
+
+export const onGlobalTyping = (callback) => {
+  socket.on("chat:global:typing", callback);
+};
+
+export const offGlobalMessage = (callback) => {
+  socket.off("chat:global:new", callback);
+};
+
+export const offGlobalTyping = (callback) => {
+  socket.off("chat:global:typing", callback);
 };

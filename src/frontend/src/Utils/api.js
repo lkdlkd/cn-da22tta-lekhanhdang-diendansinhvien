@@ -1050,3 +1050,29 @@ export const uploadChatFiles = async (token, files) => {
   });
   return handleResponse(response);
 };
+
+// ============================================
+// GLOBAL CHAT APIs
+// ============================================
+export const getGlobalChatHistory = async (token, page = 1, limit = 50) => {
+  const response = await fetch(`${API_BASE}/chat/global/history?page=${page}&limit=${limit}`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+export const getOnlineUsersCount = async (token) => {
+  const response = await fetch(`${API_BASE}/chat/global/online-count`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
