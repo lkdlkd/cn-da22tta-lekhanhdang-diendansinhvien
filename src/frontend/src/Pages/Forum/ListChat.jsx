@@ -25,17 +25,41 @@ const ListChat = () => {
   const [onlineUsersList, setOnlineUsersList] = useState([]);
   const [selectedUsername, setSelectedUsername] = useState(username || null);
   
+  // Unread messages tracking
+  const [unreadCounts, setUnreadCounts] = useState({}); // { conversationId: count }
+  
   // Ref for search debounce
   const searchTimeoutRef = useRef(null);
+  
+  // Audio notification
+  const notificationSoundRef = useRef(null);
+  
+  // Track processed messages to prevent duplicates
+  const processedMessagesRef = useRef(new Set());
+
+  // Initialize notification sound
+  useEffect(() => {
+    // Create audio element for notification sound
+    notificationSoundRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBzCI0fPTgjMGHm7A7+OZURE');
+    notificationSoundRef.current.volume = 0.5;
+  }, []);
+
+  // Play notification sound
+  const playNotificationSound = () => {
+    if (notificationSoundRef.current) {
+      notificationSoundRef.current.currentTime = 0;
+      notificationSoundRef.current.play().catch(err => console.log('Cannot play sound:', err));
+    }
+  };
 
   // Debug log
-  useEffect(() => {
-    console.log('📍 ListChat state:', { 
-      selectedUsername, 
-      urlUsername: username,
-      hasSelectedUsername: !!selectedUsername 
-    });
-  }, [selectedUsername, username]);
+  // useEffect(() => {
+  //   console.log('📍 ListChat state:', { 
+  //     selectedUsername, 
+  //     urlUsername: username,
+  //     hasSelectedUsername: !!selectedUsername 
+  //   });
+  // }, [selectedUsername, username]);
 
   // Load conversations
   useEffect(() => {
@@ -46,9 +70,18 @@ const ListChat = () => {
         const result = await getMyConversations(auth.token);
         if (result.success) {
           setConversations(result.data || []);
+          
+          // Initialize unread counts from server data
+          const counts = {};
+          (result.data || []).forEach(conv => {
+            if (conv.unreadCount && conv.unreadCount > 0) {
+              counts[conv._id] = conv.unreadCount;
+            }
+          });
+          setUnreadCounts(counts);
         }
       } catch (error) {
-        console.error("Error loading conversations:", error);
+      //   console.error("Error loading conversations:", error);
       } finally {
         setLoading(false);
       }
@@ -59,16 +92,16 @@ const ListChat = () => {
 
   // Sync selectedUsername with route param (chỉ khi đang ở route /message/:username)
   useEffect(() => {
-    console.log('🔄 URL sync:', { urlUsername: username, currentSelected: selectedUsername });
+     // console.log('🔄 URL sync:', { urlUsername: username, currentSelected: selectedUsername });
     
     // Nếu có username trong URL, set nó vào state
     if (username && username !== selectedUsername) {
-      console.log('➡️ Setting from URL:', username);
+       // console.log('➡️ Setting from URL:', username);
       setSelectedUsername(username);
     }
     // Nếu không có username trong URL và đang có selectedUsername, clear nó
     else if (!username && selectedUsername) {
-      console.log('🗑️ Clearing selected username');
+      // console.log('🗑️ Clearing selected username');
       setSelectedUsername(null);
     }
   }, [username]); // ❌ Removed selectedUsername from dependencies to prevent loop
@@ -89,18 +122,44 @@ const ListChat = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Update document title with unread count
+  useEffect(() => {
+    const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+    if (totalUnread > 0) {
+      document.title = `(${totalUnread}) Tin nhắn - Diễn đàn`;
+    } else {
+      document.title = 'Tin nhắn - Diễn đàn';
+    }
+    
+    // Reset title on unmount
+    return () => {
+      document.title = 'Diễn đàn';
+    };
+  }, [unreadCounts]);
+
   // Handle conversation selection
   const handleSelectConversation = (username) => {
-    console.log('🎯 Selecting conversation with:', username);
+    // console.log('🎯 Selecting conversation with:', username);
     setSelectedUsername(username);
+    
+    // Clear unread count for this conversation
+    const conv = conversations.find(c => c.peer?.username === username);
+    if (conv && unreadCounts[conv._id]) {
+      setUnreadCounts(prev => {
+        const updated = { ...prev };
+        delete updated[conv._id];
+        return updated;
+      });
+    }
+    
     // Update URL without full page reload
     window.history.pushState({}, '', `/message/${username}`);
-    console.log('✅ Selected username set to:', username);
+   //  console.log('✅ Selected username set to:', username);
   };
 
   // Handle back from chat (mobile)
   const handleBackToList = () => {
-    console.log('⬅️ Back to list');
+    // console.log('⬅️ Back to list');
     setSelectedUsername(null);
     // Update URL to remove username
     window.history.pushState({}, '', `/messages`);
@@ -117,7 +176,7 @@ const ListChat = () => {
           setOnlineUsersList(result.users || []);
         }
       } catch (error) {
-        console.error("Error loading online users:", error);
+         // console.error("Error loading online users:", error);
       }
     };
 
@@ -160,35 +219,96 @@ const ListChat = () => {
     const handlePrivateNotify = (data) => {
       const { fromUserId, message } = data;
       const fromUserIdStr = String(fromUserId);
+      const myIdStr = String(auth.user?.id || auth.user?._id);
 
-      setConversations((prev) => {
-        const updated = [...prev];
-        const idx = updated.findIndex(
-          (c) => String(c.peer?._id) === fromUserIdStr
-        );
+      // Create unique message ID
+      const messageId = `${fromUserIdStr}-${message.createdAt}`;
+      
 
-        if (idx !== -1) {
-          // Update existing conversation
-          updated[idx] = {
-            ...updated[idx],
-            lastMessage: message.text || "[File]",
-            lastMessageAt: message.createdAt || new Date().toISOString(),
-          };
-          // Move to top
-          const [item] = updated.splice(idx, 1);
-          updated.unshift(item);
+      // ❌ Check if already processed (prevent duplicates)
+      if (processedMessagesRef.current.has(messageId)) {
+        // console.log('⚠️ [ListChat] Duplicate message detected, skipping:', messageId);
+        return;
+      }
+
+      // Mark as processed
+      processedMessagesRef.current.add(messageId);
+      
+      // Clean up old message IDs (keep only last 50)
+      if (processedMessagesRef.current.size > 50) {
+        const arr = Array.from(processedMessagesRef.current);
+        processedMessagesRef.current = new Set(arr.slice(-50));
+      }
+
+      // ❌ IMPORTANT: Ignore messages from self (sender)
+      // Only update conversation list for messages FROM others
+      if (fromUserIdStr === myIdStr) {
+        // console.log('🚫 [ListChat] Ignoring notify from self');
+        return;
+      }
+
+      // Find conversation first
+      const convIdx = conversations.findIndex(
+        (c) => String(c.peer?._id) === fromUserIdStr
+      );
+
+      if (convIdx !== -1) {
+        const conv = conversations[convIdx];
+        const peerUsername = conv.peer?.username;
+        
+        // ✅ Update unread count FIRST (before updating conversations)
+        // Only if not currently viewing this conversation
+        if (String(peerUsername) !== String(selectedUsername)) {
+          // console.log('📈 [ListChat] Increasing unread for conv:', conv._id);
+          setUnreadCounts(prevCounts => {
+            const currentCount = prevCounts[conv._id] || 0;
+            const newCount = currentCount + 1;
+            // console.log('   Current:', currentCount, '→ New:', newCount);
+            return {
+              ...prevCounts,
+              [conv._id]: newCount
+            };
+          });
+          // Play notification sound
+          playNotificationSound();
         } else {
-          // New conversation - could add logic to fetch peer info here
-          console.log("New conversation from:", fromUserIdStr);
+          // console.log('✅ [ListChat] Currently viewing, not increasing unread');
         }
 
-        return updated;
-      });
+        // ✅ Then update conversation list
+        setConversations((prev) => {
+          const updated = [...prev];
+          const idx = updated.findIndex(
+            (c) => String(c.peer?._id) === fromUserIdStr
+          );
+          
+          if (idx !== -1) {
+            updated[idx] = {
+              ...updated[idx],
+              lastMessage: message.text || "[File]",
+              lastMessageAt: message.createdAt || new Date().toISOString(),
+            };
+            
+            // Move to top
+            const [item] = updated.splice(idx, 1);
+            updated.unshift(item);
+          }
+          
+          return updated;
+        });
+      } else {
+        // New conversation
+        // console.log("New conversation from:", fromUserIdStr);
+      }
     };
 
+    // console.log('🎧 [ListChat] Setting up notify listener');
     onPrivateNotify(handlePrivateNotify);
-    return () => offPrivateNotify(handlePrivateNotify);
-  }, []);
+    return () => {
+      // console.log('🔇 [ListChat] Cleaning up notify listener');
+      offPrivateNotify(handlePrivateNotify);
+    };
+  }, [selectedUsername, auth.user]);
 
   // Search users by username (with debounce)
   const handleSearch = (query) => {
@@ -221,7 +341,7 @@ const ListChat = () => {
           setSearchResults([]);
         }
       } catch (error) {
-        console.error("Error searching user:", error);
+        // console.error("Error searching user:", error);
         setSearchResults([]);
       } finally {
         setSearching(false);
@@ -262,7 +382,14 @@ const ListChat = () => {
           {/* Header */}
           <div className="p-2 p-md-3 border-bottom bg-white" style={{ flexShrink: 0 }}>
             <div className="d-flex justify-content-between align-items-center mb-2 mb-md-3">
-              <h5 className="mb-0 fw-bold" style={{ fontSize: "1.1rem" }}>Tin nhắn</h5>
+              <div className="d-flex align-items-center gap-2">
+                <h5 className="mb-0 fw-bold" style={{ fontSize: "1.1rem" }}>Tin nhắn</h5>
+                {Object.values(unreadCounts).reduce((sum, count) => sum + count, 0) > 0 && (
+                  <span className="badge bg-danger rounded-pill">
+                    {Object.values(unreadCounts).reduce((sum, count) => sum + count, 0)}
+                  </span>
+                )}
+              </div>
               {/* <Link to="/forum/start-chat" className="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
                 <i className="bi bi-pencil-square"></i>
               </Link> */}
@@ -425,9 +552,16 @@ const ListChat = () => {
                                 <h6 className="mb-1 fw-semibold text-truncate" style={{ fontSize: "0.9rem" }}>
                                   {peer?.displayName || peer?.username}
                                 </h6>
-                                <small className={`flex-shrink-0 ms-2 ${isActive ? "text-white-50" : "text-muted"}`} style={{ fontSize: "0.7rem" }}>
-                                  {formatTime(conv.lastMessageAt)}
-                                </small>
+                                <div className="d-flex align-items-center gap-2 flex-shrink-0 ms-2">
+                                  {unreadCounts[conv._id] > 0 && (
+                                    <span className="badge bg-danger rounded-pill" style={{ fontSize: "0.7rem", minWidth: "20px" }}>
+                                      {unreadCounts[conv._id]}
+                                    </span>
+                                  )}
+                                  <small className={isActive ? "text-white-50" : "text-muted"} style={{ fontSize: "0.7rem" }}>
+                                    {formatTime(conv.lastMessageAt)}
+                                  </small>
+                                </div>
                               </div>
                               <p className={`mb-0 small text-truncate ${isActive ? "text-white-50" : "text-muted"}`} style={{ fontSize: "0.8rem" }}>
                                 {conv.lastMessage || "Bắt đầu cuộc trò chuyện"}
@@ -494,12 +628,12 @@ const ListChat = () => {
           style={{ height: "100%", overflow: "hidden" }}
         >
           {(() => {
-            console.log('🖼️ Rendering chat panel:', { 
-              hasSelectedUsername: !!selectedUsername, 
-              selectedUsername,
-              willRenderChat: !!selectedUsername
-            });
-            
+            // console.log('🖼️ Rendering chat panel:', { 
+            //   hasSelectedUsername: !!selectedUsername, 
+            //   selectedUsername,
+            //   willRenderChat: !!selectedUsername
+            // });
+
             return selectedUsername ? (
               <PrivateChat 
                 key={selectedUsername} 

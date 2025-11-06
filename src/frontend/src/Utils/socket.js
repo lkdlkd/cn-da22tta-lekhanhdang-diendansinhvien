@@ -12,7 +12,7 @@ export const socket = io(SOCKET_URL, {
   transports: ["websocket"],
   auth: (cb) => {
     const token = getToken();
-    console.log("🔐 Socket auth callback, token:", token ? "present" : "missing");
+   // console.log("🔐 Socket auth callback, token:", token ? "present" : "missing");
     cb({ token });
   },
 });
@@ -26,12 +26,12 @@ export const connectSocket = () => {
     
     if (!socket.connected) {
       socket.connect();
-      console.log("🔌 Connecting socket with authentication...");
+      // console.log("🔌 Connecting socket with authentication...");
     } else {
-      console.log("✅ Socket already connected");
+     // console.log("✅ Socket already connected");
     }
   } else {
-    console.warn("⚠️ No token found, socket not connected");
+    // console.warn("⚠️ No token found, socket not connected");
   }
 };
 
@@ -39,7 +39,7 @@ export const connectSocket = () => {
 export const disconnectSocket = () => {
   if (socket.connected) {
     socket.disconnect();
-    console.log("🔌 Socket disconnected");
+    // console.log("🔌 Socket disconnected");
   }
 };
 
@@ -48,33 +48,33 @@ socket.io.on("reconnect_attempt", () => {
   const token = getToken();
   if (token) {
     socket.auth = { token };
-    console.log("🔄 Reconnecting with fresh token...");
+  //   console.log("🔄 Reconnecting with fresh token...");
   }
 });
 
 // Khi socket kết nối, re-emit user:online (backward compatibility)
 socket.on("connect", () => {
-  console.log("✅ Socket connected:", socket.id);
+ //  console.log("✅ Socket connected:", socket.id);
   const userId = localStorage.getItem("userId");
   if (userId) {
     socket.emit("user:online", userId);
-    console.log("🔄 Re-announcing online status for:", userId);
+    // console.log("🔄 Re-announcing online status for:", userId);
   }
 });
 
 socket.on("disconnect", (reason) => {
-  console.log("❌ Socket disconnected:", reason);
+  // console.log("❌ Socket disconnected:", reason);
 });
 
 socket.on("connect_error", (error) => {
-  console.error("❌ Socket connection error:", error.message);
+  // console.error("❌ Socket connection error:", error.message);
 });
 
 // Helper function để emit user online status
 export const setUserOnline = (userId) => {
   if (userId) {
     socket.emit("user:online", userId);
-    console.log("🟢 User set to online:", userId);
+    // console.log("🟢 User set to online:", userId);
   }
 };
 
@@ -93,17 +93,17 @@ export const offUserStatusChanged = (callback) => {
 // ============================================
 export const joinPrivateRoom = (roomId) => {
   socket.emit("chat:private:join", roomId);
-  console.log("🚪 Joined private room:", roomId);
+  // console.log("🚪 Joined private room:", roomId);
 };
 
 export const leavePrivateRoom = (roomId) => {
   socket.emit("chat:private:leave", roomId);
-  console.log("🚪 Left private room:", roomId);
+ //  console.log("🚪 Left private room:", roomId);
 };
 
 export const sendPrivateMessage = (peerId, message) => {
   socket.emit("chat:private:message", { peerId, message });
-  console.log("📤 Sent private message to:", peerId);
+  // console.log("📤 Sent private message to:", peerId);
 };
 
 export const sendPrivateTyping = (peerId, isTyping) => {
@@ -112,7 +112,7 @@ export const sendPrivateTyping = (peerId, isTyping) => {
 
 export const markPrivateAsRead = (peerId) => {
   socket.emit("chat:private:read", { peerId });
-  console.log("✅ Marked messages from", peerId, "as read");
+  // console.log("✅ Marked messages from", peerId, "as read");
 };
 
 export const onPrivateMessage = (callback) => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../../Context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import Layout from '../../../Components/Layout';
+import { toast } from 'react-toastify';
 import { 
   getAllNotificationsAdmin, 
   getNotificationsStats, 
@@ -93,7 +93,7 @@ function NotificationsAdmin() {
 
   const handleDeleteMultiple = async () => {
     if (selectedNotifications.length === 0) {
-      alert('Vui lòng chọn ít nhất một thông báo');
+      toast.error('Vui lòng chọn ít nhất một thông báo');
       return;
     }
 
@@ -103,13 +103,13 @@ function NotificationsAdmin() {
       const data = await deleteMultipleNotifications(auth.token, selectedNotifications);
       
       if (data.success) {
-        alert(data.message);
+        toast.success(data.message);
         setSelectedNotifications([]);
         loadNotifications();
       }
     } catch (error) {
       console.error('Error deleting notifications:', error);
-      alert('Có lỗi xảy ra khi xóa thông báo');
+      toast.error('Có lỗi xảy ra khi xóa thông báo');
     }
   };
 
@@ -120,12 +120,12 @@ function NotificationsAdmin() {
       const data = await deleteUserNotifications(auth.token, userId);
       
       if (data.success) {
-        alert(data.message);
+        toast.success(data.message);
         loadNotifications();
       }
     } catch (error) {
       console.error('Error deleting user notifications:', error);
-      alert('Có lỗi xảy ra');
+      toast.error('Có lỗi xảy ra');
     }
   };
 
@@ -140,12 +140,12 @@ function NotificationsAdmin() {
       : bulkForm.userIds.split(',').map(id => id.trim()).filter(id => id);
     
     if (!isSendToAll && userIdsArray.length === 0) {
-      alert('Vui lòng nhập ít nhất một User ID');
+      toast.error('Vui lòng nhập ít nhất một User ID');
       return;
     }
 
     if (!bulkForm.message.trim()) {
-      alert('Vui lòng nhập nội dung thông báo');
+      toast.error('Vui lòng nhập nội dung thông báo');
       return;
     }
 
@@ -159,14 +159,14 @@ function NotificationsAdmin() {
       );
       
       if (data.success) {
-        alert(data.message);
+        toast.success(data.message);
         setBulkForm({ userIds: '', type: 'system', message: '', data: {} });
       } else {
-        alert('Có lỗi: ' + data.error);
+        toast.error('Có lỗi: ' + data.error);
       }
     } catch (error) {
       console.error('Error sending bulk notifications:', error);
-      alert('Có lỗi xảy ra');
+      toast.error('Có lỗi xảy ra');
     }
   };
 

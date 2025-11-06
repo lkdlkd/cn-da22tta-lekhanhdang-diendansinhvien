@@ -32,11 +32,35 @@ exports.getMyConversations = async (req, res) => {
 
       if (peer) {
         const lastMsg = conv.messages.length > 0 ? conv.messages[conv.messages.length - 1] : null;
+        
+        // Calculate unread count
+        let unreadCount = 0;
+        const readMarks = conv.readMarks || new Map();
+        const userReadMark = readMarks instanceof Map 
+          ? readMarks.get(String(userId))
+          : readMarks[String(userId)];
+        
+        const lastReadAt = userReadMark?.lastReadAt;
+        
+        if (lastReadAt) {
+          // Count messages after last read time
+          unreadCount = conv.messages.filter(msg => 
+            new Date(msg.createdAt) > new Date(lastReadAt) &&
+            String(msg.senderId) !== String(userId) // Don't count own messages
+          ).length;
+        } else {
+          // User has never read, count all messages from peer
+          unreadCount = conv.messages.filter(msg => 
+            String(msg.senderId) !== String(userId)
+          ).length;
+        }
+        
         result.push({
           _id: conv._id,
           peer,
           lastMessage: lastMsg ? lastMsg.text || '[File]' : '',
           lastMessageAt: conv.lastMessageAt,
+          unreadCount,
         });
       }
     }

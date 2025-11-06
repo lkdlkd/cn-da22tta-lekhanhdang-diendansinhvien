@@ -212,13 +212,23 @@ io.on("connection", async (socket) => {
         message: newMessage,
       });
 
-      // Also emit directly to peer's socket (in case they're not in the room yet)
+      // Also emit directly to peer's socket ONLY if they're not in the room
+      // IMPORTANT: Never emit notify to sender, only to peer
       const peerSocketId = onlineUsers.get(peerId);
       if (peerSocketId) {
-        io.to(peerSocketId).emit("chat:private:notify", {
-          fromUserId: senderId,
-          message: newMessage,
-        });
+        const peerSocket = io.sockets.sockets.get(peerSocketId);
+        const isInRoom = peerSocket && peerSocket.rooms.has(roomId);
+        
+        // Only emit notify if peer is NOT in the room (to update conversation list)
+        if (!isInRoom) {
+          io.to(peerSocketId).emit("chat:private:notify", {
+            fromUserId: senderId,
+            message: newMessage,
+          });
+          console.log(`📢 Sent notify to peer ${peerId} (not in room)`);
+        } else {
+          console.log(`✅ Peer ${peerId} is in room, skipping notify`);
+        }
       }
 
       console.log(`💬 Private message from ${senderId} to ${peerId}`);

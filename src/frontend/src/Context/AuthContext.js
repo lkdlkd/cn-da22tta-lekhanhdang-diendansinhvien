@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
 
   // Connect socket when authenticated
   useEffect(() => {
-    console.log("🔐 AuthContext: token changed, connecting socket...", { hasToken: !!auth.token });
+     // console.log("🔐 AuthContext: token changed, connecting socket...", { hasToken: !!auth.token });
     
     if (auth.token) {
       connectSocket();
@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
 
     // Cleanup on unmount
     return () => {
-      console.log("🧹 AuthContext cleanup: disconnecting socket");
+      // console.log("🧹 AuthContext cleanup: disconnecting socket");
       disconnectSocket();
     };
   }, [auth.token]);

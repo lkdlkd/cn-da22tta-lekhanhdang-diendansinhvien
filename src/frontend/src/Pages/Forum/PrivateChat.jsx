@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../Context/AuthContext";
+import { toast } from "react-toastify";
 import { getUserByUsername, getPrivateChatHistory, uploadChatFiles } from "../../Utils/api";
 import {
   joinPrivateRoom,
@@ -42,6 +43,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -49,34 +51,59 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
   const typingTimeoutRef = useRef(null);
   const previousScrollHeightRef = useRef(0);
   const isFirstLoadRef = useRef(true);
+  const emojiPickerRef = useRef(null);
 
   const me = auth.user;
+
+  // Danh sách emoji phổ biến
+  const emojis = [
+    "😊", "😂", "❤️", "😍", "😭", "🤔", "👍", "🎉", "🔥", "✨",
+    "💯", "😎", "🥰", "😢", "😱", "🤗", "💪", "🙏", "👏", "🎈",
+    "🌟", "💖", "😴", "🤩", "😜", "🥳", "🤝", "💕", "🌈", "⭐"
+  ];
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker]);
 
   // Resolve username to userId
   useEffect(() => {
     if (!username || !auth.token) {
-      console.log('⚠️ Missing username or token:', { username, hasToken: !!auth.token });
+       // .log('⚠️ Missing username or token:', { username, hasToken: !!auth.token });
       return;
     }
 
     const resolvePeer = async () => {
       try {
-        console.log('🔍 Resolving peer username:', username);
+         // console.log('🔍 Resolving peer username:', username);
         const result = await getUserByUsername(username, auth.token);
         if (result.success && result.user) {
-          console.log('✅ Peer resolved:', result.user);
+           // console.log('✅ Peer resolved:', result.user);
           setPeer(result.user);
           setPeerId(String(result.user._id));
           setPeerOnline(result.user.isOnline || false);
         } else {
-          console.error("❌ User not found:", username);
+           // console.error("❌ User not found:", username);
           // Don't navigate away if embedded in ListChat
           if (!usernameOverride) {
             navigate("/messages");
           }
         }
       } catch (error) {
-        console.error("❌ Error resolving username:", error);
+         // console.error("❌ Error resolving username:", error);
         // Don't navigate away if embedded in ListChat
         if (!usernameOverride) {
           navigate("/messages");
@@ -101,15 +128,18 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
     const loadHistory = async () => {
       try {
         const result = await getPrivateChatHistory(auth.token, peerId, 1, 50);
-        console.log('📂 Loaded messages from DB:', result.data?.messages?.length || 0);
+         // console.log('📂 Loaded messages from DB:', result.data?.messages?.length || 0);
         if (result.success && result.data) {
           const msgs = result.data.messages || [];
           setMessages(msgs);
           setCurrentPage(1);
           setHasMore(msgs.length >= 50); // If we got 50 messages, there might be more
+          
+          // Mark messages as read when loading chat
+          markPrivateAsRead(peerId);
         }
       } catch (error) {
-        console.error("Error loading chat history:", error);
+        // console.error("Error loading chat history:", error);
       } finally {
         setLoading(false);
       }
@@ -139,13 +169,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
       const meIdStr = String(me.id);
       const peerIdStr = String(peerId);
 
-      console.log('📨 New message received:', {
-        from: fromUserIdStr,
-        to: toUserIdStr,
-        myId: meIdStr,
-        peerId: peerIdStr,
-        isMine: fromUserIdStr === meIdStr
-      });
+      // Chỉ thêm tin nhắn nếu nó liên quan đến cuộc trò chuyện hiện tại
 
       if (
         (fromUserIdStr === peerIdStr && toUserIdStr === meIdStr) ||
@@ -160,10 +184,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
             : (fromUserIdStr === peerIdStr ? peer : data.message.senderId)
         };
 
-        console.log('✅ Adding message to state:', {
-          senderId: enrichedMessage.senderId?._id || enrichedMessage.senderId?.id,
-          isMine: fromUserIdStr === meIdStr
-        });
+        // console.log('✅ New message enriched:', enrichedMessage);
 
         setMessages((prev) => [...prev, enrichedMessage]);
 
@@ -238,13 +259,13 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
 
       try {
         const nextPage = currentPage + 1;
-        console.log(`📥 Loading more messages - Page ${nextPage}`);
+        // console.log(`📥 Loading more messages - Page ${nextPage}`);
 
         const result = await getPrivateChatHistory(auth.token, peerId, nextPage, 50);
 
         if (result.success && result.data) {
           const olderMessages = result.data.messages || [];
-          console.log(`✅ Loaded ${olderMessages.length} older messages`);
+          // console.log(`✅ Loaded ${olderMessages.length} older messages`);
 
           if (olderMessages.length > 0) {
             // Prepend older messages to the beginning of the array
@@ -263,7 +284,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
           }
         }
       } catch (error) {
-        console.error("Error loading more messages:", error);
+        //  console.error("Error loading more messages:", error);
       } finally {
         setLoadingMore(false);
       }
@@ -331,8 +352,8 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
         setSelectedFiles([]);
       }
     } catch (error) {
-      console.error("Error uploading files:", error);
-      alert("Lỗi khi tải file lên");
+       // console.error("Error uploading files:", error);
+      toast.error("Lỗi khi tải file lên");
     } finally {
       setUploadingFiles(false);
       if (fileInputRef.current) {
@@ -343,6 +364,11 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
 
   const handleRemoveFile = (index) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleEmojiSelect = (emoji) => {
+    setNewMessage(prev => prev + emoji);
+    setShowEmojiPicker(false);
   };
 
   const getFileIcon = (filename) => {
@@ -797,7 +823,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
             </div>
           )}
 
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center gap-2 position-relative">
             <input
               type="file"
               ref={fileInputRef}
@@ -825,6 +851,71 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
                 <i className="bi bi-paperclip fs-5"></i>
               )}
             </button>
+
+            {/* Emoji Picker Button */}
+            <div className="position-relative" ref={emojiPickerRef}>
+              <button
+                className="btn btn-outline-secondary flex-shrink-0 d-flex align-items-center justify-content-center"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                style={{
+                  width: 40,
+                  height: 40,
+                  padding: 0,
+                  borderRadius: '50%',
+                  transition: 'all 0.2s'
+                }}
+                title="Chọn emoji"
+              >
+                <i className="bi bi-emoji-smile fs-5"></i>
+              </button>
+
+              {/* Emoji Picker Dropdown */}
+              {showEmojiPicker && (
+                <div
+                  className="position-absolute bg-white border rounded shadow-lg p-3"
+                  style={{
+                    bottom: '50px',
+                    left: '0',
+                    width: '280px',
+                    maxHeight: '250px',
+                    overflowY: 'auto',
+                    zIndex: 1000
+                  }}
+                >
+                  <div className="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <small className="fw-semibold text-muted">Chọn emoji</small>
+                    <button
+                      className="btn-close btn-sm"
+                      onClick={() => setShowEmojiPicker(false)}
+                      style={{ fontSize: '0.7rem' }}
+                    ></button>
+                  </div>
+                  <div className="d-flex flex-wrap gap-1">
+                    {emojis.map((emoji, idx) => (
+                      <button
+                        key={idx}
+                        className="btn btn-light p-2"
+                        onClick={() => handleEmojiSelect(emoji)}
+                        style={{
+                          fontSize: '1.3rem',
+                          width: '40px',
+                          height: '40px',
+                          padding: '0',
+                          border: '1px solid #dee2e6',
+                          borderRadius: '8px',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e9ecef'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <input
               type="text"
               className="form-control"

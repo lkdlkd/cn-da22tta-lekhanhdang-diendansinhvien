@@ -2,9 +2,16 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 export default function HeroSection() {
+
+  // Trigger post create modal
+  const handleCreatePost = () => {
+    // This will be handled by PostCreate component's internal state
+    // We can trigger it by programmatically clicking the PostCreate button
+    document.querySelector('[data-create-post-trigger]')?.click();
+  };
   return (
-    <section 
-      className="hero-section text-white" 
+    <section
+      className="hero-section text-white"
       style={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         position: 'relative',
@@ -36,40 +43,32 @@ export default function HeroSection() {
       <div className="container" style={{ position: 'relative', zIndex: 1 }}>
         <div className="row align-items-center p-3">
           <div className="col-lg-8">
-            <h1 className="display-4 fw-bold mb-3" style={{ 
+            <h1 className="display-4 fw-bold mb-3" style={{
               fontSize: 'clamp(2rem, 5vw, 3.5rem)',
               textShadow: '0 2px 10px rgba(0,0,0,0.2)'
             }}>
               Chào mừng đến với Diễn đàn Sinh viên TVU
             </h1>
-            <p className="lead mb-4" style={{ 
+            <p className="lead mb-4" style={{
               fontSize: 'clamp(1rem, 2vw, 1.25rem)',
               opacity: 0.95
             }}>
               Nơi chia sẻ kiến thức, kết nối bạn bè và phát triển bản thân trong môi trường học tập năng động.
             </p>
             <div className="d-flex flex-wrap gap-3">
-              <Link
-                to="/register"
-                className="btn btn-light btn-lg fw-bold"
+              <button
+                className="btn btn-light btn-lg fw-bold "
+                onClick={handleCreatePost}
                 style={{
                   borderRadius: '12px',
                   padding: '12px 32px',
                   boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
                   transition: 'all 0.3s ease'
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
-                }}
               >
-                <i className="ph-duotone ph-user-plus me-2"></i>
-                Đăng ký ngay
-              </Link>
+                <i className="ph-duotone ph-plus-circle me-2"></i>
+                Tạo bài viết
+              </button>
               <Link
                 to="/forum"
                 className="btn btn-outline-light btn-lg"
@@ -89,7 +88,7 @@ export default function HeroSection() {
                 }}
               >
                 <i className="ph ph-compass me-2"></i>
-                Phòng Chat 
+                Phòng Chat
               </Link>
             </div>
 
@@ -115,7 +114,7 @@ export default function HeroSection() {
               </div>
             </div>
           </div>
-          
+
           <div className="col-lg-4 d-none d-lg-block">
             <div style={{
               background: 'rgba(255,255,255,0.1)',
