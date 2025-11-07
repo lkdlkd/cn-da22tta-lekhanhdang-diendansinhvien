@@ -26,12 +26,12 @@ export const connectSocket = () => {
     
     if (!socket.connected) {
       socket.connect();
-     // console.log("🔌 Connecting socket with authentication...");
+      console.log("🔌 Connecting socket with authentication...");
     } else {
-    //  console.log("✅ Socket already connected");
+      console.log("✅ Socket already connected");
     }
   } else {
-   // console.warn("⚠️ No token found, socket not connected");
+    console.warn("⚠️ No token found, socket not connected");
   }
 };
 
@@ -54,20 +54,20 @@ socket.io.on("reconnect_attempt", () => {
 
 // Khi socket kết nối, re-emit user:online (backward compatibility)
 socket.on("connect", () => {
-  // console.log("✅ Socket connected:", socket.id);
+  console.log("✅ Socket connected:", socket.id);
   const userId = localStorage.getItem("userId");
   if (userId) {
     socket.emit("user:online", userId);
-   // console.log("🔄 Re-announcing online status for:", userId);
+    console.log("🔄 Re-announcing online status for:", userId);
   }
 });
 
 socket.on("disconnect", (reason) => {
- // console.log("❌ Socket disconnected:", reason);
+  console.log("❌ Socket disconnected:", reason);
 });
 
 socket.on("connect_error", (error) => {
-  // console.error("❌ Socket connection error:", error.message);
+  console.error("❌ Socket connection error:", error.message);
 });
 
 // Helper function để emit user online status
@@ -101,8 +101,12 @@ export const leavePrivateRoom = (roomId) => {
  //  console.log("🚪 Left private room:", roomId);
 };
 
-export const sendPrivateMessage = (peerId, message) => {
-  socket.emit("chat:private:message", { peerId, message });
+export const sendPrivateMessage = (peerId, message, ackCallback) => {
+  socket.emit("chat:private:message", { peerId, message }, (res) => {
+    if (typeof ackCallback === 'function') {
+      ackCallback(res);
+    }
+  });
   // console.log("📤 Sent private message to:", peerId);
 };
 
@@ -166,8 +170,12 @@ export const leaveGlobalChat = () => {
   // console.log("🌍 Left global chat");
 };
 
-export const sendGlobalMessage = (message) => {
-  socket.emit("chat:global:message", { message });
+export const sendGlobalMessage = (message, ackCallback) => {
+  socket.emit("chat:global:message", { message }, (res) => {
+    if (typeof ackCallback === 'function') {
+      ackCallback(res);
+    }
+  });
   // console.log("📤 Sent global message");
 };
 

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../Context/AuthContext";
 import { getMyConversations, getUserByUsername, getOnlineUsers } from "../../Utils/api";
 import {
+  socket,
   onUserStatusChanged,
   offUserStatusChanged,
   onPrivateNotify,
@@ -181,10 +182,6 @@ const ListChat = () => {
     };
 
     loadOnlineUsers();
-
-    // Refresh online users every 30 seconds
-    const interval = setInterval(loadOnlineUsers, 30000);
-    return () => clearInterval(interval);
   }, [auth.token]);
 
   // Listen for presence updates
@@ -310,6 +307,19 @@ const ListChat = () => {
     };
   }, [selectedUsername, auth.user]);
 
+  // Re-register listener when tab becomes visible (helps after long sleep)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && socket.connected) {
+        console.log('👀 [ListChat] Tab visible, re-registering private notify listener');
+        // Force re-render to ensure listener is active
+        setConversations(prev => [...prev]);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
   // Search users by username (with debounce)
   const handleSearch = (query) => {
     setSearchQuery(query);
@@ -349,6 +359,11 @@ const ListChat = () => {
     }, 500); // Wait 500ms after last keystroke
   };
 
+  // Helper to calculate total unread count
+  const getTotalUnread = () => {
+    return Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+  };
+
   const formatTime = (dateStr) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -384,9 +399,9 @@ const ListChat = () => {
             <div className="d-flex justify-content-between align-items-center mb-2 mb-md-3">
               <div className="d-flex align-items-center gap-2">
                 <h5 className="mb-0 fw-bold" style={{ fontSize: "1.1rem" }}>Tin nhắn</h5>
-                {Object.values(unreadCounts).reduce((sum, count) => sum + count, 0) > 0 && (
+                {getTotalUnread() > 0 && (
                   <span className="badge bg-danger rounded-pill">
-                    {Object.values(unreadCounts).reduce((sum, count) => sum + count, 0)}
+                    {getTotalUnread()}
                   </span>
                 )}
               </div>

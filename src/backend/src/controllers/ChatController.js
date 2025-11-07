@@ -4,6 +4,7 @@ const Attachment = require('../models/Attachment');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { uploadToDrive, deleteFromDrive } = require('../utils/fileUpload');
 
 // ============================================
 // GET MY CONVERSATIONS
@@ -188,38 +189,11 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter: (req, file, cb) => {
-    // Allowed file types
-    const allowedMimes = [
-      // Documents
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
-      // Archives
-      'application/zip',
-      'application/x-rar-compressed',
-      'application/x-7z-compressed',
-      // Images
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'image/svg+xml',
-    ];
-
-    if (allowedMimes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('File type not allowed. Allowed types: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, ZIP, RAR, 7Z, JPG, PNG, GIF, WEBP, SVG'));
-    }
-  }
-}).array('files', 5);
+  limits: { 
+    fileSize: 50 * 1024 * 1024, // 50MB - tăng lên để phù hợp với Post/Comment
+  },
+  // Bỏ fileFilter để cho phép upload mọi loại file như Post và Comment
+}).array('files', 10); // Tối đa 10 files cùng lúc (tăng từ 5)
 
 exports.uploadChatFiles = async (req, res) => {
   upload(req, res, async (err) => {
@@ -243,15 +217,19 @@ exports.uploadChatFiles = async (req, res) => {
       }
 
       const attachments = [];
-      const backendUrl = `${req.protocol}://${req.get('host')}`;
 
       for (const file of files) {
+        // Upload lên Cloudinary vào folder chat
+        const { fileId, link, resourceType } = await uploadToDrive(file, 'chat');
+        
         const attachment = await Attachment.create({
           ownerId: userId,
           filename: file.originalname,
           mime: file.mimetype,
           size: file.size,
-          storageUrl: `${backendUrl}/uploads/chat/${file.filename}`,
+          storageUrl: link, // Link từ Cloudinary
+          driveFileId: fileId, // ID file trên Cloudinary
+          resourceType: resourceType // Loại file (image/video/raw)
         });
         attachments.push(attachment);
       }

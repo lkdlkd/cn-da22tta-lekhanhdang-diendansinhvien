@@ -10,6 +10,8 @@ const CATEGORY_LABELS = {
   ppt: 'PowerPoint',
   text: 'Text',
   image: 'Ảnh',
+  video: 'Video',
+  audio: 'Audio',
   archive: 'Lưu trữ',
   other: 'Khác'
 };
@@ -114,6 +116,8 @@ const Documents = () => {
     const mime = (d.mime || '').toLowerCase();
     const name = (d.filename || '').toLowerCase();
     if (mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(name)) return 'image';
+    if (mime.startsWith('video/') || /\.(mp4|avi|mkv|mov|wmv|flv|webm)$/i.test(name)) return 'video';
+    if (mime.startsWith('audio/') || /\.(mp3|wav|flac|aac|ogg|wma|m4a)$/i.test(name)) return 'audio';
     if (mime.includes('pdf') || name.endsWith('.pdf')) return 'pdf';
     if (mime.includes('word') || name.endsWith('.doc') || name.endsWith('.docx')) return 'word';
     if (mime.includes('excel') || name.endsWith('.xls') || name.endsWith('.xlsx') || name.endsWith('.csv')) return 'excel';
@@ -131,6 +135,8 @@ const Documents = () => {
       case 'ppt': return 'ph-file-ppt text-warning';
       case 'text': return 'ph-file-text text-secondary';
       case 'image': return 'ph-image text-info';
+      case 'video': return 'ph-video text-purple';
+      case 'audio': return 'ph-music-note text-pink';
       case 'archive': return 'ph-file-zip text-muted';
       default: return 'ph-file text-secondary';
     }
@@ -271,6 +277,8 @@ const Documents = () => {
                 <option value="ppt">PowerPoint</option>
                 <option value="text">Text</option>
                 <option value="image">Ảnh</option>
+                <option value="video">Video</option>
+                <option value="audio">Audio</option>
                 <option value="archive">Lưu trữ</option>
                 <option value="other">Khác</option>
               </select>

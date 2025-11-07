@@ -1,5 +1,4 @@
 const path = require('path');
-const fs = require('fs');
 const Attachment = require('../models/Attachment');
 const Post = require('../models/Post');
 const Comment = require('../models/Comment');
@@ -43,6 +42,18 @@ const CATEGORY_DEFS = {
 		mime: [/^image\//i],
 		ext: ['jpg','jpeg','png','gif','webp','bmp','svg']
 	},
+	video: {
+		key: 'video',
+		label: 'Video',
+		mime: [/^video\//i],
+		ext: ['mp4','avi','mkv','mov','wmv','flv','webm']
+	},
+	audio: {
+		key: 'audio',
+		label: 'Audio',
+		mime: [/^audio\//i],
+		ext: ['mp3','wav','flac','aac','ogg','wma','m4a']
+	},
 	archive: {
 		key: 'archive',
 		label: 'Lưu trữ',
@@ -57,7 +68,7 @@ const CATEGORY_DEFS = {
 	}
 };
 
-const DOC_CATEGORY_ORDER = ['pdf', 'word', 'excel', 'ppt', 'text', 'image', 'archive', 'other'];
+const DOC_CATEGORY_ORDER = ['pdf', 'word', 'excel', 'ppt', 'text', 'image', 'video', 'audio', 'archive', 'other'];
 
 const getExt = (filename = '') => {
 	const ext = path.extname(filename || '').toLowerCase().replace(/^\./, '');
@@ -81,33 +92,37 @@ const matchCategoryKey = (mime = '', filename = '') => {
 
 const isDocumentLike = (mime = '', filename = '') => {
 	const m = String(mime || '').toLowerCase();
-	// Include images; still exclude video/audio from library
-	if (m.startsWith('video/') || m.startsWith('audio/')) return false;
-	// Consider common document mimes, text/plain, images, or recognized extensions
+	// Now include videos and audio in library
+	// Consider all common file types
 	const ext = getExt(filename);
-	const knownExts = new Set(['pdf','doc','docx','xls','xlsx','csv','ppt','pptx','txt','md','zip','7z','rar','gz','tar','jpg','jpeg','png','gif','webp','bmp','svg']);
-	return m.startsWith('application/') || m === 'text/plain' || m.startsWith('image/') || knownExts.has(ext);
+	const knownExts = new Set([
+		'pdf','doc','docx','xls','xlsx','csv','ppt','pptx','txt','md',
+		'zip','7z','rar','gz','tar',
+		'jpg','jpeg','png','gif','webp','bmp','svg',
+		'mp4','avi','mkv','mov','wmv','flv','webm',
+		'mp3','wav','flac','aac','ogg','wma','m4a'
+	]);
+	return (
+		m.startsWith('application/') || 
+		m.startsWith('text/') || 
+		m.startsWith('image/') || 
+		m.startsWith('video/') || 
+		m.startsWith('audio/') || 
+		knownExts.has(ext)
+	);
 };
 
-// Helpers to work with physical uploads folder that posts/comments saved
-const uploadsRoot = path.join(__dirname, '../uploads');
-
-const storageUrlToLocalPath = (storageUrl = '') => {
-	if (!storageUrl) return null;
-	// remove domain if full URL
-	let urlPath = String(storageUrl).replace(/^https?:\/\/[^/]+/i, '');
-	// ensure starts with /uploads or is relative filename
-	if (urlPath.startsWith('/uploads/')) {
-		urlPath = urlPath.replace(/^\/uploads\//, '');
-	}
-	return path.join(uploadsRoot, urlPath);
-};
-
-const fileExistsForAttachment = (att) => {
+// Check if attachment has valid Cloudinary URL
+const hasValidStorageUrl = (att) => {
 	try {
-		const localPath = storageUrlToLocalPath(att.storageUrl || att.filename);
-		if (!localPath) return false;
-		return fs.existsSync(localPath);
+		const url = att.storageUrl || '';
+		// Check if it's a Cloudinary URL or has valid format
+		return url && (
+			url.includes('cloudinary.com') || 
+			url.includes('res.cloudinary.com') ||
+			url.startsWith('http://') || 
+			url.startsWith('https://')
+		);
 	} catch {
 		return false;
 	}
@@ -141,7 +156,7 @@ exports.getDocumentCategories = async (req, res) => {
 			let totalDocs = 0;
 
 			for (const a of items) {
-				if (!fileExistsForAttachment(a)) continue;
+				if (!hasValidStorageUrl(a)) continue;
 				if (!isDocumentLike(a.mime, a.filename)) continue;
 				const key = matchCategoryKey(a.mime, a.filename);
 				counts[key] = (counts[key] || 0) + 1;
@@ -188,8 +203,8 @@ exports.getDocuments = async (req, res) => {
 				.sort({ createdAt: -1 })
 				.lean();
 
-			// Ensure file exists and is document-like
-			let docsOnly = all.filter(a => fileExistsForAttachment(a) && isDocumentLike(a.mime, a.filename));
+			// Ensure file has valid storage URL and is document-like
+			let docsOnly = all.filter(a => hasValidStorageUrl(a) && isDocumentLike(a.mime, a.filename));
 
 			// Filter by category if provided
 			const catKey = category ? String(category).toLowerCase() : '';
@@ -241,8 +256,8 @@ exports.getDocumentDetail = async (req, res) => {
 		if (!doc) {
 			return res.status(404).json({ success: false, error: 'Tài liệu không tồn tại' });
 		}
-		if (!fileExistsForAttachment(doc)) {
-			return res.status(404).json({ success: false, error: 'Tệp không tồn tại trên hệ thống' });
+		if (!hasValidStorageUrl(doc)) {
+			return res.status(404).json({ success: false, error: 'URL tệp không hợp lệ' });
 		}
 		// Provide computed category
 		const category = matchCategoryKey(doc.mime, doc.filename);

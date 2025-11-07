@@ -269,10 +269,20 @@ const GlobalChat = () => {
         attachments: attachments.map((a) => a._id),
       };
 
-      // console.log('📤 [GlobalChat] Sending message:', messageData);
-      sendGlobalMessage(messageData);
-      setNewMessage("");
-      setAttachments([]);
+      console.log('📤 [GlobalChat] Sending message:', messageData);
+      sendGlobalMessage(messageData, (res) => {
+        if (!res || res.success !== true) {
+          console.warn('⚠️ [GlobalChat] Message not accepted by server:', res);
+          const reason = res?.error === 'unauthenticated'
+            ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+            : 'Không thể gửi tin nhắn. Vui lòng thử lại.';
+          alert(reason);
+          return;
+        }
+        // Clear only on success
+        setNewMessage("");
+        setAttachments([]);
+      });
 
       // Clear typing timeout
       if (typingTimeoutRef.current) {
@@ -285,6 +295,18 @@ const GlobalChat = () => {
       setSending(false);
     }
   };
+
+  // Re-join global chat when tab becomes visible (helps after long sleep)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && socket.connected) {
+        console.log('👀 [GlobalChat] Tab visible, ensuring joined to global chat');
+        joinGlobalChat();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
 
   // Format time
   const formatTime = (dateStr) => {
@@ -529,7 +551,6 @@ const GlobalChat = () => {
               type="file"
               className="d-none"
               multiple
-              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
               onChange={handleFileSelect}
               disabled={uploading || sending}
             />

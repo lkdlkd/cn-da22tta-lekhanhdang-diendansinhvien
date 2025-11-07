@@ -4,6 +4,7 @@ const Notification = require('../models/Notification');
 const Message = require('../models/Message');
 const fs = require('fs');
 const path = require('path');
+const { uploadToDrive, deleteFromDrive } = require('../utils/fileUpload');
 
 // Helper: remove a local uploaded file when given a full URL containing /uploads/
 function removeLocalUploadByUrl(fileUrl) {
@@ -187,25 +188,24 @@ exports.updateProfile = async (req, res) => {
       // Xóa file avatar cũ nếu tồn tại và không phải avatar mặc định (gravatar)
       if (oldUser && oldUser.avatarUrl && !oldUser.avatarUrl.includes('gravatar.com')) {
         try {
-          // Lấy tên file từ URL
-          const oldFileName = oldUser.avatarUrl.split('/').pop();
-          const oldFilePath = path.join(__dirname, '../../src/uploads/user', oldFileName);
-
-          // Kiểm tra file tồn tại rồi mới xóa
-          if (fs.existsSync(oldFilePath)) {
-            fs.unlinkSync(oldFilePath);
-            console.log('Đã xóa avatar cũ:', oldFileName);
+          // Nếu có driveFileId thì xóa từ Cloudinary
+          if (oldUser.driveFileId) {
+            await deleteFromDrive(oldUser.driveFileId, oldUser.resourceType);
+            console.log(`Đã xóa avatar cũ từ Cloudinary [${oldUser.resourceType}]`);
           }
         } catch (error) {
-          console.error('Lỗi khi xóa avatar cũ:', error);
+          console.error('Lỗi khi xóa avatar cũ từ Cloudinary:', error);
           // Không throw error, vẫn tiếp tục update avatar mới
         }
       }
 
-      // Đường dẫn backend để lưu URL
-      const backendUrl = `${req.protocol}://${req.get('host')}`;
-      // Lưu đường dẫn file avatar vào trường avatarUrl
-      updates.avatarUrl = `${backendUrl}/uploads/user/${req.file.filename}`;
+      // Upload avatar mới lên Cloudinary vào folder avatars
+      const { fileId, link, resourceType } = await uploadToDrive(req.file, 'avatar');
+      
+      // Lưu đường dẫn file avatar, driveFileId và resourceType
+      updates.avatarUrl = link;
+      updates.driveFileId = fileId;
+      updates.resourceType = resourceType; // Avatar thường là 'image'
     }
 
     const user = await User.findByIdAndUpdate(userId, updates, { new: true }).select('-password');

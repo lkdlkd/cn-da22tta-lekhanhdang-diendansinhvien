@@ -4,6 +4,7 @@ import { AuthContext } from "../../Context/AuthContext";
 import { toast } from "react-toastify";
 import { getUserByUsername, getPrivateChatHistory, uploadChatFiles } from "../../Utils/api";
 import {
+  socket,
   joinPrivateRoom,
   leavePrivateRoom,
   sendPrivateMessage,
@@ -226,6 +227,19 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
     };
   }, [peerId, me, peer]); // Add peer to dependencies
 
+  // Re-join private room when tab becomes visible (helps after long sleep)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && socket.connected && peerId && me) {
+        const roomId = [String(me.id), String(peerId)].sort().join("_");
+        console.log('👀 [PrivateChat] Tab visible, ensuring joined to room:', roomId);
+        joinPrivateRoom(roomId);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [peerId, me]);
+
   // Auto scroll to bottom
   useEffect(() => {
     if (isFirstLoadRef.current && messages.length > 0) {
@@ -299,9 +313,19 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
       attachments: [],
     };
 
-    sendPrivateMessage(peerId, msgData);
-    setNewMessage("");
-    setSelectedFiles([]); // Clear selected files
+    sendPrivateMessage(peerId, msgData, (res) => {
+      if (!res || res.success !== true) {
+        console.warn('⚠️ [PrivateChat] Message not accepted by server:', res);
+        const reason = res?.error === 'unauthenticated'
+          ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+          : 'Không thể gửi tin nhắn. Vui lòng thử lại.';
+        alert(reason);
+        return;
+      }
+      // Clear only on success
+      setNewMessage("");
+      setSelectedFiles([]);
+    });
   };
 
   const handleBack = () => {
@@ -347,9 +371,19 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
           text: newMessage.trim() || "", // Cho phép gửi kèm text
           attachments: result.data,
         };
-        sendPrivateMessage(peerId, msgData);
-        setNewMessage("");
-        setSelectedFiles([]);
+        sendPrivateMessage(peerId, msgData, (res) => {
+          if (!res || res.success !== true) {
+            console.warn('⚠️ [PrivateChat] Message with files not accepted:', res);
+            const reason = res?.error === 'unauthenticated'
+              ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+              : 'Không thể gửi file. Vui lòng thử lại.';
+            alert(reason);
+            return;
+          }
+          // Clear only on success
+          setNewMessage("");
+          setSelectedFiles([]);
+        });
       }
     } catch (error) {
        // console.error("Error uploading files:", error);
@@ -829,7 +863,6 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
               ref={fileInputRef}
               onChange={handleFileUpload}
               multiple
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.7z,.jpg,.jpeg,.png,.gif,.webp,.svg"
               style={{ display: "none" }}
             />
             <button

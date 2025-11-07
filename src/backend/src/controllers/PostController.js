@@ -7,6 +7,7 @@ const slugify = require('slugify');
 const comment = require('../models/Comment');
 const fs = require('fs');
 const path = require('path');
+const { uploadToDrive, deleteFromDrive } = require('../utils/fileUpload');
 
 // HÀM XỬ LÝ TAGS
 function processTags(tags) {
@@ -237,17 +238,21 @@ exports.createPost = async (req, res) => {
 		// Tạo slug duy nhất
 		const slug = await generateUniqueSlug(title);
 
-		// Lưu file upload → Attachment
+		// Lưu file upload → Attachment (Upload lên Cloudinary)
 		let attachmentIds = [];
 		if (req.files?.length > 0) {
-			const backendUrl = `${req.protocol}://${req.get('host')}`;
 			attachmentIds = await Promise.all(req.files.map(async (file) => {
+				// Upload lên Cloudinary vào folder documents
+				const { fileId, link, resourceType } = await uploadToDrive(file, 'post');
+				
 				const attachment = new Attachment({
 					ownerId: authorId,
 					filename: file.originalname, // LƯU TÊN GỐC để hiển thị
 					mime: file.mimetype || 'application/octet-stream',
 					size: file.size || 0,
-					storageUrl: `${backendUrl}/uploads/${file.filename}`
+					storageUrl: link, // Link từ Cloudinary
+					driveFileId: fileId, // ID file trên Cloudinary
+					resourceType: resourceType // Loại file (image/video/raw)
 				});
 				await attachment.save();
 				return attachment._id;
@@ -310,27 +315,20 @@ exports.updatePost = async (req, res) => {
 				? removeAttachments
 				: [removeAttachments];
 
-			// Lấy thông tin file để xóa vật lý
+			// Lấy thông tin file để xóa từ Cloudinary
 			const attachmentsToRemove = await Attachment.find({ _id: { $in: removeList } });
 
-			// Xóa file vật lý khỏi server (dựa trên storageUrl để lấy tên file đã lưu)
+			// Xóa file từ Cloudinary
 			for (const attachment of attachmentsToRemove) {
 				try {
-					const uploadsDir = path.join(__dirname, '../uploads');
-					const urlPath = String(attachment.storageUrl || '').replace(/^https?:\/\/[^/]+/i, '');
-					let filePath = path.join(uploadsDir, attachment.filename);
-					if (urlPath.startsWith('/uploads/')) {
-						const rel = urlPath.replace(/^\/uploads\//, '');
-						filePath = path.join(uploadsDir, rel);
-					}
-					if (fs.existsSync(filePath)) {
-						fs.unlinkSync(filePath);
-						console.log(`✅ Đã xóa file: ${filePath}`);
+					if (attachment.driveFileId) {
+						await deleteFromDrive(attachment.driveFileId, attachment.resourceType);
+						console.log(`✅ Đã xóa file từ Cloudinary [${attachment.resourceType}]: ${attachment.filename}`);
 					} else {
-						console.log(`⚠️ File không tồn tại: ${filePath}`);
+						console.log(`⚠️ File không có driveFileId: ${attachment.filename}`);
 					}
 				} catch (err) {
-					console.error(`❌ Lỗi xóa file vật lý:`, err);
+					console.error(`❌ Lỗi xóa file từ Cloudinary:`, err);
 				}
 			}
 
@@ -345,14 +343,18 @@ exports.updatePost = async (req, res) => {
 
 		// Xử lý thêm file mới (nếu có upload)
 		if (req.files && req.files.length > 0) {
-			const backendUrl = `${req.protocol}://${req.get('host')}`;
 			const newFiles = await Promise.all(req.files.map(async file => {
+				// Upload lên Cloudinary vào folder documents
+				const { fileId, link, resourceType } = await uploadToDrive(file, 'post');
+				
 				const attachment = new Attachment({
 					ownerId: post.authorId,
 					filename: file.originalname, // LƯU TÊN GỐC
 					mime: file.mimetype || 'application/octet-stream',
 					size: file.size || 0,
-					storageUrl: `${backendUrl}/uploads/${file.filename}`
+					storageUrl: link, // Link từ Cloudinary
+					driveFileId: fileId, // ID file trên Cloudinary
+					resourceType: resourceType // Loại file (image/video/raw)
 				});
 				await attachment.save();
 				return attachment._id;
@@ -408,7 +410,7 @@ exports.deletePost = async (req, res) => {
 			return res.status(403).json({ success: false, error: 'Bạn không có quyền xóa bài viết này' });
 		}
 
-		// 1. Xóa tất cả file đính kèm vật lý và database
+		// 1. Xóa tất cả file đính kèm từ Cloudinary và database
 		if (post.attachments && post.attachments.length > 0) {
 			// Lấy thông tin đầy đủ của attachments
 			const attachmentsToDelete = await Attachment.find({ _id: { $in: post.attachments } });
@@ -416,21 +418,14 @@ exports.deletePost = async (req, res) => {
 			if (attachmentsToDelete.length > 0) {
 				for (const attachment of attachmentsToDelete) {
 					try {
-						const uploadsDir = path.join(__dirname, '../uploads');
-						const urlPath = String(attachment.storageUrl || '').replace(/^https?:\/\/[^/]+/i, '');
-						let filePath = path.join(uploadsDir, attachment.filename);
-						if (urlPath.startsWith('/uploads/')) {
-							const rel = urlPath.replace(/^\/uploads\//, '');
-							filePath = path.join(uploadsDir, rel);
-						}
-						if (fs.existsSync(filePath)) {
-							fs.unlinkSync(filePath);
-							console.log(`✅ Đã xóa file bài viết: ${attachment.filename}`);
+						if (attachment.driveFileId) {
+							await deleteFromDrive(attachment.driveFileId, attachment.resourceType);
+							console.log(`✅ Đã xóa file bài viết từ Cloudinary [${attachment.resourceType}]: ${attachment.filename}`);
 						} else {
-							console.log(`⚠️ File không tồn tại (có thể đã bị xóa): ${attachment.filename}`);
+							console.log(`⚠️ File không có driveFileId: ${attachment.filename}`);
 						}
 					} catch (err) {
-						console.error(`❌ Lỗi xóa file vật lý:`, err);
+						console.error(`❌ Lỗi xóa file từ Cloudinary:`, err);
 					}
 				}
 
@@ -455,25 +450,18 @@ exports.deletePost = async (req, res) => {
 				_id: { $in: allComments.flatMap(c => c.attachments || []) }
 			});
 
-			// Xóa file vật lý của comment attachments
+			// Xóa file từ Cloudinary của comment attachments
 			if (commentAttachments.length > 0) {
 				for (const attachment of commentAttachments) {
 					try {
-						const uploadsDir = path.join(__dirname, '../uploads');
-						const urlPath = String(attachment.storageUrl || '').replace(/^https?:\/\/[^/]+/i, '');
-						let filePath = path.join(uploadsDir, attachment.filename);
-						if (urlPath.startsWith('/uploads/')) {
-							const rel = urlPath.replace(/^\/uploads\//, '');
-							filePath = path.join(uploadsDir, rel);
-						}
-						if (fs.existsSync(filePath)) {
-							fs.unlinkSync(filePath);
-							console.log(`✅ Đã xóa file comment: ${filePath}`);
+						if (attachment.driveFileId) {
+							await deleteFromDrive(attachment.driveFileId, attachment.resourceType);
+							console.log(`✅ Đã xóa file comment từ Cloudinary [${attachment.resourceType}]: ${attachment.filename}`);
 						} else {
-							console.log(`⚠️ File comment không tồn tại (có thể đã bị xóa): ${filePath}`);
+							console.log(`⚠️ File comment không có driveFileId: ${attachment.filename}`);
 						}
 					} catch (err) {
-						console.error(`❌ Lỗi xóa file comment vật lý:`, err);
+						console.error(`❌ Lỗi xóa file comment từ Cloudinary:`, err);
 					}
 				}
 
