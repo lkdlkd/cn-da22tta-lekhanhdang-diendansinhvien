@@ -288,15 +288,40 @@ function Notifications() {
                                   <div className="flex-grow-1">
                                     <div className="mb-1">
                                       <strong style={{ fontSize: '15px', color: '#2c3e50' }}>
-                                        {notification.data?.senderName || 'User'}
+                                        {notification.data?.senderName || (notification.type === 'system' ? 'Hệ thống' : 'User')}
                                       </strong>
+                                      {notification.type === 'system' && notification.data?.senderUsername && (
+                                        <span className="badge bg-danger ms-2" style={{ fontSize: '11px' }}>
+                                          <i className="ph-fill ph-shield-check me-1"></i>
+                                          ADMIN
+                                        </span>
+                                      )}
                                       <span className="text-muted ms-2" style={{ fontSize: '14px' }}>
                                         {notification.type === 'like' && 'đã thích bài viết của bạn'}
                                         {notification.type === 'comment' && 'đã bình luận về bài viết của bạn'}
                                         {notification.type === 'mention' && 'đã nhắc đến bạn'}
-                                        {notification.type === 'system' && notification.data?.message}
+                                        {notification.type === 'system' && ''}
                                       </span>
                                     </div>
+                                    {notification.type === 'system' && notification.data?.message && (
+                                      <div 
+                                        className="alert alert-info mb-0 mt-2 p-3 rounded d-flex align-items-start gap-2" 
+                                        style={{ 
+                                          fontSize: '14px',
+                                          backgroundColor: 'rgba(0, 210, 211, 0.1)',
+                                          border: '1px solid rgba(0, 210, 211, 0.2)',
+                                          boxShadow: '0 2px 8px rgba(0, 210, 211, 0.1)'
+                                        }}
+                                      >
+                                        <i className="ph-fill ph-info text-info" style={{ fontSize: '20px', marginTop: '2px' }}></i>
+                                        <div className="flex-grow-1">
+                                          <strong className="d-block mb-1" style={{ color: '#00d2d3' }}>Thông báo hệ thống</strong>
+                                          <div style={{ lineHeight: '1.6', color: '#2c3e50' }}>
+                                            {notification.data.message}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                   {!notification.read && (
                                     <span

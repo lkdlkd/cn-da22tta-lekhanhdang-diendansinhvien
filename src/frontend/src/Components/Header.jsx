@@ -526,14 +526,20 @@ export default function Header({ user }) {
                                     style={{
                                       width: '20px',
                                       height: '20px',
-                                      backgroundColor: notification.type === 'like' ? '#ff4757' : '#0d6efd',
+                                      backgroundColor: notification.type === 'like' ? '#ff4757' : 
+                                                      notification.type === 'comment' ? '#0d6efd' : 
+                                                      notification.type === 'system' ? '#00d2d3' : '#6c757d',
                                       border: '2px solid white'
                                     }}
                                   >
                                     {notification.type === 'like' ? (
                                       <i className="ph-fill ph-heart text-white" style={{ fontSize: '11px' }}></i>
-                                    ) : (
+                                    ) : notification.type === 'comment' ? (
                                       <i className="ph-fill ph-chat-circle-text text-white" style={{ fontSize: '11px' }}></i>
+                                    ) : notification.type === 'system' ? (
+                                      <i className="ph-fill ph-bell-ringing text-white" style={{ fontSize: '11px' }}></i>
+                                    ) : (
+                                      <i className="ph-fill ph-bell text-white" style={{ fontSize: '11px' }}></i>
                                     )}
                                   </div>
                                 </div>
@@ -541,16 +547,39 @@ export default function Header({ user }) {
                                 {/* Content */}
                                 <div className="flex-grow-1 min-width-0">
                                   <p className="mb-1 text-dark" style={{ fontSize: '14px', lineHeight: '1.4' }}>
-                                    <strong>{notification.data?.senderName || 'Người dùng'}</strong>
+                                    <strong>{notification.data?.senderName || (notification.type === 'system' ? 'Hệ thống' : 'Người dùng')}</strong>
+                                    {notification.type === 'system' && notification.data?.senderUsername && (
+                                      <span className="badge bg-danger ms-1" style={{ fontSize: '9px', padding: '2px 6px' }}>
+                                        <i className="ph-fill ph-shield-check" style={{ fontSize: '8px' }}></i> ADMIN
+                                      </span>
+                                    )}
                                     {' '}
                                     <span className="text-muted">
                                       {notification.type === 'like' ? 'đã thích bài viết của bạn' : 
                                        notification.type === 'comment' ? 'đã bình luận bài viết của bạn' :
+                                       notification.type === 'system' ? '' :
                                        'có hoạt động mới'}
                                     </span>
                                   </p>
                                   
-                                  {notification.data?.postTitle && (
+                                  {notification.type === 'system' && notification.data?.message && (
+                                    <div 
+                                      className="mb-1 p-2 rounded d-flex align-items-start gap-2"
+                                      style={{
+                                        fontSize: '13px',
+                                        backgroundColor: 'rgba(0, 210, 211, 0.08)',
+                                        border: '1px solid rgba(0, 210, 211, 0.2)',
+                                        lineHeight: '1.5'
+                                      }}
+                                    >
+                                      <i className="ph-fill ph-info text-info" style={{ fontSize: '16px', marginTop: '1px', flexShrink: 0 }}></i>
+                                      <span className="text-dark" style={{ wordBreak: 'break-word' }}>
+                                        {notification.data.message}
+                                      </span>
+                                    </div>
+                                  )}
+                                  
+                                  {notification.data?.postTitle && notification.type !== 'system' && (
                                     <p 
                                       className="text-muted mb-1 text-truncate" 
                                       style={{ fontSize: '13px' }}

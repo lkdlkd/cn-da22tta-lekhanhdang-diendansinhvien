@@ -263,12 +263,23 @@ exports.sendBulkNotifications = async (req, res) => {
       }
     }
 
+    // Lấy thông tin admin đang gửi
+    const User = require('../models/User');
+    const admin = await User.findById(req.user._id)
+      .select('username displayName avatarUrl')
+      .lean();
+
     const notifications = targetUserIds.map(userId => ({
       userId,
       type,
       data: {
         ...data,
-        message
+        message,
+        actorId: req.user._id,
+        actorName: admin?.displayName || admin?.username || 'Admin',
+        senderName: admin?.displayName || admin?.username || 'Admin',
+        senderAvatar: admin?.avatarUrl,
+        senderUsername: admin?.username
       }
     }));
 
