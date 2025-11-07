@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { forwardRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../Utils/api';
+import LoadingPost from './LoadingPost';
 const { socket } = require('../Utils/socket');
 
 const ArrowMenuIcon = ({
@@ -483,12 +484,7 @@ export default function Header({ user }) {
                       }}
                     >
                       {loadingNotifications ? (
-                        <div className="text-center py-5">
-                          <div className="spinner-border text-primary" role="status">
-                            <span className="visually-hidden">Loading...</span>
-                          </div>
-                          <p className="text-muted mt-2 mb-0">Đang tải thông báo...</p>
-                        </div>
+                        <LoadingPost count={3} />
                       ) : notifications.length === 0 ? (
                         <div className="text-center text-muted py-5">
                           <i className="ph-duotone ph-bell-slash" style={{ fontSize: '64px', opacity: 0.3 }}></i>

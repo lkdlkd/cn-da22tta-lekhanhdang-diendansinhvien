@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCategories } from '../../Utils/api';
+import LoadingPost from '@/Components/LoadingPost';
 
 export default function Categories() {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ export default function Categories() {
     try {
       setLoading(true);
       const data = await getCategories();
-      setCategories(data);
+      setCategories(data.data || []);
     } catch (error) {
       console.error('Error loading categories:', error);
     } finally {
@@ -25,14 +26,7 @@ export default function Categories() {
 
   if (loading) {
     return (
-      <div className="container mt-4">
-        <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="mt-3 text-muted">Đang tải chuyên mục...</p>
-        </div>
-      </div>
+      <LoadingPost />
     );
   }
 
@@ -137,7 +131,7 @@ export default function Categories() {
                     <div className="d-flex align-items-center">
                       <i className="ph ph-file-text text-primary me-1" style={{ fontSize: '16px' }}></i>
                       <small className="text-muted" style={{ fontSize: '12px' }}>
-                        <strong>{category.count || 0}</strong> bài viết
+                        <strong>{category.postCount || 0}</strong> bài viết
                       </small>
                     </div>
                   </div>

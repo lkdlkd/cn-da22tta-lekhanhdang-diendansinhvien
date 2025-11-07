@@ -163,8 +163,8 @@ router.post('/admin/reports/bulk-handle', authenticateAdmin, ReportController.bu
 // Yêu cầu đăng nhập để truy cập thư viện tài liệu
 router.get('/documents/categories', authenticateUser, AttchmentController.getDocumentCategories);
 router.get('/documents', authenticateUser, AttchmentController.getDocuments);
-router.get('/documents/by-category/:category', authenticateUser, AttchmentController.getDocumentsByCategory);
-router.get('/documents/:id', authenticateUser, AttchmentController.getDocumentDetail);
+// router.get('/documents/by-category/:category', authenticateUser, AttchmentController.getDocumentsByCategory);
+// router.get('/documents/:id', authenticateUser, AttchmentController.getDocumentDetail);
 
 // ===== CHAT ROUTES =====
 const ChatController = require('../controllers/ChatController');

@@ -10,6 +10,7 @@ import {
 } from '../../../Utils/api';
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
+import LoadingPost from '@/Components/LoadingPost';
 
 const ReportAdmin = () => {
   const [reports, setReports] = useState([]);
@@ -489,11 +490,7 @@ const ReportAdmin = () => {
       <div className="card">
         <div className="card-body">
           {loading ? (
-            <div className="text-center py-5">
-              <div className="spinner-border" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </div>
-            </div>
+            <LoadingPost count={5} />
           ) : reports.length === 0 ? (
             <div className="text-center py-5 text-muted">
               <i className="ph-warning-circle" style={{ fontSize: '3rem' }}></i>

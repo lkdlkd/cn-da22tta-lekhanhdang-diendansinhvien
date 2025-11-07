@@ -30,7 +30,7 @@ export default function Layout({ children }) {
 
                 if (!mounted) return;
                 setUser(userData.user);
-                setCategories(categoriesData);
+                setCategories(categoriesData.data || []);
                 setActiveUsers(usersData.users || []);
 
                 // Lấy 6 tài liệu mới nhất (cần token)

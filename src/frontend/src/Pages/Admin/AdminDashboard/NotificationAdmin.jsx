@@ -11,6 +11,7 @@ import {
 	sendBulkNotifications,
 	getNotificationsStats
 } from "../../../Utils/api";
+import LoadingPost from "@/Components/LoadingPost";
 
 const NotificationAdmin = () => {
 	const [notifications, setNotifications] = useState([]);
@@ -297,11 +298,7 @@ const NotificationAdmin = () => {
 			)}
 			
 			{loading ? (
-				<div className="text-center p-5">
-					<div className="spinner-border" role="status">
-						<span className="visually-hidden">Đang tải...</span>
-					</div>
-				</div>
+				<LoadingPost count={5} />
 			) : (
 				<div className="card">
 					<div className="card-body">

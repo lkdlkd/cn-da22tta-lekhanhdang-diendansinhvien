@@ -14,6 +14,7 @@ import {
     deleteMultipleCategories,
     searchCategories
 } from "../../../Utils/api";
+import LoadingPost from "@/Components/LoadingPost";
 
 export default function CategoryDashboard() {
     const [categories, setCategories] = useState([]);
@@ -340,9 +341,7 @@ export default function CategoryDashboard() {
                         <tbody>
                             {loading ? (
                                 <tr><td colSpan={7} className="text-center">
-                                    <div className="spinner-border" role="status">
-                                        <span className="visually-hidden">Đang tải...</span>
-                                    </div>
+                                    <LoadingPost count={5} />
                                 </td></tr>
                             ) : categories.length === 0 ? (
                                 <tr><td colSpan={7} className="text-center">Không có danh mục nào</td></tr>

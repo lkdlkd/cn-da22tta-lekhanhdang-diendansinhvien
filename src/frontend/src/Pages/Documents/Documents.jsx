@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import Pagination from 'react-bootstrap/Pagination';
-import { getDocumentCategories, getDocuments } from '../../Utils/api';
-import { useNavigate,Link } from 'react-router-dom';
+import { getDocumentCategories, getDocuments, getPostCategoriesWithDocs } from '../../Utils/api';
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { useOutletContext } from 'react-router-dom';
+import LoadingPost from '@/Components/LoadingPost';
 const CATEGORY_LABELS = {
   pdf: 'PDF',
   word: 'Word',
@@ -18,13 +20,14 @@ const CATEGORY_LABELS = {
 
 const Documents = () => {
   const [categories, setCategories] = useState([]);
+  const [postCategories, setPostCategories] = useState([]);
   const [totalDocs, setTotalDocs] = useState(0);
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 0 });
 
-  const [pendingFilters, setPendingFilters] = useState({ keyword: '', category: '' });
-  const [appliedFilters, setAppliedFilters] = useState({ keyword: '', category: '' });
+  const [pendingFilters, setPendingFilters] = useState({ keyword: '', category: '', postCategory: '' });
+  const [appliedFilters, setAppliedFilters] = useState({ keyword: '', category: '', postCategory: '' });
   const [sortBy, setSortBy] = useState('newest'); // newest | oldest | name | size
 
   const token = localStorage.getItem('token');
@@ -33,6 +36,7 @@ const Documents = () => {
   useEffect(() => {
     if (!token) return;
     fetchCategories();
+    fetchPostCategories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -54,11 +58,21 @@ const Documents = () => {
       toast.error('Lỗi tải danh mục tài liệu');
     }
   };
+  const { categories: categoryLabels } = useOutletContext() || {};
+  const fetchPostCategories = async () => {
+    setPostCategories(categoryLabels || []);
+  };
 
   const fetchDocuments = async () => {
     try {
       setLoading(true);
-      const res = await getDocuments(token, { page: pagination.page, limit: pagination.limit, keyword: appliedFilters.keyword, category: appliedFilters.category });
+      const res = await getDocuments(token, {
+        page: pagination.page,
+        limit: pagination.limit,
+        keyword: appliedFilters.keyword,
+        category: appliedFilters.category,
+        postCategory: appliedFilters.postCategory
+      });
       if (res.success) {
         const list = Array.isArray(res.data) ? res.data : [];
         setDocs(applySorting(list, sortBy));
@@ -78,8 +92,8 @@ const Documents = () => {
   };
 
   const resetFilters = () => {
-    setPendingFilters({ keyword: '', category: '' });
-    setAppliedFilters({ keyword: '', category: '' });
+    setPendingFilters({ keyword: '', category: '', postCategory: '' });
+    setAppliedFilters({ keyword: '', category: '', postCategory: '' });
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
@@ -112,6 +126,21 @@ const Documents = () => {
     }
     return items;
   };
+  const getCategoryIcon = (key) => {
+    switch (key) {
+      case 'pdf': return 'ph-file-pdf';
+      case 'word': return 'ph-file-doc';
+      case 'excel': return 'ph-file-xls';
+      case 'ppt': return 'ph-file-ppt';
+      case 'text': return 'ph-file-text';
+      case 'image': return 'ph-image';
+      case 'video': return 'ph-video';
+      case 'audio': return 'ph-music-note';
+      case 'archive': return 'ph-file-zip';
+      default: return 'ph-file';
+    }
+  };
+
   const getCategoryFromDoc = (d) => {
     const mime = (d.mime || '').toLowerCase();
     const name = (d.filename || '').toLowerCase();
@@ -187,7 +216,24 @@ const Documents = () => {
       <div className="card mb-3">
         <div className="card-body">
           <div className="d-flex align-items-center justify-content-between mb-3">
-            <strong>Tổng tài liệu: {totalDocs}</strong>
+            <div>
+              <strong>Tổng tài liệu: {totalDocs}</strong>
+              {appliedFilters.category && (
+                <span className="ms-2 badge bg-primary">
+                  Đang lọc: {CATEGORY_LABELS[appliedFilters.category]}
+                </span>
+              )}
+              {appliedFilters.keyword && (
+                <span className="ms-2 badge bg-info">
+                  Tìm kiếm: "{appliedFilters.keyword}"
+                </span>
+              )}
+              {appliedFilters.postCategory && (
+                <span className="ms-2 badge bg-success">
+                  Chủ đề: {postCategories.find(pc => pc._id === appliedFilters.postCategory)?.title || 'N/A'}
+                </span>
+              )}
+            </div>
             <div className="d-flex align-items-center gap-3 flex-wrap">
               <div className="d-flex align-items-center gap-2">
                 <span>Sắp xếp:</span>
@@ -229,18 +275,39 @@ const Documents = () => {
                 <button
                   className={`btn w-100 ${appliedFilters.category === c.key ? 'btn-primary' : 'btn-outline-primary'}`}
                   onClick={() => {
+                    // Cập nhật cả pending và applied filters
                     setPendingFilters(prev => ({ ...prev, category: c.key }));
                     setAppliedFilters(prev => ({ ...prev, category: c.key }));
                     setPagination(prev => ({ ...prev, page: 1 }));
                   }}
                 >
                   <div className="d-flex flex-column align-items-center">
+                    <i className={`${getCategoryIcon(c.key)} mb-1`} style={{ fontSize: 24 }}></i>
                     <div className="fw-bold">{CATEGORY_LABELS[c.key] || c.label}</div>
                     <small>{c.count} tài liệu</small>
                   </div>
                 </button>
               </div>
             ))}
+            {/* Nút "Tất cả" để bỏ filter */}
+            {appliedFilters.category && (
+              <div className="col-6 col-sm-4 col-md-3 col-lg-2">
+                <button
+                  className="btn btn-outline-secondary w-100"
+                  onClick={() => {
+                    setPendingFilters(prev => ({ ...prev, category: '' }));
+                    setAppliedFilters(prev => ({ ...prev, category: '' }));
+                    setPagination(prev => ({ ...prev, page: 1 }));
+                  }}
+                >
+                  <div className="d-flex flex-column align-items-center">
+                    <i className="ph-folder-open mb-1" style={{ fontSize: 24 }}></i>
+                    <div className="fw-bold">Tất cả</div>
+                    <small>{totalDocs} tài liệu</small>
+                  </div>
+                </button>
+              </div>
+            )}
             {categories.length === 0 && (
               <div className="col-12 text-muted">Không có danh mục nào</div>
             )}
@@ -248,11 +315,56 @@ const Documents = () => {
         </div>
       </div>
 
+      {/* Post Categories Filter */}
+      {postCategories.length > 0 && (
+        <div className="card mb-3">
+          <div className="card-body">
+            <h6 className="mb-3">
+              <i className="ph-tag me-2"></i>
+              Lọc theo chủ đề bài viết
+            </h6>
+            <div className="row g-2">
+              {postCategories.map(pc => (
+                <div className="col-auto" key={pc._id}>
+                  <button
+                    className={`btn btn-sm ${appliedFilters.postCategory === pc._id ? 'btn-success' : 'btn-outline-success'}`}
+                    onClick={() => {
+                      setPendingFilters(prev => ({ ...prev, postCategory: pc._id }));
+                      setAppliedFilters(prev => ({ ...prev, postCategory: pc._id }));
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                  >
+                    <i className="ph-folder me-1"></i>
+                    {pc.title}
+                    <span className="ms-1 badge bg-light text-dark">{pc.count}</span>
+                  </button>
+                </div>
+              ))}
+              {appliedFilters.postCategory && (
+                <div className="col-auto">
+                  <button
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() => {
+                      setPendingFilters(prev => ({ ...prev, postCategory: '' }));
+                      setAppliedFilters(prev => ({ ...prev, postCategory: '' }));
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                  >
+                    <i className="ph-x me-1"></i>
+                    Xóa lọc chủ đề
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="card mb-3">
         <div className="card-body">
           <div className="row g-3 align-items-end">
-            <div className="col-md-6">
+            <div className="col-md-4">
               <label className="form-label">Tìm theo tên tệp</label>
               <input
                 type="text"
@@ -263,8 +375,8 @@ const Documents = () => {
                 onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
               />
             </div>
-            <div className="col-md-3">
-              <label className="form-label">Danh mục</label>
+            <div className="col-md-2">
+              <label className="form-label">Loại tệp</label>
               <select
                 className="form-select"
                 value={pendingFilters.category}
@@ -283,6 +395,21 @@ const Documents = () => {
                 <option value="other">Khác</option>
               </select>
             </div>
+            <div className="col-md-3">
+              <label className="form-label">Chủ đề bài viết</label>
+              <select
+                className="form-select"
+                value={pendingFilters.postCategory}
+                onChange={(e) => setPendingFilters(prev => ({ ...prev, postCategory: e.target.value }))}
+              >
+                <option value="">Tất cả chủ đề</option>
+                {postCategories.map(pc => (
+                  <option key={pc._id} value={pc._id}>
+                    {pc.title}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="col-md-3 d-flex gap-2">
               <button className="btn btn-primary" onClick={applyFilters}>
                 <i className="ph-magnifying-glass me-1"></i>Tìm kiếm
@@ -290,6 +417,15 @@ const Documents = () => {
               <button className="btn btn-outline-secondary" onClick={resetFilters}>
                 <i className="ph-arrow-counter-clockwise me-1"></i>Đặt lại
               </button>
+              {/* {(appliedFilters.category || appliedFilters.keyword || appliedFilters.postCategory) && (
+                <button
+                  className="btn btn-outline-danger"
+                  onClick={resetFilters}
+                  title="Xóa tất cả bộ lọc"
+                >
+                  <i className="ph-x"> </i>
+                </button>
+              )} */}
             </div>
           </div>
         </div>
@@ -299,11 +435,27 @@ const Documents = () => {
       <div className="card">
         <div className="card-body">
           {loading ? (
-            <div className="text-center py-5">
-              <div className="spinner-border" role="status"><span className="visually-hidden">Loading...</span></div>
-            </div>
+            <LoadingPost count={5} />
           ) : docs.length === 0 ? (
-            <div className="text-center text-muted py-5">Không có tài liệu</div>
+            <div className="text-center text-muted py-5">
+              <i className="ph-folder-open" style={{ fontSize: 48, opacity: 0.3 }}></i>
+              <div className="mt-3">
+                {appliedFilters.category || appliedFilters.keyword || appliedFilters.postCategory ? (
+                  <>
+                    <h5>Không tìm thấy tài liệu</h5>
+                    <p>Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+                    <button className="btn btn-primary" onClick={resetFilters}>
+                      <i className="ph-arrow-counter-clockwise me-1"></i>Đặt lại bộ lọc
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <h5>Chưa có tài liệu nào</h5>
+                    <p>Hãy tải lên tài liệu đầu tiên của bạn</p>
+                  </>
+                )}
+              </div>
+            </div>
           ) : (
             <div className="table-responsive">
               <table className="table table-hover align-middle">
@@ -361,8 +513,20 @@ const Documents = () => {
 
           {/* Pagination */}
           {!loading && docs.length > 0 && (
-            <div className="d-flex justify-content-between align-items-center mt-3">
-              <span>Hiển thị {docs.length} / {pagination.total}</span>
+            <div className="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+              <div>
+                <span>Hiển thị {docs.length} / {pagination.total}</span>
+                {appliedFilters.category && (
+                  <span className="ms-2 text-muted">
+                    (Danh mục: {CATEGORY_LABELS[appliedFilters.category]})
+                  </span>
+                )}
+                {appliedFilters.postCategory && (
+                  <span className="ms-2 text-muted">
+                    (Chủ đề: {postCategories.find(pc => pc._id === appliedFilters.postCategory)?.title || 'N/A'})
+                  </span>
+                )}
+              </div>
               <Pagination className="mb-0">
                 <Pagination.First disabled={pagination.page === 1} onClick={() => handlePageChange(1)} />
                 <Pagination.Prev disabled={pagination.page === 1} onClick={() => handlePageChange(Math.max(1, pagination.page - 1))} />

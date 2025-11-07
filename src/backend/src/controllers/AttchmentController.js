@@ -177,17 +177,33 @@ exports.getDocumentCategories = async (req, res) => {
 };
 
 // GET /documents
-// Query: page, limit, keyword, category
+// Query: page, limit, keyword, category, postCategory
 exports.getDocuments = async (req, res) => {
 		try {
-			const { page = 1, limit = 20, keyword = '', category = '' } = req.query;
+			const { page = 1, limit = 20, keyword = '', category = '', postCategory = '' } = req.query;
 			const pageNum = Math.max(parseInt(page, 10) || 1, 1);
 			const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
 			const skip = (pageNum - 1) * limitNum;
 
-			const refIds = await getReferencedAttachmentIds();
+			let refIds = await getReferencedAttachmentIds();
 			if (refIds.length === 0) {
 				return res.json({ success: true, data: [], pagination: { page: pageNum, limit: limitNum, total: 0, pages: 0 } });
+			}
+
+			// Filter by post category if provided
+			if (postCategory && String(postCategory).trim() !== '') {
+				const postsInCategory = await Post.find({ categoryId: postCategory }, { attachments: 1 }).lean();
+				const categoryAttachmentIds = new Set();
+				postsInCategory.forEach(p => {
+					if (Array.isArray(p.attachments)) {
+						p.attachments.forEach(id => id && categoryAttachmentIds.add(String(id)));
+					}
+				});
+				// Intersect with refIds
+				refIds = refIds.filter(id => categoryAttachmentIds.has(id));
+				if (refIds.length === 0) {
+					return res.json({ success: true, data: [], pagination: { page: pageNum, limit: limitNum, total: 0, pages: 0 } });
+				}
 			}
 
 			// Base query restricted to referenced attachments
@@ -206,7 +222,7 @@ exports.getDocuments = async (req, res) => {
 			// Ensure file has valid storage URL and is document-like
 			let docsOnly = all.filter(a => hasValidStorageUrl(a) && isDocumentLike(a.mime, a.filename));
 
-			// Filter by category if provided
+			// Filter by file category if provided
 			const catKey = category ? String(category).toLowerCase() : '';
 			if (catKey && catKey !== 'all') {
 				docsOnly = docsOnly.filter(a => matchCategoryKey(a.mime, a.filename) === catKey);
@@ -231,40 +247,40 @@ exports.getDocuments = async (req, res) => {
 	}
 };
 
-// GET /documents/by-category/:category
-exports.getDocumentsByCategory = async (req, res) => {
-	req.query.category = req.params.category || '';
-	return exports.getDocuments(req, res);
-};
+// // GET /documents/by-category/:category
+// exports.getDocumentsByCategory = async (req, res) => {
+// 	req.query.category = req.params.category || '';
+// 	return exports.getDocuments(req, res);
+// };
 
-// GET /documents/:id
-exports.getDocumentDetail = async (req, res) => {
-	try {
-		const { id } = req.params;
-		if (!isValidObjectId(id)) {
-			return res.status(400).json({ success: false, error: 'ID không hợp lệ' });
-		}
-		// Ensure this attachment is referenced by any post/comment
-		const refIds = await getReferencedAttachmentIds();
-		if (!refIds.includes(String(id))) {
-			return res.status(404).json({ success: false, error: 'Tài liệu không tồn tại hoặc không được tham chiếu' });
-		}
+// // GET /documents/:id
+// exports.getDocumentDetail = async (req, res) => {
+// 	try {
+// 		const { id } = req.params;
+// 		if (!isValidObjectId(id)) {
+// 			return res.status(400).json({ success: false, error: 'ID không hợp lệ' });
+// 		}
+// 		// Ensure this attachment is referenced by any post/comment
+// 		const refIds = await getReferencedAttachmentIds();
+// 		if (!refIds.includes(String(id))) {
+// 			return res.status(404).json({ success: false, error: 'Tài liệu không tồn tại hoặc không được tham chiếu' });
+// 		}
 
-		const doc = await Attachment.findById(id)
-			.populate('ownerId', 'username displayName avatarUrl email')
-			.lean();
-		if (!doc) {
-			return res.status(404).json({ success: false, error: 'Tài liệu không tồn tại' });
-		}
-		if (!hasValidStorageUrl(doc)) {
-			return res.status(404).json({ success: false, error: 'URL tệp không hợp lệ' });
-		}
-		// Provide computed category
-		const category = matchCategoryKey(doc.mime, doc.filename);
-		res.json({ success: true, document: { ...doc, category } });
-	} catch (err) {
-		console.error('Error in getDocumentDetail:', err);
-		res.status(500).json({ success: false, error: err.message });
-	}
-};
+// 		const doc = await Attachment.findById(id)
+// 			.populate('ownerId', 'username displayName avatarUrl email')
+// 			.lean();
+// 		if (!doc) {
+// 			return res.status(404).json({ success: false, error: 'Tài liệu không tồn tại' });
+// 		}
+// 		if (!hasValidStorageUrl(doc)) {
+// 			return res.status(404).json({ success: false, error: 'URL tệp không hợp lệ' });
+// 		}
+// 		// Provide computed category
+// 		const category = matchCategoryKey(doc.mime, doc.filename);
+// 		res.json({ success: true, document: { ...doc, category } });
+// 	} catch (err) {
+// 		console.error('Error in getDocumentDetail:', err);
+// 		res.status(500).json({ success: false, error: err.message });
+// 	}
+// };
 

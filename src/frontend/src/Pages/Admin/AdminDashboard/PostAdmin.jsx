@@ -19,6 +19,7 @@ import {
 	bulkSoftDeletePostsAdmin,
 	bulkRestorePostsAdmin
 } from "../../../Utils/api";
+import LoadingPost from "@/Components/LoadingPost";
 
 const PostAdmin = () => {
 	const [posts, setPosts] = useState([]);
@@ -93,7 +94,7 @@ const PostAdmin = () => {
 	const fetchCategories = async () => {
 		try {
 			const data = await getCategories();
-			setCategories(data.categories || data);
+			setCategories(data.data || data);
 		} catch (err) {
 			console.error("Lỗi khi tải danh mục");
 		}
@@ -497,11 +498,7 @@ const PostAdmin = () => {
 			)}
 
 			{loading ? (
-				<div className="text-center p-5">
-					<div className="spinner-border" role="status">
-						<span className="visually-hidden">Đang tải...</span>
-					</div>
-				</div>
+				<LoadingPost count={5} />
 			) : (
 				<div className="card">
 					<div className="card-body">

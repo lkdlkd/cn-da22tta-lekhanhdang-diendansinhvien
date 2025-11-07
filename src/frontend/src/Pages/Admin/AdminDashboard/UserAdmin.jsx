@@ -16,6 +16,7 @@ import {
 	getUsersStats
 } from "../../../Utils/api";
 import { Link } from "react-router-dom";
+import LoadingPost from "@/Components/LoadingPost";
 
 const UserAdmin = () => {
 	const [users, setUsers] = useState([]);
@@ -434,11 +435,7 @@ const UserAdmin = () => {
 				</div>
 			</div>
 			{loading ? (
-				<div className="text-center p-5">
-					<div className="spinner-border" role="status">
-						<span className="visually-hidden">Đang tải...</span>
-					</div>
-				</div>
+				<LoadingPost count={5} />
 			) : (
 				<div className="card">
 					<div className="card-body">

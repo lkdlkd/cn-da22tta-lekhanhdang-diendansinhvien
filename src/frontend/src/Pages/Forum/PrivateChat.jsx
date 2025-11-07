@@ -552,12 +552,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
         >
           {/* Loading More Indicator */}
           {loadingMore && (
-            <div className="text-center py-2">
-              <div className="spinner-border spinner-border-sm text-primary" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </div>
-              <small className="text-muted d-block mt-1">Đang tải tin nhắn cũ...</small>
-            </div>
+           <LoadingPost small={true} />
           )}
 
           {/* No More Messages Indicator */}

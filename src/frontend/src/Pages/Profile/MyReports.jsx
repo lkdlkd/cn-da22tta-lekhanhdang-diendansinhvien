@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getMyReports, cancelReport } from '../../Utils/api';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
+import LoadingPost from '@/Components/LoadingPost';
 
 const MyReports = () => {
   const [reports, setReports] = useState([]);
@@ -124,11 +125,7 @@ const MyReports = () => {
 
             <div className="card-body">
               {loading ? (
-                <div className="text-center py-5">
-                  <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                </div>
+                <LoadingPost  count={5} />
               ) : reports.length === 0 ? (
                 <div className="text-center py-5 text-muted">
                   <i className="ph-warning-circle" style={{ fontSize: '3rem' }}></i>

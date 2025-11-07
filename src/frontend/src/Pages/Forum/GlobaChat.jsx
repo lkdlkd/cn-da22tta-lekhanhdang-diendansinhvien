@@ -12,6 +12,7 @@ import {
   offGlobalTyping,
   socket,
 } from "../../Utils/socket";
+import LoadingPost from "@/Components/LoadingPost";
 
 const GlobalChat = () => {
   const { auth } = useContext(AuthContext);
@@ -38,18 +39,18 @@ const GlobalChat = () => {
 
   // Check socket connection on mount
   useEffect(() => {
-   // console.log('🔌 [GlobalChat] Socket connected:', socket.connected);
-   // console.log('🔌 [GlobalChat] Socket ID:', socket.id);
-    
+    // console.log('🔌 [GlobalChat] Socket connected:', socket.connected);
+    // console.log('🔌 [GlobalChat] Socket ID:', socket.id);
+
     // If socket not connected, wait for it
     if (!socket.connected) {
-     // console.log('⏳ [GlobalChat] Waiting for socket connection...');
+      // console.log('⏳ [GlobalChat] Waiting for socket connection...');
       const handleConnect = () => {
-       // console.log('✅ [GlobalChat] Socket connected!', socket.id);
+        // console.log('✅ [GlobalChat] Socket connected!', socket.id);
       };
-      
+
       socket.on('connect', handleConnect);
-      
+
       return () => {
         socket.off('connect', handleConnect);
       };
@@ -72,7 +73,7 @@ const GlobalChat = () => {
           setMessages(result.data.messages || []);
         }
       } catch (error) {
-       // console.error("Error loading global chat:", error);
+        // console.error("Error loading global chat:", error);
       } finally {
         setLoading(false);
       }
@@ -85,7 +86,7 @@ const GlobalChat = () => {
           setOnlineCount(result.data.count || 0);
         }
       } catch (error) {
-       // console.error("Error loading online count:", error);
+        // console.error("Error loading online count:", error);
       }
     };
 
@@ -101,7 +102,7 @@ const GlobalChat = () => {
   useEffect(() => {
     // Handler for new messages
     const handleNewMessage = (data) => {
-     // console.log('🌍 [GlobalChat] Received new message:', data);
+      // console.log('🌍 [GlobalChat] Received new message:', data);
       const { message } = data;
       setMessages((prev) => [...prev, message]);
       scrollToBottom();
@@ -109,7 +110,7 @@ const GlobalChat = () => {
 
     // Function to join and setup listeners
     const joinAndListen = () => {
-     // console.log('🚪 [GlobalChat] Joining global chat room');
+      // console.log('🚪 [GlobalChat] Joining global chat room');
       joinGlobalChat();
 
       // console.log('🎧 [GlobalChat] Setting up message listener');
@@ -118,30 +119,30 @@ const GlobalChat = () => {
 
     // Check if socket already connected
     if (!socket.connected) {
-     // console.log('⏳ [GlobalChat] Socket not connected yet, waiting...');
-      
+      // console.log('⏳ [GlobalChat] Socket not connected yet, waiting...');
+
       const handleConnect = () => {
-       // console.log('✅ [GlobalChat] Socket connected, now joining and listening');
+        // console.log('✅ [GlobalChat] Socket connected, now joining and listening');
         joinAndListen();
       };
-      
+
       socket.on('connect', handleConnect);
-      
+
       return () => {
         socket.off('connect', handleConnect);
-       // console.log('� [GlobalChat] Cleaning up message listener');
+        // console.log('� [GlobalChat] Cleaning up message listener');
         offGlobalMessage(handleNewMessage);
-       // console.log('🚪 [GlobalChat] Leaving global chat room');
+        // console.log('🚪 [GlobalChat] Leaving global chat room');
         leaveGlobalChat();
       };
     } else {
-     // console.log('✅ [GlobalChat] Socket already connected');
+      // console.log('✅ [GlobalChat] Socket already connected');
       joinAndListen();
-      
+
       return () => {
-       // console.log('🔇 [GlobalChat] Cleaning up message listener');
+        // console.log('🔇 [GlobalChat] Cleaning up message listener');
         offGlobalMessage(handleNewMessage);
-       // console.log('🚪 [GlobalChat] Leaving global chat room');
+        // console.log('🚪 [GlobalChat] Leaving global chat room');
         leaveGlobalChat();
       };
     }
@@ -332,10 +333,10 @@ const GlobalChat = () => {
     if (!prevMsg) return true;
     const currentSender = currentMsg.senderId?._id;
     const prevSender = prevMsg.senderId?._id;
-    
+
     // Different sender
     if (currentSender !== prevSender) return true;
-    
+
     // Time gap > 5 minutes
     const currentTime = new Date(currentMsg.createdAt).getTime();
     const prevTime = new Date(prevMsg.createdAt).getTime();
@@ -345,7 +346,7 @@ const GlobalChat = () => {
   // Render attachment preview
   const renderAttachment = (attachment) => {
     const isImage = attachment.mime?.startsWith("image/");
-    
+
     if (isImage) {
       return (
         <img
@@ -380,11 +381,7 @@ const GlobalChat = () => {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: "calc(100vh - 70px)" }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Đang tải...</span>
-        </div>
-      </div>
+      <LoadingPost count={5} />
     );
   }
 
@@ -447,9 +444,8 @@ const GlobalChat = () => {
                       </div>
                     )}
                     <div
-                      className={`p-2 rounded ${
-                        isMe ? "bg-primary text-white" : "bg-white border"
-                      } ${!showSenderInfo ? (isMe ? 'rounded-end' : 'rounded-start') : ''}`}
+                      className={`p-2 rounded ${isMe ? "bg-primary text-white" : "bg-white border"
+                        } ${!showSenderInfo ? (isMe ? 'rounded-end' : 'rounded-start') : ''}`}
                       style={{ wordWrap: "break-word" }}
                     >
                       {/* Attachments */}
@@ -458,14 +454,14 @@ const GlobalChat = () => {
                           {msg.attachments.map((att) => renderAttachment(att))}
                         </div>
                       )}
-                      
+
                       {/* Text message */}
                       {msg.text && (
                         <p className="mb-0" style={{ fontSize: "0.9rem" }}>
                           {msg.text}
                         </p>
                       )}
-                      
+
                       {/* Time - only show on last message of group */}
                       {showSenderInfo && (
                         <small

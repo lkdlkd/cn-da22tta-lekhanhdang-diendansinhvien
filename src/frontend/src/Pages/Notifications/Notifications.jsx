@@ -3,6 +3,7 @@ import { AuthContext } from '../../Context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../Components/Layout';
 import { getMyNotifications, markAsRead, markAllAsRead, deleteNotification } from '../../Utils/api';
+import LoadingPost from '@/Components/LoadingPost';
 
 function Notifications() {
   const { auth } = useContext(AuthContext);
@@ -217,15 +218,7 @@ function Notifications() {
 
                 <div className="card-body p-0">
                   {loading && page === 1 ? (
-                    <div className="text-center py-5">
-                      <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}>
-                        <span className="visually-hidden">Loading...</span>
-                      </div>
-                      <p className="text-muted fw-medium mb-0">
-                        <i className="ph ph-circle-notch ph-spin me-2"></i>
-                        Đang tải thông báo...
-                      </p>
-                    </div>
+                    <LoadingPost count={3} />
                   ) : filteredNotifications.length === 0 ? (
                     <div className="text-center py-5">
                       <div className="mb-4">

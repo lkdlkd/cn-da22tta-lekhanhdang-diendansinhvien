@@ -27,7 +27,7 @@ function Menu({ user, categories }) {
             <div className="navbar-wrapper">
                 <div className="m-header">
                     <Link to="/" className="b-brand text-primary">
-                        <i className="ph-duotone ph-graduation-cap me-2" style={{ fontSize: '24px' }}></i> 
+                        <i className="ph-duotone ph-graduation-cap me-2" style={{ fontSize: '24px' }}></i>
                         <span className="fw-bold">Diễn đàn TVU</span>
                     </Link>
                 </div>
@@ -140,8 +140,9 @@ function Menu({ user, categories }) {
                                                 <li className="pc-item"><Link to="/admin/users" className="pc-link" onClick={handleNavigation}>Quản lý thành viên</Link></li>
                                                 <li className="pc-item"><Link to="/admin/posts" className="pc-link" onClick={handleNavigation}>Quản lý bài viết</Link></li>
                                                 <li className="pc-item"><Link to="/admin/categories" className="pc-link" onClick={handleNavigation}>Quản lý danh mục</Link></li>
-                                                <li className="pc-item"><Link to="/admin/reports" className="pc-link" onClick={handleNavigation}>Xử lý báo cáo</Link></li>
                                                 <li className="pc-item"><Link to="/admin/notifications-management" className="pc-link" onClick={handleNavigation}>Quản lý thông báo</Link></li>
+                                                <li className="pc-item"><Link to="/admin/comments" className="pc-link" onClick={handleNavigation}>Quản lý bình luận</Link></li>
+                                                <li className="pc-item"><Link to="/admin/reports" className="pc-link" onClick={handleNavigation}>Xử lý báo cáo</Link></li>
                                             </ul>
                                         )}
                                     </li>

@@ -485,7 +485,7 @@ const Home = () => {
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         fontSize: '10px'
                       }}>
-                        {cat.count || 0}
+                        {cat.postCount || 0}
                       </span>
                     </Link>
                   ))}

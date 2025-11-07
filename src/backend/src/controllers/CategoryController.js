@@ -5,8 +5,27 @@ const Post = require('../models/Post');
 // Lấy tất cả danh mục
 exports.getAllCategories = async (req, res) => {
 	try {
-		const categories = await Category.find();
-		res.json(categories);
+		// const categories = await Category.find();
+
+		const categories = await Category.find().lean();
+
+		// Thêm thống kê số lượng bài viết cho mỗi category
+		const categoriesWithStats = await Promise.all(
+			categories.map(async (category) => {
+				const postCount = await Post.countDocuments({ categoryId: category._id });
+				return {
+					...category,
+					postCount
+				};
+			})
+		);
+
+		res.json({
+			success: true,
+			data: categoriesWithStats,
+			total: categoriesWithStats.length
+		});
+		// res.json(categories);
 	} catch (err) {
 		res.status(500).json({ error: err.message });
 	}
@@ -16,7 +35,7 @@ exports.getAllCategories = async (req, res) => {
 exports.getAllCategoriesWithStats = async (req, res) => {
 	try {
 		const categories = await Category.find().lean();
-		
+
 		// Thêm thống kê số lượng bài viết cho mỗi category
 		const categoriesWithStats = await Promise.all(
 			categories.map(async (category) => {
@@ -86,17 +105,17 @@ exports.deleteCategory = async (req, res) => {
 exports.deleteMultipleCategories = async (req, res) => {
 	try {
 		const { ids } = req.body;
-		
+
 		if (!ids || !Array.isArray(ids) || ids.length === 0) {
-			return res.status(400).json({ 
-				success: false, 
-				error: 'Vui lòng cung cấp danh sách ID' 
+			return res.status(400).json({
+				success: false,
+				error: 'Vui lòng cung cấp danh sách ID'
 			});
 		}
 
 		// Kiểm tra xem có bài viết nào đang dùng categories này không
-		const postsUsingCategories = await Post.countDocuments({ 
-			categoryId: { $in: ids } 
+		const postsUsingCategories = await Post.countDocuments({
+			categoryId: { $in: ids }
 		});
 
 		if (postsUsingCategories > 0) {
@@ -107,9 +126,9 @@ exports.deleteMultipleCategories = async (req, res) => {
 		}
 
 		const result = await Category.deleteMany({ _id: { $in: ids } });
-		
-		res.json({ 
-			success: true, 
+
+		res.json({
+			success: true,
 			message: `Đã xóa ${result.deletedCount} danh mục`,
 			deletedCount: result.deletedCount
 		});
@@ -122,7 +141,7 @@ exports.deleteMultipleCategories = async (req, res) => {
 exports.searchCategories = async (req, res) => {
 	try {
 		const { keyword, page = 1, limit = 20 } = req.query;
-		
+
 		const query = {};
 		if (keyword) {
 			query.$or = [
