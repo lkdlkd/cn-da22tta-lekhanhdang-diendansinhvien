@@ -52,7 +52,7 @@ const upload = multer({ storage: postStorage });
 const uploadAvatar = multer({ storage: userStorage });
 const router = express.Router();
 const userRoutes = require('../controllers/UserController');
-const { authenticateUser, authenticateAdmin } = require('../Middleware/authenticate');
+const { authenticateUser, authenticateAdmin, authenticateMod } = require('../Middleware/authenticate');
 const postRoutes = require('../controllers/PostController');
 const categoryRoutes = require('../controllers/CategoryController');
 const CommentController = require('../controllers/CommentController');
@@ -78,6 +78,7 @@ router.get('/users/:username/posts', userRoutes.getUserPosts);// Lấy bài vi�
 router.get('/admin/users/all', authenticateAdmin, userRoutes.getAllUsersAdmin);// Lấy danh sách người dùng admin với filters
 router.get('/admin/users/stats', authenticateAdmin, userRoutes.getUsersStats);// Thống kê người dùng
 router.delete('/admin/users/:id', authenticateAdmin, userRoutes.deleteUser);// Xóa người dùng admin 
+router.put('/admin/users/:id/role', authenticateAdmin, userRoutes.updateUserRole);// Cập nhật vai trò người dùng
 router.post('/admin/users/:id/ban', authenticateAdmin, userRoutes.banUser);// Cấm người dùng admin
 router.post('/admin/users/:id/unban', authenticateAdmin, userRoutes.unbanUser);// Bỏ cấm người dùng
 router.post('/admin/users/bulk-ban', authenticateAdmin, userRoutes.banMultipleUsers);// Cấm nhiều người dùng
@@ -106,6 +107,12 @@ router.delete('/admin/posts/bulk-delete', authenticateAdmin, postRoutes.deleteMu
 router.put('/admin/posts/bulk-soft-delete', authenticateAdmin, postRoutes.bulkSoftDeletePostsAdmin);// Xóa mềm nhiều bài viết
 router.put('/admin/posts/bulk-restore', authenticateAdmin, postRoutes.bulkRestorePostsAdmin);// Khôi phục nhiều bài viết
 router.put('/admin/posts/move', authenticateAdmin, postRoutes.movePosts);// Chuyển bài viết sang danh mục khác
+
+// ===== MOD - POST MODERATION =====
+router.get('/mod/posts/pending', authenticateMod, postRoutes.getPendingPosts);// Lấy bài viết chờ duyệt
+router.put('/mod/posts/:id/approve', authenticateMod, postRoutes.approvePost);// Duyệt bài viết
+router.put('/mod/posts/:id/reject', authenticateMod, postRoutes.rejectPost);// Từ chối bài viết
+router.get('/mod/posts/stats', authenticateMod, postRoutes.getModerationStats);// Thống kê moderation
 
 router.get('/categories', categoryRoutes.getAllCategories);
 

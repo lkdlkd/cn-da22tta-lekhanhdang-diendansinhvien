@@ -10,7 +10,6 @@ exports.getGlobalChatHistory = async (req, res) => {
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
 
-    console.log('🌍 Loading global chat history:', { page, limit });
 
     // Get total count
     const total = await GlobalMessage.countDocuments();
@@ -27,12 +26,12 @@ exports.getGlobalChatHistory = async (req, res) => {
     // Reverse to show oldest first in the page
     messages.reverse();
 
-    console.log('📦 Global messages loaded:', {
-      total,
-      page,
-      returned: messages.length,
-      hasMore: skip + messages.length < total
-    });
+    // console.log('📦 Global messages loaded:', {
+    //   total,
+    //   page,
+    //   returned: messages.length,
+    //   hasMore: skip + messages.length < total
+    // });
 
     res.status(200).json({
       success: true,

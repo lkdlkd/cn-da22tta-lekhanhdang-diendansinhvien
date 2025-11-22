@@ -15,7 +15,15 @@ const PostSchema = new mongoose.Schema({
   likesCount: { type: Number, default: 0 }, // số lượt thích
   dislikesCount: { type: Number, default: 0 }, // số lượt không thích
   isDraft: { type: Boolean, default: false }, // bản nháp
-  isDeleted: { type: Boolean, default: false } // đã xóa
+  isDeleted: { type: Boolean, default: false }, // đã xóa
+  moderationStatus: { 
+    type: String, 
+    enum: ['pending', 'approved', 'rejected'], 
+    default: 'pending' 
+  }, // trạng thái duyệt
+  moderatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // người duyệt
+  moderatedAt: { type: Date }, // thời gian duyệt
+  rejectionReason: { type: String } // lý do từ chối
 }, { timestamps: true });
 
 PostSchema.index({ categoryId: 1, pinned: -1, updatedAt: -1 }); // chỉ mục để truy vấn bài viết theo danh mục, ghim và thời gian cập nhật

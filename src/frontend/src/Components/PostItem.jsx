@@ -490,6 +490,43 @@ const PostItem = ({
         </div>
       </div>
 
+      {/* Moderation Status Badge */}
+      {post.moderationStatus && post.moderationStatus !== 'approved' && post.authorId._id === currentUserId && (
+        <div style={{
+          margin: '0 16px 12px 16px',
+          padding: '12px 16px',
+          borderRadius: '8px',
+          backgroundColor: post.moderationStatus === 'pending' ? '#fff3cd' : '#f8d7da',
+          border: `1px solid ${post.moderationStatus === 'pending' ? '#ffc107' : '#dc3545'}`,
+          display: 'flex',
+          alignItems: 'start',
+          gap: '12px'
+        }}>
+          <span style={{ fontSize: '20px' }}>
+            {post.moderationStatus === 'pending' ? '⏳' : '❌'}
+          </span>
+          <div style={{ flex: 1 }}>
+            <div style={{
+              fontWeight: '600',
+              color: post.moderationStatus === 'pending' ? '#856404' : '#721c24',
+              marginBottom: '4px'
+            }}>
+              {post.moderationStatus === 'pending' 
+                ? 'Bài viết đang chờ duyệt' 
+                : 'Bài viết đã bị từ chối'}
+            </div>
+            <div style={{
+              fontSize: '14px',
+              color: post.moderationStatus === 'pending' ? '#856404' : '#721c24'
+            }}>
+              {post.moderationStatus === 'pending' 
+                ? 'Bài viết của bạn đang được kiểm duyệt bởi quản trị viên. Vui lòng chờ.'
+                : `Lý do: ${post.rejectionReason || 'Không có lý do cụ thể'}`}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       <div style={{ padding: "0 16px 12px" }}>
         <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#050505", marginBottom: "8px", lineHeight: "1.4" }}>

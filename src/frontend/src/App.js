@@ -25,6 +25,7 @@ import GlobalChat from "./Pages/Forum/GlobaChat";
 // import PrivateChat from "./Pages/Forum/PrivateChat";
 import ListChat from "./Pages/Forum/ListChat";
 import Notifications from "./Pages/Notifications/Notifications";
+import ModerationDashboard from "./Pages/Mod/ModerationDashboard";
 function App() {
   return (
     <AuthProvider>
@@ -52,6 +53,7 @@ function App() {
             <Route path="/messages" element={<ListChat />} />
             <Route path="/message/:username" element={<ListChat />} />
             <Route path="/notifications" element={<Notifications />} />
+            <Route path="/mod/dashboard" element={<ModerationDashboard />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Route>
 

@@ -604,6 +604,18 @@ export const deleteMultipleUsers = async (token, userIds) => {
   return handleResponse(response);
 };
 
+export const updateUserRole = async (token, userId, role) => {
+  const response = await fetch(`${API_BASE}/admin/users/${userId}/role`, {
+    method: "PUT",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ role }),
+  });
+  return handleResponse(response);
+};
+
 export const getUsersStats = async (token) => {
   const response = await fetch(`${API_BASE}/admin/users/stats`, {
     method: "GET",
@@ -1102,3 +1114,52 @@ export const getOnlineUsersCount = async (token) => {
   return handleResponse(response);
 };
 
+// ============================================
+// MOD APIs
+// ============================================
+
+// Lấy danh sách bài viết chờ duyệt
+export const getPendingPosts = async (token) => {
+  const response = await fetch(`${API_BASE}/mod/posts/pending`, {
+    method: "GET",
+    headers: withNoStore({
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+// Duyệt bài viết
+export const approvePost = async (token, postId) => {
+  const response = await fetch(`${API_BASE}/mod/posts/${postId}/approve`, {
+    method: "PUT",
+    headers: withNoStore({
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};
+
+// Từ chối bài viết
+export const rejectPost = async (token, postId, reason) => {
+  const response = await fetch(`${API_BASE}/mod/posts/${postId}/reject`, {
+    method: "PUT",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    body: JSON.stringify({ reason }),
+  });
+  return handleResponse(response);
+};
+
+// Lấy thống kê moderation
+export const getModerationStats = async (token) => {
+  const response = await fetch(`${API_BASE}/mod/posts/stats`, {
+    method: "GET",
+    headers: withNoStore({
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+  return handleResponse(response);
+};

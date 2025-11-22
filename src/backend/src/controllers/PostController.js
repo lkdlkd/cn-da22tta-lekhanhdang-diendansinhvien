@@ -53,11 +53,22 @@ exports.getAllPosts = async (req, res) => {
 		// Lọc theo từ khóa nếu có
 			const keyword = (req.query.keyword || '').toString().trim();
 			// Chỉ hiển thị bài viết chưa xóa và đã xuất bản
-			const baseQuery = { isDeleted: false, isDraft: false };
+			// HOẶC bài viết của chính user (bao gồm pending/rejected)
+			const baseQuery = { 
+				isDeleted: false, 
+				isDraft: false,
+				$or: [
+					{ moderationStatus: 'approved' },
+					// Cho phép tác giả xem bài pending/rejected của mình
+					...(req.user ? [{ authorId: req.user._id }] : [])
+				]
+			};
 		if (keyword) {
-			baseQuery.$or = [
-				{ title: { $regex: keyword, $options: 'i' } },
-				{ content: { $regex: keyword, $options: 'i' } }
+			baseQuery.$and = [
+				{ $or: [
+					{ title: { $regex: keyword, $options: 'i' } },
+					{ content: { $regex: keyword, $options: 'i' } }
+				]}
 			];
 		}
 
@@ -619,7 +630,7 @@ exports.getPostsByCategory = async (req, res) => {
 
 		const keyword = (req.query.keyword || '').toString().trim();
 			// Chỉ hiển thị bài viết chưa xóa và đã xuất bản
-			const query = { categoryId: category._id, isDeleted: false, isDraft: false };
+			const query = { categoryId: category._id, isDeleted: false, isDraft: false, moderationStatus: 'approved' };
 		if (keyword) {
 			query.$or = [
 				{ title: { $regex: keyword, $options: 'i' } },
@@ -1316,6 +1327,182 @@ exports.getPostsStats = async (req, res) => {
 		});
 	} catch (err) {
 		console.error('Error in getPostsStats:', err);
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [MOD] Lấy danh sách bài viết đang chờ duyệt
+exports.getPendingPosts = async (req, res) => {
+	try {
+		const posts = await Post.find({
+			moderationStatus: 'pending',
+			isDeleted: false
+		})
+			.populate('authorId', 'username displayName avatarUrl email')
+			.populate('categoryId', 'title slug')
+			.sort({ createdAt: -1 });
+
+		res.json({
+			success: true,
+			data: posts,
+			total: posts.length
+		});
+	} catch (err) {
+		console.error('Error in getPendingPosts:', err);
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [MOD] Duyệt bài viết
+exports.approvePost = async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		const post = await Post.findById(id);
+		if (!post) {
+			return res.status(404).json({
+				success: false,
+				error: 'Không tìm thấy bài viết'
+			});
+		}
+
+		if (post.moderationStatus === 'approved') {
+			return res.status(400).json({
+				success: false,
+				error: 'Bài viết đã được duyệt trước đó'
+			});
+		}
+
+		post.moderationStatus = 'approved';
+		post.moderatedBy = req.user._id;
+		post.moderatedAt = new Date();
+		post.rejectionReason = undefined;
+
+		await post.save();
+
+		await post.populate('authorId', 'username displayName avatarUrl');
+		await post.populate('categoryId', 'title slug');
+
+		// Gửi thông báo cho tác giả
+		const { createNotification } = require('../utils/notificationService');
+		await createNotification({
+			userId: post.authorId._id,
+			type: 'system',
+			data: {
+				actorId: req.user._id,
+				postId: post._id,
+				postTitle: post.title,
+				postSlug: post.slug,
+				message: `Bài viết "${post.title}" của bạn đã được duyệt và công khai.`
+			}
+		}, req.app.get('io'));
+
+		res.json({
+			success: true,
+			message: 'Đã duyệt bài viết thành công',
+			data: post
+		});
+	} catch (err) {
+		console.error('Error in approvePost:', err);
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [MOD] Từ chối bài viết
+exports.rejectPost = async (req, res) => {
+	try {
+		const { id } = req.params;
+		const { reason } = req.body;
+
+		if (!reason || reason.trim().length === 0) {
+			return res.status(400).json({
+				success: false,
+				error: 'Vui lòng cung cấp lý do từ chối'
+			});
+		}
+
+		const post = await Post.findById(id);
+		if (!post) {
+			return res.status(404).json({
+				success: false,
+				error: 'Không tìm thấy bài viết'
+			});
+		}
+
+		post.moderationStatus = 'rejected';
+		post.moderatedBy = req.user._id;
+		post.moderatedAt = new Date();
+		post.rejectionReason = reason;
+
+		await post.save();
+
+		await post.populate('authorId', 'username displayName avatarUrl');
+		await post.populate('categoryId', 'title slug');
+
+		// Gửi thông báo cho tác giả
+		const { createNotification } = require('../utils/notificationService');
+		await createNotification({
+			userId: post.authorId._id,
+			type: 'system',
+			data: {
+				actorId: req.user._id,
+				postId: post._id,
+				postTitle: post.title,
+				postSlug: post.slug,
+				rejectionReason: reason,
+				message: `Bài viết "${post.title}" của bạn đã bị từ chối. Lý do: ${reason}`
+			}
+		}, req.app.get('io'));
+
+		res.json({
+			success: true,
+			message: 'Đã từ chối bài viết',
+			data: post
+		});
+	} catch (err) {
+		console.error('Error in rejectPost:', err);
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
+
+// [MOD] Lấy thống kê moderation
+exports.getModerationStats = async (req, res) => {
+	try {
+		const pending = await Post.countDocuments({
+			moderationStatus: 'pending',
+			isDeleted: false
+		});
+
+		const approved = await Post.countDocuments({
+			moderationStatus: 'approved',
+			isDeleted: false
+		});
+
+		const rejected = await Post.countDocuments({
+			moderationStatus: 'rejected',
+			isDeleted: false
+		});
+
+		const recentActions = await Post.find({
+			moderatedAt: { $exists: true }
+		})
+			.populate('moderatedBy', 'username displayName')
+			.populate('authorId', 'username displayName')
+			.sort({ moderatedAt: -1 })
+			.limit(10);
+
+		res.json({
+			success: true,
+			data: {
+				pending,
+				approved,
+				rejected,
+				total: pending + approved + rejected,
+				recentActions
+			}
+		});
+	} catch (err) {
+		console.error('Error in getModerationStats:', err);
 		res.status(500).json({ success: false, error: err.message });
 	}
 };

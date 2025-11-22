@@ -6,13 +6,11 @@ module.exports = function registerGlobalChatHandlers(io, socket) {
   // Join global chat room
   socket.on('chat:global:join', () => {
     socket.join('global_chat');
-    console.log(`🌍 Socket ${socket.id} joined global chat`);
   });
 
   // Leave global chat room
   socket.on('chat:global:leave', () => {
     socket.leave('global_chat');
-    console.log(`🌍 Socket ${socket.id} left global chat`);
   });
 
   // Send global message (with optional ACK)
@@ -46,11 +44,11 @@ module.exports = function registerGlobalChatHandlers(io, socket) {
         message: populatedMessage,
       });
 
-      console.log(
-        `🌍 Global message from ${socket.userId}${
-          message.attachments?.length ? ` with ${message.attachments.length} attachments` : ''
-        }`
-      );
+      // console.log(
+      //   `🌍 Global message from ${socket.userId}${
+      //     message.attachments?.length ? ` with ${message.attachments.length} attachments` : ''
+      //   }`
+      // );
 
       if (typeof callback === 'function') {
         callback({ success: true, messageId: populatedMessage?._id });

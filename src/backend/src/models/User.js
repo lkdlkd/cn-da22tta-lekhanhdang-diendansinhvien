@@ -15,7 +15,7 @@ const UserSchema = new mongoose.Schema({
   lastVerificationEmailSentAt: { type: Date, select: false },
   phone: { type: String },
   password: { type: String, required: true, select: false },
-  role: { type: String, enum: ['student', 'admin'], default: 'student' },
+  role: { type: String, enum: ['student', 'admin','mod'], default: 'student' },
   displayName: { type: String },
   avatar: { type: String },
   faculty: { type: String },

@@ -769,6 +769,20 @@ export default function Header({ user }) {
                           </h6>
                         </div>
                       </div>
+                      {/* Link MOD Dashboard cho MOD và ADMIN */}
+                      {(user?.role === 'mod' || user?.role === 'admin') && (
+                        <div className="d-flex mb-1">
+                          <div className="flex-shrink-0"></div>
+                          <div>
+                            <h6 className="ms-3 mb-0 mt-2" style={{ fontSize: '16px' }}>
+                              <Link to="/mod/dashboard" className="dropdown-item">
+                                <i className="ph ph-shield-check me-2" style={{ fontSize: '20px', color: '#8b5cf6' }}></i>
+                                Quản lý duyệt bài
+                              </Link>
+                            </h6>
+                          </div>
+                        </div>
+                      )}
                       <div className="d-flex mb-1">
                         <div className="flex-shrink-0">
                         </div>

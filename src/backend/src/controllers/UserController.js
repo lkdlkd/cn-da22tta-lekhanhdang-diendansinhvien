@@ -874,6 +874,68 @@ exports.deleteUser = async (req, res) => {
     return res.status(500).json({ error: "Có lỗi xảy ra khi xóa người dùng" });
   }
 };
+
+// [ADMIN] Cập nhật vai trò người dùng
+exports.updateUserRole = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { role } = req.body;
+
+    // Validate role
+    const validRoles = ['student', 'mod'];
+    if (!role || !validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: "Vai trò không hợp lệ. Chỉ chấp nhận: student, mod, admin"
+      });
+    }
+
+    // Tìm user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "Không tìm thấy người dùng"
+      });
+    }
+
+    // Không cho phép thay đổi vai trò của chính mình
+    if (String(user._id) === String(req.user._id)) {
+      return res.status(403).json({
+        success: false,
+        error: "Không thể thay đổi vai trò của chính mình"
+      });
+    }
+
+    // Lưu vai trò cũ để ghi log
+    const oldRole = user.role;
+
+    // Cập nhật vai trò
+    user.role = role;
+    await user.save();
+
+    console.log(`Admin ${req.user.username} changed role of user ${user.username} from ${oldRole} to ${role}`);
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã cập nhật vai trò từ ${oldRole} thành ${role}`,
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        displayName: user.displayName
+      }
+    });
+  } catch (error) {
+    console.error("Cập nhật vai trò người dùng lỗi:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Có lỗi xảy ra khi cập nhật vai trò người dùng"
+    });
+  }
+};
+
 // [ADMIN] Lấy tất cả users với phân trang và tìm kiếm nâng cao
 exports.getAllUsersAdmin = async (req, res) => {
   try {
@@ -885,7 +947,7 @@ exports.getAllUsersAdmin = async (req, res) => {
       isBanned,
       isOnline,
       sortBy = 'createdAt',
-      order = 'desc'
+      order = 'desc',
     } = req.query;
 
     const query = {};

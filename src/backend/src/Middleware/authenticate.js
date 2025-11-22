@@ -35,7 +35,18 @@ const authenticateAdmin = async (req, res, next) => {
     });
 };
 
+// Middleware xác thực MOD (moderator) - có quyền duyệt bài
+const authenticateMod = async (req, res, next) => {
+    await authenticateUser(req, res, async () => {
+        if (req.user.role !== "mod" && req.user.role !== "admin") {
+            return res.status(403).json({ success: false, error: "Bạn không có quyền truy cập. Chỉ MOD/ADMIN mới được phép." });
+        }
+        next();
+    });
+};
+
 module.exports = {
     authenticateUser,
-    authenticateAdmin
+    authenticateAdmin,
+    authenticateMod
 };

@@ -13,7 +13,8 @@ import {
 	deleteMultipleUsers,
 	banMultipleUsers,
 	unbanMultipleUsers,
-	getUsersStats
+	getUsersStats,
+	updateUserRole
 } from "../../../Utils/api";
 import { Link } from "react-router-dom";
 import LoadingPost from "@/Components/LoadingPost";
@@ -199,6 +200,77 @@ const UserAdmin = () => {
 		}
 	};
 
+	// Update user role
+	const handleUpdateRole = async (userId, currentRole) => {
+		const { value: newRole } = await Swal.fire({
+			title: "Cập nhật vai trò người dùng",
+			html: `
+				<div class="text-start p-3">
+					<div class="mb-3">
+						<label class="form-label fw-bold">
+							<i class="bi bi-person-badge me-2"></i>
+							Vai trò hiện tại: 
+							<span class="badge ${
+								currentRole === 'admin' ? 'bg-danger' : 
+								currentRole === 'mod' ? 'bg-warning text-dark' : 
+								'bg-secondary'
+							} ms-2">${
+								currentRole === 'admin' ? 'Admin' : 
+								currentRole === 'mod' ? 'Mod' : 
+								'Student'
+							}</span>
+						</label>
+					</div>
+					<div class="mb-3">
+						<label class="form-label fw-bold">
+							<i class="bi bi-arrow-right-circle me-2"></i>
+							Chọn vai trò mới
+						</label>
+						<select id="role-select" class="form-select form-select-lg" style="width:100%">
+							<option value="student" ${currentRole === 'student' ? 'selected' : ''}>
+								👨‍🎓 Student - Sinh viên
+							</option>
+							<option value="mod" ${currentRole === 'mod' ? 'selected' : ''}>
+								🛡️ Mod - Kiểm duyệt viên
+							</option>
+						</select>
+					</div>
+					<div class="alert alert-info mb-0">
+						<small>
+							<i class="bi bi-info-circle me-2"></i>
+							<strong>Lưu ý:</strong> Thay đổi vai trò sẽ ảnh hưởng đến quyền hạn của người dùng trong hệ thống.
+						</small>
+					</div>
+				</div>
+			`,
+			focusConfirm: false,
+			showCancelButton: true,
+			confirmButtonText: '<i class="bi bi-check-circle me-2"></i>Cập nhật',
+			cancelButtonText: '<i class="bi bi-x-circle me-2"></i>Hủy',
+			confirmButtonColor: '#0d6efd',
+			cancelButtonColor: '#6c757d',
+			customClass: { 
+				container: 'swal-on-modal',
+				popup: 'rounded-3',
+				confirmButton: 'btn btn-primary px-4',
+				cancelButton: 'btn btn-secondary px-4'
+			},
+			preConfirm: () => {
+				return document.getElementById('role-select').value;
+			}
+		});
+
+		if (newRole && newRole !== currentRole) {
+			try {
+				await updateUserRole(token, userId, newRole);
+				toast.success("Cập nhật vai trò thành công!");
+				fetchUsers();
+			} catch (err) {
+				toast.error(err.message || "Lỗi khi cập nhật vai trò");
+			}
+		}
+	};
+
 	// Bulk actions
 	const handleBulkAction = async (action) => {
 		if (selectedUsers.length === 0) {
@@ -327,7 +399,7 @@ const UserAdmin = () => {
 			<div className="card mb-4">
 				<div className="card-body">
 					<div className="row g-3">
-						<div className="col-md-4">
+						<div className="col-md-3">
 							<Form.Control
 								type="text"
 								placeholder="Tìm kiếm theo username, email..."
@@ -336,17 +408,27 @@ const UserAdmin = () => {
 								onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
 							/>
 						</div>
-						{/* <div className="col-md-2">
+						<div className="col-md-2">
 							<Form.Select
 								value={pendingFilters.role}
 								onChange={(e) => setPendingFilters({...pendingFilters, role: e.target.value})}
 							>
 								<option value="">Tất cả vai trò</option>
-								<option value="user">User</option>
-								<option value="moderator">Moderator</option>
-								<option value="admin">Admin</option>
+								<option value="student">👨‍🎓 Student</option>
+								<option value="mod">🛡️ Mod</option>
+								<option value="admin">👑 Admin</option>
 							</Form.Select>
-						</div> */}
+						</div>
+						<div className="col-md-2">
+							<Form.Select
+								value={pendingFilters.isBanned}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, isBanned: e.target.value })}
+							>
+								<option value="">Tất cả trạng thái</option>
+								<option value="false">Hoạt động</option>
+								<option value="true">Bị cấm</option>
+							</Form.Select>
+						</div>
 						<div className="col-md-2">
 							<Form.Select
 								value={pendingFilters.isBanned}
@@ -510,7 +592,13 @@ const UserAdmin = () => {
 												>
 													Xem
 												</button>
-
+												<button
+													className="btn btn-primary btn-sm"
+													onClick={() => handleUpdateRole(user._id, user.role)}
+													title="Cập nhật vai trò"
+												>
+													Vai trò
+												</button>
 												{user.isBanned ? (
 													<button
 														className="btn btn-success btn-sm"
