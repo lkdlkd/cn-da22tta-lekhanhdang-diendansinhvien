@@ -6,6 +6,8 @@ import Home from "./Pages/Home";
 import { Login } from "./Pages/Login/Login";
 import { Register } from "./Pages/Register/register";
 import { VerifyEmail } from "./Pages/VerifyEmail/VerifyEmail";
+import { ForgotPassword } from "./Pages/ForgotPassword/ForgotPassword";
+import { ResetPassword } from "./Pages/ResetPassword/ResetPassword";
 import Layout from "./Components/Layout";
 import CategoryAdmin from "./Pages/Admin/AdminDashboard/CategoryDashboard";
 import UserAdmin from "./Pages/Admin/AdminDashboard/UserAdmin";
@@ -42,6 +44,8 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/post/:slug" element={<PostDetail />} />
             <Route path="/category" element={<Categories />} />
             <Route path="/category/:slug" element={<CategoryPosts />} />

@@ -354,6 +354,208 @@ exports.resendVerificationEmail = async (req, res) => {
     return res.status(500).json({ success: false, error: 'Có lỗi xảy ra khi gửi lại mã xác thực' });
   }
 };
+
+// QUÊN MẬT KHẨU - Gửi mã reset
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Vui lòng cung cấp email' });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
+    
+    if (!user) {
+      // Không tiết lộ email có tồn tại hay không vì lý do bảo mật
+      return res.json({ success: true, message: 'Nếu email tồn tại, link đặt lại mật khẩu đã được gửi đến hộp thư của bạn.' });
+    }
+
+    // Kiểm tra cooldown
+    if (user.passwordResetRequestedAt && Date.now() - user.passwordResetRequestedAt.getTime() < RESEND_COOLDOWN_MS) {
+      const waitSeconds = Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - user.passwordResetRequestedAt.getTime())) / 1000);
+      return res.status(429).json({ success: false, error: `Vui lòng đợi ${waitSeconds}s trước khi yêu cầu lại` });
+    }
+
+    // Tạo mã reset và token
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    
+    user.passwordResetCode = resetCode;
+    user.passwordResetToken = resetToken;
+    user.passwordResetExpires = new Date(Date.now() + VERIFICATION_TTL_MS); // 10 phút
+    user.passwordResetRequestedAt = new Date();
+    await user.save();
+
+    // Gửi email
+    try {
+      const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+      const subject = 'Đặt lại mật khẩu - Diễn đàn Sinh viên TVU';
+      const html = `
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222;max-width:600px;margin:0 auto">
+          <div style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);padding:30px;text-align:center;border-radius:10px 10px 0 0">
+            <h1 style="color:#fff;margin:0;font-size:28px">Đặt lại mật khẩu</h1>
+          </div>
+          <div style="background:#fff;padding:30px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 10px 10px">
+            <h2 style="color:#333;margin-top:0">Xin chào ${user.displayName || user.username},</h2>
+            <p style="color:#555;font-size:16px">Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản <strong>${user.email}</strong>.</p>
+            <p style="color:#555;font-size:16px">Bạn có thể đặt lại mật khẩu bằng một trong hai cách sau:</p>
+            
+            <div style="background:#f8f9fa;padding:20px;border-radius:8px;margin:20px 0">
+              <h3 style="color:#333;margin-top:0;font-size:18px">🔗 Cách 1: Nhấn nút đặt lại (Khuyên dùng)</h3>
+              <div style="text-align:center;margin:20px 0">
+                <a href="${resetLink}" 
+                  style="
+                    display:inline-block;
+                    background:#667eea;
+                    background-color:#667eea;
+                    background-image:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color:#fff;
+                    padding:15px 40px;
+                    text-decoration:none;
+                    border-radius:50px;
+                    font-weight:bold;
+                    font-size:16px;
+                    box-shadow:0 4px 15px rgba(102,126,234,0.4);
+                  "
+                >
+                  Đặt lại mật khẩu
+                </a>
+              </div>
+              <p style="color:#777;font-size:14px;margin-top:15px">Hoặc copy link sau vào trình duyệt:<br/>
+              <a href="${resetLink}" style="color:#667eea;word-break:break-all;font-size:13px">${resetLink}</a></p>
+            </div>
+            
+            <div style="background:#fff3cd;padding:20px;border-radius:8px;border-left:4px solid #ffc107;margin:20px 0">
+              <h3 style="color:#856404;margin-top:0;font-size:18px">🔢 Cách 2: Nhập mã xác thực</h3>
+              <p style="color:#856404;margin-bottom:10px">Nếu link không hoạt động, hãy nhập mã sau vào trang đặt lại mật khẩu:</p>
+              <p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#667eea;text-align:center;margin:15px 0;font-family:monospace">${resetCode}</p>
+            </div>
+            
+            <div style="background:#fff5f5;padding:20px;border-radius:8px;border-left:4px solid #f56565;margin:20px 0">
+              <p style="color:#c53030;margin:0;font-size:14px">
+                <strong>⚠️ Lưu ý bảo mật:</strong> Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này và đảm bảo tài khoản của bạn an toàn.
+              </p>
+            </div>
+            
+            <p style="color:#999;font-size:14px;margin-top:25px;padding-top:20px;border-top:1px solid #e0e0e0">
+              ⏱️ Link và mã này sẽ <strong>hết hạn sau 10 phút</strong>.
+            </p>
+            <p style="color:#555;margin-top:20px">Trân trọng,<br/><strong>Diễn đàn Sinh viên TVU</strong></p>
+          </div>
+        </div>
+      `;
+
+      await sendEmail({ 
+        to: user.email, 
+        subject, 
+        html, 
+        text: `Mã đặt lại mật khẩu của bạn là ${resetCode}. Link: ${resetLink}. Mã hết hạn sau 10 phút.` 
+      });
+    } catch (emailErr) {
+      console.error('Không thể gửi email đặt lại mật khẩu:', emailErr?.message || emailErr);
+      return res.status(500).json({ success: false, error: 'Không thể gửi email. Vui lòng thử lại sau.' });
+    }
+
+    return res.json({ success: true, message: 'Link đặt lại mật khẩu đã được gửi đến email của bạn.' });
+  } catch (err) {
+    console.error('forgotPassword error:', err);
+    return res.status(500).json({ success: false, error: 'Có lỗi xảy ra khi xử lý yêu cầu' });
+  }
+};
+
+// XÁC THỰC MÃ RESET PASSWORD
+exports.verifyResetCode = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({ success: false, error: 'Vui lòng cung cấp email và mã xác thực' });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail }).select('+passwordResetCode +passwordResetExpires');
+    
+    if (!user || !user.passwordResetCode) {
+      return res.status(404).json({ success: false, error: 'Mã xác thực không hợp lệ hoặc đã hết hạn' });
+    }
+
+    if (user.passwordResetExpires.getTime() < Date.now()) {
+      return res.status(400).json({ success: false, error: 'Mã xác thực đã hết hạn. Vui lòng yêu cầu lại.' });
+    }
+
+    if (user.passwordResetCode !== code.trim()) {
+      return res.status(400).json({ success: false, error: 'Mã xác thực không chính xác' });
+    }
+
+    return res.json({ success: true, message: 'Mã xác thực hợp lệ' });
+  } catch (err) {
+    console.error('verifyResetCode error:', err);
+    return res.status(500).json({ success: false, error: 'Có lỗi xảy ra khi xác thực mã' });
+  }
+};
+
+// ĐẶT LẠI MẬT KHẨU
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, email, code, newPassword } = req.body;
+    
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: 'Mật khẩu mới phải có ít nhất 6 ký tự' });
+    }
+
+    let user;
+
+    // Reset bằng token (từ link email)
+    if (token) {
+      user = await User.findOne({ 
+        passwordResetToken: token 
+      }).select('+passwordResetToken +passwordResetExpires +password');
+      
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'Link đặt lại mật khẩu không hợp lệ hoặc đã được sử dụng' });
+      }
+
+      if (user.passwordResetExpires.getTime() < Date.now()) {
+        return res.status(400).json({ success: false, error: 'Link đặt lại mật khẩu đã hết hạn' });
+      }
+    }
+    // Reset bằng code (nhập thủ công)
+    else if (email && code) {
+      const normalizedEmail = email.toLowerCase();
+      user = await User.findOne({ 
+        email: normalizedEmail 
+      }).select('+passwordResetCode +passwordResetExpires +password');
+      
+      if (!user || !user.passwordResetCode) {
+        return res.status(404).json({ success: false, error: 'Mã xác thực không hợp lệ' });
+      }
+
+      if (user.passwordResetExpires.getTime() < Date.now()) {
+        return res.status(400).json({ success: false, error: 'Mã xác thực đã hết hạn' });
+      }
+
+      if (user.passwordResetCode !== code.trim()) {
+        return res.status(400).json({ success: false, error: 'Mã xác thực không chính xác' });
+      }
+    } else {
+      return res.status(400).json({ success: false, error: 'Vui lòng cung cấp token hoặc email và mã xác thực' });
+    }
+
+    // Đặt lại mật khẩu
+    user.password = newPassword;
+    user.passwordResetCode = undefined;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    user.passwordResetRequestedAt = undefined;
+    await user.save();
+
+    return res.json({ success: true, message: 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập với mật khẩu mới.' });
+  } catch (err) {
+    console.error('resetPassword error:', err);
+    return res.status(500).json({ success: false, error: 'Có lỗi xảy ra khi đặt lại mật khẩu' });
+  }
+};
+
 // THÔNG TIN CÁ NHÂN
 exports.getProfile = async (req, res) => {
   try {

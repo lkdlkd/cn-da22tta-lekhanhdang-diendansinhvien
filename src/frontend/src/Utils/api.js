@@ -63,6 +63,33 @@ export const resendVerificationOTP = async (data) => {
   return handleResponse(response);
 };
 
+export const forgotPassword = async (email) => {
+  const response = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: "POST",
+    headers: withNoStore({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ email }),
+  });
+  return handleResponse(response);
+};
+
+export const verifyResetCode = async (email, code) => {
+  const response = await fetch(`${API_BASE}/auth/verify-reset-code`, {
+    method: "POST",
+    headers: withNoStore({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ email, code }),
+  });
+  return handleResponse(response);
+};
+
+export const resetPassword = async (token, newPassword , email = null, code = null) => {
+  const response = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: "POST",
+    headers: withNoStore({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ token, newPassword, email, code }),
+  });
+  return handleResponse(response);
+};
+
 // ============================================
 // USER APIs
 // ============================================
