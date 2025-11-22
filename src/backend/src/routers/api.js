@@ -62,7 +62,7 @@ const AttchmentController = require('../controllers/AttchmentController');
 
 router.post('/auth/login', userRoutes.login); // Đăng nhập
 router.post('/auth/register', userRoutes.register);// Đăng ký
-router.get('/auth/verify-email-token', userRoutes.verifyEmailByToken);// Xác thực email bằng token từ link
+router.get('/auth/verify-email', userRoutes.verifyEmailByToken);// Xác thực email bằng token từ link
 router.post('/auth/verify-email', userRoutes.verifyEmail);// Xác thực email bằng mã OTP
 router.post('/auth/resend-verification', userRoutes.resendVerificationEmail);// Gửi lại mã xác thực
 router.post('/auth/forgot-password', userRoutes.forgotPassword);// Quên mật khẩu - gửi mã reset
