@@ -38,6 +38,31 @@ export const register = async (data) => {
   return handleResponse(response);
 };
 
+export const verifyEmailOTP = async (data) => {
+  const response = await fetch(`${API_BASE}/auth/verify-email`, {
+    method: "POST",
+    headers: withNoStore({ "Content-Type": "application/json" }),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+};
+export const verifyEmailToken = async (token) => {
+  const response = await fetch(`${API_BASE}/auth/verify-email?token=${token}`, {
+    method: "GET",
+    headers: withNoStore({ "Content-Type": "application/json" }),
+  });
+  return handleResponse(response);
+};
+
+export const resendVerificationOTP = async (data) => {
+  const response = await fetch(`${API_BASE}/auth/resend-verification`, {
+    method: "POST",
+    headers: withNoStore({ "Content-Type": "application/json" }),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+};
+
 // ============================================
 // USER APIs
 // ============================================

@@ -66,7 +66,6 @@ io.use(async (socket, next) => {
 
     // Verify JWT token
     const secret = process.env.secretKey || process.env.JWT_SECRET;
-    console.log("🔐 JWT secret available:", !!secret);
     
     if (!secret) {
       console.error("❌ No JWT secret found in environment");

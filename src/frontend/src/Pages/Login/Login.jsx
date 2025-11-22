@@ -25,7 +25,13 @@ export function Login() {
         updateAuth({ token: data.token });
         window.location.href = '/';
       } else {
-        setError(data.error || 'Đăng nhập thất bại');
+        // Kiểm tra nếu lỗi do chưa xác thực email
+        if (data.requiresVerification && data.email) {
+          // Chuyển đến trang đăng ký với step 3 (verification)
+          window.location.href = `/register?step=3&email=${encodeURIComponent(data.email)}`;
+        } else {
+          setError(data.error || 'Đăng nhập thất bại');
+        }
       }
     } catch (err) {
       console.error("Login error:", err);

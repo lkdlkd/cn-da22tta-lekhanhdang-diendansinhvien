@@ -62,6 +62,9 @@ const AttchmentController = require('../controllers/AttchmentController');
 
 router.post('/auth/login', userRoutes.login); // Đăng nhập
 router.post('/auth/register', userRoutes.register);// Đăng ký
+router.get('/auth/verify-email', userRoutes.verifyEmailByToken);// Xác thực email bằng token (link)
+router.post('/auth/verify-email', userRoutes.verifyEmail);// Xác thực email bằng mã OTP
+router.post('/auth/resend-verification', userRoutes.resendVerificationEmail);// Gửi lại mã xác thực
 
 router.get('/user', authenticateUser, userRoutes.getProfile);// Lấy thông tin người dùng
 router.put('/user', authenticateUser, uploadAvatar.single('avatar'), userRoutes.updateProfile);// Cập nhật thông tin người dùng

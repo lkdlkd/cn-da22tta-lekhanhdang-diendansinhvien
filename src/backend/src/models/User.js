@@ -8,6 +8,11 @@ const UserSchema = new mongoose.Schema({
   driveFileId: { type: String }, // ID file avatar trên Cloudinary
   resourceType: { type: String, enum: ['image', 'video', 'raw'], default: 'image' }, // Loại file
   email: { type: String, unique: true, required: true, trim: true },
+  emailVerified: { type: Boolean, default: false },
+  emailVerificationCode: { type: String, select: false },
+  emailVerificationToken: { type: String, select: false },
+  emailVerificationExpires: { type: Date, select: false },
+  lastVerificationEmailSentAt: { type: Date, select: false },
   phone: { type: String },
   password: { type: String, required: true, select: false },
   role: { type: String, enum: ['student', 'admin'], default: 'student' },

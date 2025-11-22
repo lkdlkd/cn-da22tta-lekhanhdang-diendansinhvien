@@ -4,7 +4,70 @@ const Notification = require('../models/Notification');
 const Message = require('../models/Message');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { uploadToDrive, deleteFromDrive } = require('../utils/fileUpload');
+const { sendEmail } = require('../utils/emailService');
+
+const ALLOWED_EMAIL_DOMAIN = '@st.tvu.edu.vn';
+const VERIFICATION_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const RESEND_COOLDOWN_MS = 60 * 1000; // 1 minute
+
+async function dispatchVerificationEmail(toEmail, displayName, code, token) {
+  const safeName = displayName || 'bạn';
+  const subject = 'Xác thực tài khoản Diễn đàn Sinh viên TVU';
+  const verifyLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222;max-width:600px;margin:0 auto">
+      <div style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);padding:30px;text-align:center;border-radius:10px 10px 0 0">
+        <h1 style="color:#fff;margin:0;font-size:28px">Xác thực tài khoản</h1>
+      </div>
+      <div style="background:#fff;padding:30px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 10px 10px">
+        <h2 style="color:#333;margin-top:0">Xin chào ${safeName},</h2>
+        <p style="color:#555;font-size:16px">Cảm ơn bạn đã đăng ký <strong>Diễn đàn Sinh viên TVU</strong>.</p>
+        <p style="color:#555;font-size:16px">Để hoàn tất đăng ký, vui lòng xác thực email bằng một trong hai cách sau:</p>
+        
+        <div style="background:#f8f9fa;padding:20px;border-radius:8px;margin:20px 0">
+          <h3 style="color:#333;margin-top:0;font-size:18px">🔗 Cách 1: Nhấn nút xác thực (Khuyên dùng)</h3>
+          <div style="text-align:center;margin:20px 0">
+            <a href="${verifyLink}" 
+              style="
+                display:inline-block;
+                background:#667eea; /* fallback */
+                background-color:#667eea; /* fallback Gmail */
+                background-image:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color:#fff;
+                padding:15px 40px;
+                text-decoration:none;
+                border-radius:50px;
+                font-weight:bold;
+                font-size:16px;
+                box-shadow:0 4px 15px rgba(102,126,234,0.4);
+              "
+            >
+              Xác thực ngay
+            </a>
+          </div>
+          <p style="color:#777;font-size:14px;margin-top:15px">Hoặc copy link sau vào trình duyệt:<br/>
+          <a href="${verifyLink}" style="color:#667eea;word-break:break-all;font-size:13px">${verifyLink}</a></p>
+        </div>
+        
+        <div style="background:#fff3cd;padding:20px;border-radius:8px;border-left:4px solid #ffc107;margin:20px 0">
+          <h3 style="color:#856404;margin-top:0;font-size:18px">🔢 Cách 2: Nhập mã xác thực</h3>
+          <p style="color:#856404;margin-bottom:10px">Nếu link không hoạt động, hãy nhập mã sau vào trang đăng ký:</p>
+          <p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#667eea;text-align:center;margin:15px 0;font-family:monospace">${code}</p>
+        </div>
+        
+        <p style="color:#999;font-size:14px;margin-top:25px;padding-top:20px;border-top:1px solid #e0e0e0">
+          ⏱️ Link và mã này sẽ <strong>hết hạn sau 10 phút</strong>.<br/>
+          ⚠️ Nếu bạn không thực hiện đăng ký, vui lòng bỏ qua email này.
+        </p>
+        <p style="color:#555;margin-top:20px">Trân trọng,<br/><strong>Diễn đàn Sinh viên TVU</strong></p>
+      </div>
+    </div>
+  `;
+
+  await sendEmail({ to: toEmail, subject, html, text: `Ma xac thuc cua ban la ${code}. Link xac thuc: ${verifyLink}. Ma het han sau 10 phut.` });
+}
 
 // Helper: remove a local uploaded file when given a full URL containing /uploads/
 function removeLocalUploadByUrl(fileUrl) {
@@ -53,6 +116,15 @@ exports.login = async (req, res) => {
     if (user.isBanned && (!user.bannedUntil || new Date() < user.bannedUntil)) {
       return res.status(403).json({ success: false, error: "Tài khoản đã bị cấm" });
     }
+
+    if (!user.emailVerified) {
+      return res.status(403).json({
+        success: false,
+        error: 'Email chưa được xác thực. Vui lòng kiểm tra hộp thư @st.tvu.edu.vn để kích hoạt tài khoản.',
+        requiresVerification: true,
+        email: user.email
+      });
+    }
     // Tạo token
     const token = jwt.sign(
       { id: user._id, role: user.role },
@@ -92,6 +164,10 @@ exports.register = async (req, res) => {
     }
     username = username.toLowerCase();
     email = email.toLowerCase();
+
+    if (!email.endsWith(ALLOWED_EMAIL_DOMAIN)) {
+      return res.status(400).json({ success: false, error: `Email phải sử dụng tên miền ${ALLOWED_EMAIL_DOMAIN}` });
+    }
     // Kiểm tra username và password không được ngắn hơn 6 ký tự
     if (username.length < 6) {
       return res.status(400).json({ success: false, error: "Tên người dùng phải có ít nhất 6 ký tự" });
@@ -117,8 +193,11 @@ exports.register = async (req, res) => {
     // Kiểm tra xem đã có admin chưa
     const isAdminExists = await User.findOne({ role: "admin" });
 
-    const avatarUrl = 'https://www.gravatar.com/avatar/' + require('crypto').createHash('md5').update(email).digest('hex') + '?d=identicon';
+    const avatarUrl = 'https://www.gravatar.com/avatar/' + crypto.createHash('md5').update(email).digest('hex') + '?d=identicon';
     // Tạo người dùng mới
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+
     const user = new User({
       username,
       email,
@@ -129,27 +208,150 @@ exports.register = async (req, res) => {
       class: userClass,
       bio: bio || '',
       role: isAdminExists ? "student" : "admin",
-      avatarUrl: avatarUrl
+      avatarUrl: avatarUrl,
+      emailVerificationCode: verificationCode,
+      emailVerificationToken: verificationToken,
+      emailVerificationExpires: new Date(Date.now() + VERIFICATION_TTL_MS),
+      lastVerificationEmailSentAt: new Date()
     });
     await user.save();
+
+    try {
+      await dispatchVerificationEmail(user.email, user.displayName, verificationCode, verificationToken);
+    } catch (emailErr) {
+      console.error('Không thể gửi email xác thực:', emailErr?.message || emailErr);
+    }
+
     return res.status(201).json({
       success: true,
-      message: "Đăng ký thành công",
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        displayName: user.displayName,
-        phone: user.phone,
-        faculty: user.faculty,
-        class: user.class,
-        bio: user.bio
-      }
+      message: `Đăng ký thành công! Vui lòng kiểm tra email ${user.email} để nhập mã xác thực trong 10 phút.`,
+      requiresVerification: true,
+      email: user.email
     });
   } catch (error) {
     console.error("Đăng ký lỗi:", error);
     return res.status(500).json({ error: "Có lỗi xảy ra. Vui lòng thử lại." });
+  }
+};
+
+exports.verifyEmailByToken = async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'Thiếu token xác thực' });
+    }
+
+    const user = await User.findOne({ emailVerificationToken: token }).select('+emailVerificationToken +emailVerificationExpires');
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Link xác thực không hợp lệ hoặc đã được sử dụng' });
+    }
+
+    if (user.emailVerified) {
+      return res.status(400).json({ success: false, error: 'Email đã được xác thực trước đó' });
+    }
+
+    if (!user.emailVerificationExpires || user.emailVerificationExpires.getTime() < Date.now()) {
+      return res.status(400).json({ success: false, error: 'Link xác thực đã hết hạn. Vui lòng yêu cầu gửi lại.' });
+    }
+
+    user.emailVerified = true;
+    user.emailVerificationCode = undefined;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    user.lastVerificationEmailSentAt = undefined;
+    await user.save();
+
+    return res.json({ success: true, message: 'Xác thực email thành công! Bạn có thể đăng nhập ngay bây giờ.' });
+  } catch (err) {
+    console.error('verifyEmailByToken error:', err);
+    return res.status(500).json({ success: false, error: 'Có lỗi xảy ra khi xác thực email' });
+  }
+};
+
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({ success: false, error: 'Vui lòng cung cấp email và mã xác thực' });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail }).select('+emailVerificationCode +emailVerificationExpires');
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản với email này' });
+    }
+
+    if (user.emailVerified) {
+      return res.status(400).json({ success: false, error: 'Email đã được xác thực trước đó' });
+    }
+
+    if (!user.emailVerificationCode || !user.emailVerificationExpires) {
+      return res.status(400).json({ success: false, error: 'Không tìm thấy mã xác thực. Vui lòng yêu cầu gửi lại.' });
+    }
+
+    if (user.emailVerificationExpires.getTime() < Date.now()) {
+      return res.status(400).json({ success: false, error: 'Mã xác thực đã hết hạn. Vui lòng yêu cầu gửi lại.' });
+    }
+
+    if (user.emailVerificationCode !== code.trim()) {
+      return res.status(400).json({ success: false, error: 'Mã xác thực không chính xác' });
+    }
+
+    user.emailVerified = true;
+    user.emailVerificationCode = undefined;
+    user.emailVerificationExpires = undefined;
+    user.lastVerificationEmailSentAt = undefined;
+    await user.save();
+
+    return res.json({ success: true, message: 'Xác thực email thành công! Bạn có thể đăng nhập ngay bây giờ.' });
+  } catch (err) {
+    console.error('verifyEmail error:', err);
+    return res.status(500).json({ success: false, error: 'Có lỗi xảy ra khi xác thực email' });
+  }
+};
+
+exports.resendVerificationEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Vui lòng cung cấp email' });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail }).select('+emailVerificationCode +emailVerificationExpires +lastVerificationEmailSentAt');
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản với email này' });
+    }
+
+    if (user.emailVerified) {
+      return res.status(400).json({ success: false, error: 'Email đã được xác thực trước đó' });
+    }
+
+    const now = Date.now();
+    if (user.lastVerificationEmailSentAt && now - user.lastVerificationEmailSentAt.getTime() < RESEND_COOLDOWN_MS) {
+      const waitSeconds = Math.ceil((RESEND_COOLDOWN_MS - (now - user.lastVerificationEmailSentAt.getTime())) / 1000);
+      return res.status(429).json({ success: false, error: `Vui lòng đợi ${waitSeconds}s trước khi yêu cầu lại mã mới` });
+    }
+
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const newToken = crypto.randomBytes(32).toString('hex');
+    user.emailVerificationCode = newCode;
+    user.emailVerificationToken = newToken;
+    user.emailVerificationExpires = new Date(now + VERIFICATION_TTL_MS);
+    user.lastVerificationEmailSentAt = new Date(now);
+    await user.save();
+
+    try {
+      await dispatchVerificationEmail(user.email, user.displayName, newCode, newToken);
+    } catch (emailErr) {
+      console.error('Không thể gửi lại email xác thực:', emailErr?.message || emailErr);
+      return res.status(500).json({ success: false, error: 'Không thể gửi email xác thực. Vui lòng thử lại sau.' });
+    }
+
+    return res.json({ success: true, message: 'Mã xác thực mới đã được gửi, vui lòng kiểm tra email của bạn.' });
+  } catch (err) {
+    console.error('resendVerificationEmail error:', err);
+    return res.status(500).json({ success: false, error: 'Có lỗi xảy ra khi gửi lại mã xác thực' });
   }
 };
 // THÔNG TIN CÁ NHÂN
@@ -201,7 +403,7 @@ exports.updateProfile = async (req, res) => {
 
       // Upload avatar mới lên Cloudinary vào folder avatars
       const { fileId, link, resourceType } = await uploadToDrive(req.file, 'avatar');
-      
+
       // Lưu đường dẫn file avatar, driveFileId và resourceType
       updates.avatarUrl = link;
       updates.driveFileId = fileId;

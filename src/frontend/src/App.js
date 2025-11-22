@@ -5,6 +5,7 @@ import { AuthProvider, AuthContext } from "./Context/AuthContext";
 import Home from "./Pages/Home";
 import { Login } from "./Pages/Login/Login";
 import { Register } from "./Pages/Register/register";
+import { VerifyEmail } from "./Pages/VerifyEmail/VerifyEmail";
 import Layout from "./Components/Layout";
 import CategoryAdmin from "./Pages/Admin/AdminDashboard/CategoryDashboard";
 import UserAdmin from "./Pages/Admin/AdminDashboard/UserAdmin";
@@ -39,6 +40,7 @@ function App() {
             <Route index element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/post/:slug" element={<PostDetail />} />
             <Route path="/category" element={<Categories />} />
             <Route path="/category/:slug" element={<CategoryPosts />} />
