@@ -124,7 +124,14 @@ function Menu({ user, categories }) {
                                         <span className="pc-mtext">Báo cáo của tôi</span>
                                     </Link>
                                 </li>
-
+                                {(user?.role === 'mod' || user?.role === 'admin') && (
+                                    <li className="pc-item">
+                                        <Link to="/mod/dashboard" className="pc-link" onClick={handleNavigation}>
+                                            <span className="pc-micon"><i className="ph-duotone ph-shield-check"></i></span>
+                                            <span className="pc-mtext">Quản lý duyệt bài</span>
+                                        </Link>
+                                    </li>
+                                )}
                                 {/* ADMIN MENU */}
                                 {user.role === "admin" && (
                                     <li className="pc-item pc-hasmenu">

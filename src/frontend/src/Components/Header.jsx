@@ -357,7 +357,7 @@ export default function Header({ user }) {
         {/* [User Block] */}
         <div className="ms-auto">
           <ul>
-            <li className="dropdown pc-h-item d-none d-md-inline-flex" ref={userMenuRef}>
+            {/* <li className="dropdown pc-h-item d-none d-md-inline-flex" ref={userMenuRef}>
               <button
                 type="button"
                 className="pc-head-link dropdown-toggle arrow-none me-0 btn btn-link p-0 border-0"
@@ -372,7 +372,7 @@ export default function Header({ user }) {
                 <button className="dropdown-item" type="button" > <i className="ph-duotone ph-sun-dim"></i> <span>Light</span></button>
                 <button className="dropdown-item" type="button" > <i className="ph-duotone ph-cpu"></i> <span>Default</span></button>
               </div>
-            </li>
+            </li> */}
             <li className="dropdown pc-h-item header-user-profile" ref={notificationRef}>
               <button
                 type="button"

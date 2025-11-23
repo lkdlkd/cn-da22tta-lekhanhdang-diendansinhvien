@@ -17,7 +17,9 @@ import {
 	softDeletePostAdmin,
 	restorePostAdmin,
 	bulkSoftDeletePostsAdmin,
-	bulkRestorePostsAdmin
+	bulkRestorePostsAdmin,
+	approvePost,
+	rejectPost
 } from "../../../Utils/api";
 import LoadingPost from "@/Components/LoadingPost";
 
@@ -39,6 +41,7 @@ const PostAdmin = () => {
 		pinned: "",
 		locked: "",
 		isDraft: "",
+		moderationStatus: "",
 		isDeleted: "",
 		page: 1,
 		limit: 20,
@@ -49,6 +52,15 @@ const PostAdmin = () => {
 	const [pendingFilters, setPendingFilters] = useState(filterDefaults);
 
 	const token = localStorage.getItem("token");
+	const formatDateTime = (value) => (value ? new Date(value).toLocaleString() : "—");
+	const buildPostUrl = (slug) => {
+		if (!slug) return "";
+		const origin = typeof window !== "undefined" && window.location?.origin ? window.location.origin : "";
+		return `${origin}/post/${slug}`;
+	};
+	const getModeratorName = (moderator) => (
+		moderator?.displayName || moderator?.username || "—"
+	);
 
 	// Fetch posts with filters
 	const fetchPosts = async () => {
@@ -61,6 +73,7 @@ const PostAdmin = () => {
 			if (filters.pinned !== "") params.pinned = filters.pinned;
 			if (filters.locked !== "") params.locked = filters.locked;
 			if (filters.isDraft !== "") params.isDraft = filters.isDraft;
+			if (filters.moderationStatus) params.moderationStatus = filters.moderationStatus;
 			if (filters.isDeleted !== "") params.isDeleted = filters.isDeleted;
 			params.page = filters.page;
 			params.limit = filters.limit;
@@ -153,6 +166,15 @@ const PostAdmin = () => {
 		setSelectedPost(null);
 	};
 
+	const handleOpenPublicPost = (slug) => {
+		if (!slug) {
+			toast.info("Bài viết chưa có đường dẫn công khai");
+			return;
+		}
+		const url = buildPostUrl(slug);
+		window.open(url || `/post/${slug}`, "_blank", "noopener,noreferrer");
+	};
+
 	// Delete post with confirmation
 	const handleDelete = async (postId) => {
 		const result = await Swal.fire({
@@ -230,6 +252,47 @@ const PostAdmin = () => {
 			fetchStats();
 		} catch (err) {
 			toast.error("Lỗi khi khôi phục bài viết");
+		}
+	};
+
+	const handleApprove = async (postId) => {
+		try {
+			await approvePost(token, postId);
+			toast.success("Đã duyệt bài viết");
+			fetchPosts();
+			fetchStats();
+		} catch (err) {
+			toast.error("Không thể duyệt bài viết");
+		}
+	};
+
+	const handleReject = async (postId) => {
+		const { value: reason, isConfirmed } = await Swal.fire({
+			title: "Lý do từ chối",
+			input: "textarea",
+			inputLabel: "Vui lòng nhập lý do (tuỳ chọn)",
+			inputPlaceholder: "Ví dụ: Nội dung vi phạm quy định...",
+			showCancelButton: true,
+			confirmButtonText: "Từ chối",
+			cancelButtonText: "Hủy",
+			customClass: { container: 'swal-on-modal' }
+		});
+
+		if (!isConfirmed) return;
+
+		const trimmedReason = (reason || "").trim();
+		if (!trimmedReason) {
+			toast.warning("Vui lòng nhập lý do từ chối");
+			return;
+		}
+
+		try {
+			await rejectPost(token, postId, trimmedReason);
+			toast.success("Đã từ chối bài viết");
+			fetchPosts();
+			fetchStats();
+		} catch (err) {
+			toast.error("Không thể từ chối bài viết");
 		}
 	};
 
@@ -320,52 +383,111 @@ const PostAdmin = () => {
 		}
 	};
 
+	const statCards = stats ? [
+		{ title: "Tổng bài viết", value: stats.totalPosts, accent: "text-primary" },
+		{ title: "Đã xuất bản", value: stats.publishedPosts, accent: "text-success" },
+		{ title: "Bản nháp", value: stats.draftPosts, accent: "text-warning" },
+		{ title: "Đã ghim", value: stats.pinnedPosts, accent: "text-primary" },
+		{ title: "Đã khóa", value: stats.lockedPosts, accent: "text-secondary" },
+		{ title: "Bài mới (7 ngày)", value: stats.recentPosts, accent: "text-info" }
+	].filter(card => card.value !== undefined) : [];
+
+	const topCategories = stats?.postsByCategory?.slice(0, 5) || [];
+
+	const renderStatusBadges = (post) => (
+		<div className="d-flex flex-wrap gap-1">
+			{post.isDeleted && <span className="badge bg-danger">Đã ẩn</span>}
+			{post.isDraft && <span className="badge bg-warning text-dark">Bản nháp</span>}
+			{!post.isDraft && !post.isDeleted && <span className="badge bg-success">Công khai</span>}
+			{post.pinned && <span className="badge bg-primary">Ghim</span>}
+			{post.locked && <span className="badge bg-secondary">Khóa</span>}
+		</div>
+	);
+
+	const renderModerationBadge = (post) => {
+		const moderatorName = post.moderatedBy?.displayName || post.moderatedBy?.username;
+		const moderatedAt = post.moderatedAt ? formatDateTime(post.moderatedAt) : null;
+		const rejectionReason = post.rejectionReason;
+
+		switch (post.moderationStatus) {
+			case "approved":
+				return (
+					<div className="d-flex flex-column gap-1">
+						<span className="badge bg-success">Đã duyệt</span>
+						{moderatorName && <small className="text-muted">Bởi {moderatorName}</small>}
+						{moderatedAt && <small className="text-muted">{moderatedAt}</small>}
+					</div>
+				);
+			case "rejected":
+				return (
+					<div className="d-flex flex-column gap-1">
+						<span className="badge bg-danger">Đã từ chối</span>
+						{moderatorName && <small className="text-muted">Bởi {moderatorName}</small>}
+						{moderatedAt && <small className="text-muted">{moderatedAt}</small>}
+						{rejectionReason && <small className="text-danger">Lý do: {rejectionReason}</small>}
+					</div>
+				);
+			default:
+				return (
+					<div className="d-flex flex-column gap-1">
+						<span className="badge bg-warning text-dark">Chờ duyệt</span>
+						<small className="text-muted">Chưa có người duyệt</small>
+					</div>
+				);
+		}
+	};
+
 	return (
 		<div className="">
 			<h2 className="mb-4">Quản lý bài viết</h2>
 
 			{/* Statistics */}
 			{stats && (
-				<div className="row mb-4">
-					<div className="col-md-3">
-						<div className="card text-center">
-							<div className="card-body">
-								<h5>Tổng bài viết</h5>
-								<h3>{stats.totalPosts || 0}</h3>
+				<>
+					<div className="row mb-4 g-3">
+						{statCards.map(card => (
+							<div className="col-sm-6 col-md-4 col-lg-2" key={card.title}>
+								<div className="card text-center h-100">
+									<div className="card-body">
+										<h6 className="text-muted mb-1">{card.title}</h6>
+										<h3 className={card.accent}>{card.value ?? 0}</h3>
+									</div>
+								</div>
 							</div>
-						</div>
+						))}
 					</div>
-					{/* <div className="col-md-3">
-						<div className="card text-center">
+					{topCategories.length > 0 && (
+						<div className="card mb-4">
 							<div className="card-body">
-								<h5>Đã xuất bản</h5>
-								<h3 className="text-success">{stats.publishedPosts || 0}</h3>
+								<h5 className="card-title">Danh mục nhiều bài viết nhất</h5>
+								<div className="table-responsive">
+									<Table size="sm" className="mb-0">
+										<thead>
+											<tr>
+												<th>Danh mục</th>
+												<th className="text-end">Số bài</th>
+											</tr>
+										</thead>
+										<tbody>
+											{topCategories.map(cat => (
+												<tr key={cat.categoryId}>
+													<td>{cat.categoryTitle}</td>
+													<td className="text-end">{cat.postsCount}</td>
+												</tr>
+											))}
+										</tbody>
+									</Table>
+								</div>
 							</div>
 						</div>
-					</div> */}
-					<div className="col-md-3">
-						<div className="card text-center">
-							<div className="card-body">
-								<h5>Bản nháp</h5>
-								<h3 className="text-warning">{stats.draftPosts || 0}</h3>
-							</div>
-						</div>
-					</div>
-					<div className="col-md-3">
-						<div className="card text-center">
-							<div className="card-body">
-								<h5>Đã ghim</h5>
-								<h3 className="text-primary">{stats.pinnedPosts || 0}</h3>
-							</div>
-						</div>
-					</div>
-				</div>
+					)}
+				</>
 			)}
 
 			{/* Filters */}
 			<div className="card mb-4">
 				<div className="card-body">
-					<div className="row g-3">
+					<div className="row g-3 align-items-end">
 						<div className="col-md-4">
 							<Form.Control
 								type="text"
@@ -391,7 +513,7 @@ const PostAdmin = () => {
 								value={pendingFilters.pinned}
 								onChange={(e) => setPendingFilters({ ...pendingFilters, pinned: e.target.value })}
 							>
-								<option value="">Tất cả</option>
+								<option value="">Ghim</option>
 								<option value="true">Đã ghim</option>
 								<option value="false">Chưa ghim</option>
 							</Form.Select>
@@ -401,7 +523,7 @@ const PostAdmin = () => {
 								value={pendingFilters.locked}
 								onChange={(e) => setPendingFilters({ ...pendingFilters, locked: e.target.value })}
 							>
-								<option value="">Tất cả</option>
+								<option value="">Khóa</option>
 								<option value="true">Đã khóa</option>
 								<option value="false">Chưa khóa</option>
 							</Form.Select>
@@ -411,10 +533,42 @@ const PostAdmin = () => {
 								value={pendingFilters.sortBy}
 								onChange={(e) => setPendingFilters({ ...pendingFilters, sortBy: e.target.value })}
 							>
-								<option value="createdAt">Ngày tạo</option>
-								<option value="views">Lượt xem</option>
-								<option value="likesCount">Lượt thích</option>
-								<option value="commentsCount">Số bình luận</option>
+								<option value="createdAt">Sắp xếp: Ngày tạo</option>
+								<option value="views">Sắp xếp: Lượt xem</option>
+								<option value="likesCount">Sắp xếp: Lượt thích</option>
+								<option value="commentsCount">Sắp xếp: Bình luận</option>
+							</Form.Select>
+						</div>
+						<div className="col-md-2">
+							<Form.Select
+								value={pendingFilters.order}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, order: e.target.value })}
+							>
+								<option value="desc">Thứ tự: Giảm dần</option>
+								<option value="asc">Thứ tự: Tăng dần</option>
+							</Form.Select>
+						</div>
+					</div>
+					<div className="row g-3 mt-1 align-items-end">
+						<div className="col-md-2">
+							<Form.Select
+								value={pendingFilters.isDraft}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, isDraft: e.target.value })}
+							>
+								<option value="">Bản nháp</option>
+								<option value="true">Chỉ nháp</option>
+								<option value="false">Đã xuất bản</option>
+							</Form.Select>
+						</div>
+						<div className="col-md-2">
+							<Form.Select
+								value={pendingFilters.moderationStatus}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, moderationStatus: e.target.value })}
+							>
+								<option value="">Trạng thái duyệt</option>
+								<option value="pending">Chờ duyệt</option>
+								<option value="approved">Đã duyệt</option>
+								<option value="rejected">Đã từ chối</option>
 							</Form.Select>
 						</div>
 						<div className="col-md-2">
@@ -422,12 +576,20 @@ const PostAdmin = () => {
 								value={pendingFilters.isDeleted}
 								onChange={(e) => setPendingFilters({ ...pendingFilters, isDeleted: e.target.value })}
 							>
-								<option value="">Tất cả trạng thái ẩn</option>
+								<option value="">Trạng thái ẩn</option>
 								<option value="false">Chưa ẩn</option>
 								<option value="true">Đã ẩn</option>
 							</Form.Select>
 						</div>
-						<div className="col-md-2 d-flex gap-2">
+						<div className="col-md-3">
+							<Form.Control
+								type="text"
+								placeholder="ID tác giả (tùy chọn)"
+								value={pendingFilters.authorId}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, authorId: e.target.value })}
+							/>
+						</div>
+						<div className="col-md-3 d-flex gap-2">
 							<button className="btn btn-primary w-100" onClick={applyFilters} type="button">
 								Tìm
 							</button>
@@ -435,19 +597,6 @@ const PostAdmin = () => {
 								Đặt lại
 							</button>
 						</div>
-					</div>
-					<div className="row g-3 mt-2">
-						{/* <div className="col-md-2">
-							<Form.Select
-								value={filters.isDraft}
-								onChange={(e) => setFilters({ ...filters, isDraft: e.target.value, page: 1 })}
-							>
-								<option value="">Tất cả bài viết</option>
-								<option value="true">Bản nháp</option>
-								<option value="false">Đã xuất bản</option>
-							</Form.Select>
-						</div> */}
-
 					</div>
 				</div>
 			</div>
@@ -519,7 +668,9 @@ const PostAdmin = () => {
 									<th>Lượt xem</th>
 									<th>Likes</th>
 									<th>Comments</th>
+									<th>Ngày tạo</th>
 									<th>Trạng thái</th>
+									<th>Duyệt</th>
 									<th>Hành động</th>
 								</tr>
 							</thead>
@@ -534,24 +685,28 @@ const PostAdmin = () => {
 											/>
 										</td>
 										<td>{(filters.page - 1) * filters.limit + idx + 1}</td>
-										<td>
-											{post.title}
-											{post.pinned && <span className="badge bg-warning ms-2">Ghim</span>}
-											{post.locked && <span className="badge bg-secondary ms-2">Khóa</span>}
+										<td className="text-break">
+											<div className="fw-semibold">{post.title}</div>
+											{post.slug && <small className="text-muted d-block">/{post.slug}</small>}
+											{post.tags && post.tags.length > 0 && (
+												<div className="d-flex flex-wrap gap-1 mt-1">
+													{post.tags.slice(0, 3).map((tag, tagIdx) => (
+														<span key={tagIdx} className="badge bg-light text-dark border">#{tag}</span>
+													))}
+													{post.tags.length > 3 && (
+														<span className="badge bg-light text-dark">+{post.tags.length - 3}</span>
+													)}
+												</div>
+											)}
 										</td>
 										<td>{post.authorId?.username || "N/A"}</td>
 										<td>{post.categoryId?.title || "N/A"}</td>
 										<td>{post.views || 0}</td>
 										<td>{post.likesCount || 0}</td>
 										<td>{post.commentsCount || 0}</td>
-										<td>
-											{post.isDeleted && <span className="badge bg-danger me-2">Đã xóa</span>}
-											{post.isDraft ? (
-												<span className="badge bg-warning">Bản nháp</span>
-											) : (
-												<span className="badge bg-success">Công khai</span>
-											)}
-										</td>
+										<td>{formatDateTime(post.createdAt)}</td>
+										<td>{renderStatusBadges(post)}</td>
+										<td>{renderModerationBadge(post)}</td>
 										<td>
 											<div className="btn-group" role="group">
 												<button
@@ -559,6 +714,14 @@ const PostAdmin = () => {
 													onClick={() => handleShowModal(post)}
 												>
 													Xem
+												</button>
+												<button
+													className="btn btn-outline-primary btn-sm"
+													onClick={() => handleOpenPublicPost(post.slug)}
+													disabled={!post.slug}
+													title={post.slug ? "Mở bài viết công khai" : "Bài viết chưa có slug"}
+												>
+													🔗
 												</button>
 												<button
 													className={`btn btn-sm ${post.pinned ? 'btn-warning' : 'btn-outline-warning'}`}
@@ -574,6 +737,22 @@ const PostAdmin = () => {
 												>
 													🔒
 												</button>
+												{post.moderationStatus === "pending" && (
+													<>
+														<button
+															className="btn btn-success btn-sm"
+															onClick={() => handleApprove(post._id)}
+														>
+															Duyệt
+														</button>
+														<button
+															className="btn btn-outline-danger btn-sm"
+															onClick={() => handleReject(post._id)}
+														>
+															Từ chối
+														</button>
+													</>
+												)}
 												{post.isDeleted ? (
 													<button
 														className="btn btn-success btn-sm"
@@ -622,7 +801,7 @@ const PostAdmin = () => {
 								<div className="col-md-6">
 									<p><strong>Tác giả:</strong> {selectedPost.authorId?.username || "N/A"}</p>
 									<p><strong>Danh mục:</strong> {selectedPost.categoryId?.title || "N/A"}</p>
-									<p><strong>Ngày tạo:</strong> {new Date(selectedPost.createdAt).toLocaleString()}</p>
+									<p><strong>Ngày tạo:</strong> {formatDateTime(selectedPost.createdAt)}</p>
 								</div>
 								<div className="col-md-6">
 									<p><strong>Lượt xem:</strong> {selectedPost.views || 0}</p>
@@ -641,14 +820,45 @@ const PostAdmin = () => {
 									<span className="badge bg-success ms-2">Công khai</span>
 								)}
 							</div>
+							<div className="mb-3">
+								<strong>Trạng thái duyệt:</strong>
+								<div className="mt-2">{renderModerationBadge(selectedPost)}</div>
+							</div>
 							<div className="row mb-3">
 								<div className="col-md-6">
-									<p><strong>Slug:</strong> {selectedPost.slug}</p>
+									<p>
+										<strong>Slug:</strong> {selectedPost.slug || "—"}
+										{selectedPost.slug && (
+											<a
+												href={`/post/${selectedPost.slug}`}
+												target="_blank"
+												rel="noreferrer"
+												className="ms-2"
+											>
+												Xem bài viết
+											</a>
+										)}
+									</p>
 								</div>
 								<div className="col-md-6">
-									<p><strong>Cập nhật:</strong> {new Date(selectedPost.updatedAt).toLocaleString()}</p>
+									<p><strong>Cập nhật:</strong> {formatDateTime(selectedPost.updatedAt)}</p>
 								</div>
 							</div>
+							{selectedPost.moderationStatus !== "pending" && (
+								<div className="row mb-3">
+									<div className="col-md-6">
+										<p><strong>Người duyệt:</strong> {getModeratorName(selectedPost.moderatedBy)}</p>
+									</div>
+									<div className="col-md-6">
+										<p><strong>Thời gian duyệt:</strong> {formatDateTime(selectedPost.moderatedAt)}</p>
+									</div>
+								</div>
+							)}
+							{selectedPost.rejectionReason && (
+								<div className="alert alert-warning">
+									<strong>Lý do từ chối:</strong> {selectedPost.rejectionReason}
+								</div>
+							)}
 							<div>
 								<strong>Nội dung:</strong>
 								<div

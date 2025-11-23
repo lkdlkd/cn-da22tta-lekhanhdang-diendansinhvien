@@ -637,41 +637,113 @@ const CommentItem = ({
                         <>
                           <button
                             onClick={async () => {
-                              try {
-                                const token = localStorage.getItem('token');
-                                if (!token) {
-                                  toast.info('Vui lòng đăng nhập để báo cáo');
-                                  return;
-                                }
-                                const result = await Swal.fire({
-                                  title: 'Báo cáo bình luận',
-                                  input: 'textarea',
-                                  inputLabel: 'Lý do báo cáo',
-                                  inputPlaceholder: 'Nhập lý do...',
-                                  inputAttributes: { 'aria-label': 'Lý do báo cáo' },
-                                  showCancelButton: true,
-                                  confirmButtonText: 'Gửi báo cáo',
-                                  cancelButtonText: 'Hủy',
-                                  inputValidator: (value) => {
-                                    if (!value || !value.trim()) {
-                                      return 'Vui lòng nhập lý do';
-                                    }
-                                    return undefined;
+                              setShowOptionsMenu(false);
+
+                              // Hiển thị dialog chọn lý do báo cáo
+                              const { value: reason } = await Swal.fire({
+                                title: 'Báo cáo bình luận',
+                                html: `
+                                  <p class="text-start mb-3">Bạn muốn báo cáo bình luận này?</p>
+                                  <div class="text-start" style="max-height: 300px; overflow-y: auto; padding: 10px; border: 1px solid #e4e6eb; border-radius: 8px; background-color: #f8f9fa;">
+                                    <div style="margin-bottom: 10px;">
+                                      <label style="display: flex; align-items: center; padding: 8px; cursor: pointer; border-radius: 6px; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e4e6eb'" onmouseout="this.style.backgroundColor='transparent'">
+                                        <input type="radio" name="report-reason" value="Spam hoặc quảng cáo" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                        <span style="font-size: 14px; color: #050505;">Spam hoặc quảng cáo</span>
+                                      </label>
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                      <label style="display: flex; align-items: center; padding: 8px; cursor: pointer; border-radius: 6px; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e4e6eb'" onmouseout="this.style.backgroundColor='transparent'">
+                                        <input type="radio" name="report-reason" value="Quấy rối hoặc bắt nạt" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                        <span style="font-size: 14px; color: #050505;">Quấy rối hoặc bắt nạt</span>
+                                      </label>
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                      <label style="display: flex; align-items: center; padding: 8px; cursor: pointer; border-radius: 6px; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e4e6eb'" onmouseout="this.style.backgroundColor='transparent'">
+                                        <input type="radio" name="report-reason" value="Ngôn từ thù ghét" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                        <span style="font-size: 14px; color: #050505;">Ngôn từ thù ghét</span>
+                                      </label>
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                      <label style="display: flex; align-items: center; padding: 8px; cursor: pointer; border-radius: 6px; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e4e6eb'" onmouseout="this.style.backgroundColor='transparent'">
+                                        <input type="radio" name="report-reason" value="Nội dung không phù hợp" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                        <span style="font-size: 14px; color: #050505;">Nội dung không phù hợp</span>
+                                      </label>
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                      <label style="display: flex; align-items: center; padding: 8px; cursor: pointer; border-radius: 6px; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e4e6eb'" onmouseout="this.style.backgroundColor='transparent'">
+                                        <input type="radio" name="report-reason" value="Thông tin sai sự thật" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                        <span style="font-size: 14px; color: #050505;">Thông tin sai sự thật</span>
+                                      </label>
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                      <label style="display: flex; align-items: center; padding: 8px; cursor: pointer; border-radius: 6px; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e4e6eb'" onmouseout="this.style.backgroundColor='transparent'">
+                                        <input type="radio" name="report-reason" value="Bạo lực hoặc nguy hiểm" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                        <span style="font-size: 14px; color: #050505;">Bạo lực hoặc nguy hiểm</span>
+                                      </label>
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                      <label style="display: flex; align-items: center; padding: 8px; cursor: pointer; border-radius: 6px; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e4e6eb'" onmouseout="this.style.backgroundColor='transparent'">
+                                        <input type="radio" name="report-reason" value="Vi phạm bản quyền" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                        <span style="font-size: 14px; color: #050505;">Vi phạm bản quyền</span>
+                                      </label>
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                      <label style="display: flex; align-items: center; padding: 8px; cursor: pointer; border-radius: 6px; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e4e6eb'" onmouseout="this.style.backgroundColor='transparent'">
+                                        <input type="radio" name="report-reason" value="Lý do khác" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                        <span style="font-size: 14px; color: #050505;">Lý do khác</span>
+                                      </label>
+                                    </div>
+                                  </div>
+                                  <textarea id="report-detail" class="form-control mt-3" rows="3" placeholder="Mô tả chi tiết (không bắt buộc)" style="font-size: 14px;"></textarea>
+                                `,
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#dc3545',
+                                cancelButtonColor: '#6c757d',
+                                confirmButtonText: 'Gửi báo cáo',
+                                cancelButtonText: 'Hủy',
+                                width: '600px',
+                                customClass: {
+                                  container: 'swal-report-container'
+                                },
+                                preConfirm: () => {
+                                  const selectedReason = document.querySelector('input[name="report-reason"]:checked');
+                                  const detail = document.getElementById('report-detail').value;
+
+                                  if (!selectedReason) {
+                                    Swal.showValidationMessage('Vui lòng chọn lý do báo cáo');
+                                    return false;
                                   }
-                                });
-                                if (result.isConfirmed) {
+
+                                  return { reason: selectedReason.value, detail };
+                                }
+                              });
+
+                              if (reason) {
+                                try {
                                   const { createReport } = await import("../Utils/api");
-                                  const response = await createReport(token, 'comment', comment._id, result.value.trim());
-                                  if (response && response.success) {
-                                    toast.success('Đã gửi báo cáo');
-                                  } else {
-                                    toast.error(response?.error || 'Gửi báo cáo thất bại');
+                                  const token = localStorage.getItem('token');
+
+                                  if (!token) {
+                                    toast.error("Vui lòng đăng nhập để báo cáo");
+                                    return;
                                   }
-                                  setShowOptionsMenu(false);
+
+                                  const reasonText = reason.detail
+                                    ? `${reason.reason}: ${reason.detail}`
+                                    : reason.reason;
+
+                                  const result = await createReport(token, 'comment', comment._id, reasonText);
+
+                                  if (result.success) {
+                                    toast.success("Đã gửi báo cáo. Cảm ơn bạn đã giúp giữ cộng đồng an toàn!");
+                                  } else {
+                                    toast.error(result.error || "Không thể gửi báo cáo");
+                                  }
+                                } catch (error) {
+                                  console.error("Error reporting comment:", error);
+                                  toast.error("Có lỗi xảy ra khi gửi báo cáo");
                                 }
-                              } catch (err) {
-                                console.error('Report comment error:', err);
-                                toast.error('Có lỗi xảy ra khi gửi báo cáo');
                               }
                             }}
                             style={{
@@ -682,8 +754,11 @@ const CommentItem = ({
                               cursor: "pointer",
                               textAlign: "left",
                               fontSize: "14px",
-                              color: "#d97706",
-                              fontWeight: "600",
+                              color: "#050505",
+                              fontWeight: "500",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
                               transition: "background-color 0.2s"
                             }}
                             onMouseEnter={(e) => {
@@ -693,7 +768,8 @@ const CommentItem = ({
                               e.currentTarget.style.backgroundColor = "transparent";
                             }}
                           >
-                            🚩 Báo cáo bình luận
+                            <span>⚠️</span>
+                            <span>Báo cáo bình luận</span>
                           </button>
                         </>
                       )}

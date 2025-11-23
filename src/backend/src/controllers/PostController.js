@@ -899,6 +899,7 @@ exports.getAllPostsAdmin = async (req, res) => {
 			locked,
 			isDraft,
 			isDeleted,
+			moderationStatus,
 			sortBy = 'createdAt',
 			order = 'desc'
 		} = req.query;
@@ -933,6 +934,9 @@ exports.getAllPostsAdmin = async (req, res) => {
 		if (locked !== undefined && locked !== '') query.locked = String(locked) === 'true';
 		if (isDraft !== undefined && isDraft !== '') query.isDraft = String(isDraft) === 'true';
 		if (isDeleted !== undefined && isDeleted !== '') query.isDeleted = String(isDeleted) === 'true';
+		if (moderationStatus && ['pending', 'approved', 'rejected'].includes(String(moderationStatus))) {
+			query.moderationStatus = moderationStatus;
+		}
 
 		const skip = (parseInt(page) - 1) * parseInt(limit);
 		const sortOrder = order === 'desc' ? -1 : 1;
@@ -943,6 +947,7 @@ exports.getAllPostsAdmin = async (req, res) => {
 			Post.find(query)
 				.populate('authorId', 'username displayName avatarUrl email')
 				.populate('categoryId', 'title slug')
+				.populate('moderatedBy', 'username displayName email')
 				.populate('attachments')
 				.skip(skip)
 				.limit(limitNum)

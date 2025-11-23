@@ -120,20 +120,17 @@ export const markPrivateAsRead = (peerId) => {
 };
 
 export const onPrivateMessage = (callback) => {
-  // Remove all previous listeners to avoid duplicates
-  socket.off("chat:private:new");
+  // Don't remove all listeners - just add this one
   socket.on("chat:private:new", callback);
 };
 
 export const onPrivateNotify = (callback) => {
-  // Remove all previous listeners to avoid duplicates
-  socket.off("chat:private:notify");
+  // Don't remove all listeners - just add this one
   socket.on("chat:private:notify", callback);
 };
 
 export const onPrivateTyping = (callback) => {
-  // Remove all previous listeners to avoid duplicates
-  socket.off("chat:private:typing");
+  // Don't remove all listeners - just add this one
   socket.on("chat:private:typing", callback);
 };
 

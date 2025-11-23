@@ -45,7 +45,7 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
 
   // State for edit modal
   const [editingPost, setEditingPost] = useState(null);
-  
+
   // Loading states
   const [isSubmittingComment, setIsSubmittingComment] = useState({});
   const [isSubmittingReply, setIsSubmittingReply] = useState({});
@@ -452,10 +452,10 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
     const attachments = commentAttachments[postId] || [];
 
     if ((!text || !text.trim()) && attachments.length === 0) return;
-    
+
     // Prevent double submission
     if (isSubmittingComment[postId]) return;
-    
+
     setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));
 
     try {
@@ -521,12 +521,12 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
     const text = replyTexts[parentId];
     const attachments = replyAttachments[parentId] || [];
     if ((!text || !text.trim()) && attachments.length === 0) return;
-    
+
     // Prevent double submission
     if (isSubmittingReply[parentId]) return;
-    
+
     setIsSubmittingReply(prev => ({ ...prev, [parentId]: true }));
-    
+
     try {
       const token = localStorage.getItem('token');
       let formData;
@@ -686,11 +686,12 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
           centered
           size="lg"
           className="post-detail-modal"
-          // backdrop="static"
+          backdrop={true}
           keyboard={true}
+          enforceFocus={false}
         >
-          <Modal.Header style={{ 
-            borderBottom: '1px solid #e4e6eb', 
+          <Modal.Header style={{
+            borderBottom: '1px solid #e4e6eb',
             padding: '12px 16px',
             display: 'flex',
             alignItems: 'center',

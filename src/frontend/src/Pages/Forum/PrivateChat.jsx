@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../Context/AuthContext";
 import { toast } from "react-toastify";
@@ -53,6 +53,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
   const previousScrollHeightRef = useRef(0);
   const isFirstLoadRef = useRef(true);
   const emojiPickerRef = useRef(null);
+  const messageInputRef = useRef(null);
 
   const me = auth.user;
 
@@ -83,28 +84,28 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
   // Resolve username to userId
   useEffect(() => {
     if (!username || !auth.token) {
-       // .log('⚠️ Missing username or token:', { username, hasToken: !!auth.token });
+      // .log('⚠️ Missing username or token:', { username, hasToken: !!auth.token });
       return;
     }
 
     const resolvePeer = async () => {
       try {
-         // console.log('🔍 Resolving peer username:', username);
+        // console.log('🔍 Resolving peer username:', username);
         const result = await getUserByUsername(username, auth.token);
         if (result.success && result.user) {
-           // console.log('✅ Peer resolved:', result.user);
+          // console.log('✅ Peer resolved:', result.user);
           setPeer(result.user);
           setPeerId(String(result.user._id));
           setPeerOnline(result.user.isOnline || false);
         } else {
-           // console.error("❌ User not found:", username);
+          // console.error("❌ User not found:", username);
           // Don't navigate away if embedded in ListChat
           if (!usernameOverride) {
             navigate("/messages");
           }
         }
       } catch (error) {
-         // console.error("❌ Error resolving username:", error);
+        // console.error("❌ Error resolving username:", error);
         // Don't navigate away if embedded in ListChat
         if (!usernameOverride) {
           navigate("/messages");
@@ -129,13 +130,13 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
     const loadHistory = async () => {
       try {
         const result = await getPrivateChatHistory(auth.token, peerId, 1, 50);
-         // console.log('📂 Loaded messages from DB:', result.data?.messages?.length || 0);
+        // console.log('📂 Loaded messages from DB:', result.data?.messages?.length || 0);
         if (result.success && result.data) {
           const msgs = result.data.messages || [];
           setMessages(msgs);
           setCurrentPage(1);
           setHasMore(msgs.length >= 50); // If we got 50 messages, there might be more
-          
+
           // Mark messages as read when loading chat
           markPrivateAsRead(peerId);
         }
@@ -338,8 +339,21 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
     }
   };
 
+  const autoSizeInput = useCallback(() => {
+    if (!messageInputRef.current) return;
+    const el = messageInputRef.current;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+  }, []);
+
   const handleTypingInput = (e) => {
-    setNewMessage(e.target.value);
+    const value = e.target.value;
+    setNewMessage(value);
+    autoSizeInput();
+
+    if (!peerId) {
+      return;
+    }
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
@@ -351,6 +365,21 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
       sendPrivateTyping(peerId, false);
     }, 1000);
   };
+
+  const handleComposerKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (selectedFiles.length > 0) {
+        handleSendFiles();
+      } else {
+        handleSend();
+      }
+    }
+  };
+
+  useEffect(() => {
+    autoSizeInput();
+  }, [newMessage, autoSizeInput]);
 
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -386,7 +415,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
         });
       }
     } catch (error) {
-       // console.error("Error uploading files:", error);
+      // console.error("Error uploading files:", error);
       toast.error("Lỗi khi tải file lên");
     } finally {
       setUploadingFiles(false);
@@ -552,7 +581,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
         >
           {/* Loading More Indicator */}
           {loadingMore && (
-           <LoadingPost small={true} />
+            <LoadingPost small={true} />
           )}
 
           {/* No More Messages Indicator */}
@@ -944,27 +973,22 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
               )}
             </div>
 
-            <input
-              type="text"
+            <textarea
+              ref={messageInputRef}
+              rows={1}
               className="form-control"
               placeholder="Nhập tin nhắn..."
               value={newMessage}
               onChange={handleTypingInput}
-              onKeyPress={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  if (selectedFiles.length > 0) {
-                    handleSendFiles();
-                  } else {
-                    handleSend();
-                  }
-                }
-              }}
+              onKeyDown={handleComposerKeyDown}
               style={{
                 fontSize: "0.9rem",
                 borderRadius: '20px',
                 paddingLeft: '16px',
-                paddingRight: '16px'
+                paddingRight: '16px',
+                resize: 'none',
+                minHeight: '42px',
+                maxHeight: '180px'
               }}
             />
             <button

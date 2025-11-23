@@ -113,17 +113,17 @@ const PostCreate = ({ user, categories, token, onPostCreated }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         // Prevent double submission
         if (isSubmitting) return;
-        
+
         if (!postForm.title || !postForm.content || !postForm.categoryId) {
             toast.error("Vui lòng điền đầy đủ thông tin bài viết!");
             return;
         }
-        
+
         setIsSubmitting(true);
-        
+
         try {
             // Prepare FormData for file upload
             const formData = new FormData();
@@ -520,7 +520,7 @@ const PostCreate = ({ user, categories, token, onPostCreated }) => {
                                 >
                                     🖼️
                                 </button>
-                        
+
                                 <button
                                     type="button"
                                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
