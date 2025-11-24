@@ -1146,8 +1146,11 @@ export const getOnlineUsersCount = async (token) => {
 // ============================================
 
 // Lấy danh sách bài viết chờ duyệt
-export const getPendingPosts = async (token) => {
-  const response = await fetch(`${API_BASE}/mod/posts/pending`, {
+export const getPendingPosts = async (token, queryParams = '') => {
+  const url = queryParams 
+    ? `${API_BASE}/mod/posts/pending?${queryParams}`
+    : `${API_BASE}/mod/posts/pending`;
+  const response = await fetch(url, {
     method: "GET",
     headers: withNoStore({
       Authorization: `Bearer ${token}`,

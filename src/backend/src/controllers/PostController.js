@@ -1339,18 +1339,67 @@ exports.getPostsStats = async (req, res) => {
 // [MOD] Lấy danh sách bài viết đang chờ duyệt
 exports.getPendingPosts = async (req, res) => {
 	try {
-		const posts = await Post.find({
-			moderationStatus: 'pending',
+		const {
+			page = 1,
+			limit = 10,
+			moderationStatus = 'pending',
+			keyword,
+			categoryId,
+			sortBy = 'createdAt',
+			order = 'desc'
+		} = req.query;
+
+		const query = {
 			isDeleted: false
-		})
-			.populate('authorId', 'username displayName avatarUrl email')
-			.populate('categoryId', 'title slug')
-			.sort({ createdAt: -1 });
+		};
+
+		// Filter by moderation status
+		if (['pending', 'approved', 'rejected'].includes(moderationStatus)) {
+			query.moderationStatus = moderationStatus;
+		}
+
+		// Search by keyword
+		if (keyword) {
+			const keywordStr = String(keyword).trim();
+			if (keywordStr) {
+				query.$or = [
+					{ title: { $regex: keywordStr, $options: 'i' } },
+					{ content: { $regex: keywordStr, $options: 'i' } }
+				];
+			}
+		}
+
+		// Filter by category
+		if (categoryId) {
+			query.categoryId = categoryId;
+		}
+
+		const skip = (parseInt(page) - 1) * parseInt(limit);
+		const sortOrder = order === 'desc' ? -1 : 1;
+		const limitNum = parseInt(limit);
+
+		// Query with pagination
+		const [posts, total] = await Promise.all([
+			Post.find(query)
+				.populate('authorId', 'username displayName avatarUrl email')
+				.populate('categoryId', 'title slug')
+				.populate('moderatedBy', 'username displayName email')
+				.sort({ [sortBy]: sortOrder })
+				.skip(skip)
+				.limit(limitNum)
+				.lean(),
+			Post.countDocuments(query)
+		]);
 
 		res.json({
 			success: true,
 			data: posts,
-			total: posts.length
+			pagination: {
+				page: parseInt(page),
+				limit: limitNum,
+				total,
+				pages: Math.ceil(total / limitNum)
+			}
 		});
 	} catch (err) {
 		console.error('Error in getPendingPosts:', err);
