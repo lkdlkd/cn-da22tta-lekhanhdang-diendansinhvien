@@ -152,10 +152,10 @@ export function Register() {
     }
 
     const normalizedEmail = formData.email.trim().toLowerCase();
-    if (!normalizedEmail.endsWith('@st.tvu.edu.vn')) {
-      setError('Bạn phải sử dụng email sinh viên @st.tvu.edu.vn để đăng ký.');
-      return;
-    }
+    // if (!normalizedEmail.endsWith('@st.tvu.edu.vn')) {
+    //   setError('Bạn phải sử dụng email sinh viên @st.tvu.edu.vn để đăng ký.');
+    //   return;
+    // }
 
     setLoading(true);
     try {

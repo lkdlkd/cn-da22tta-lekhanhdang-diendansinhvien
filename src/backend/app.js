@@ -10,9 +10,9 @@ app.use(express.json());
 app.use(cors());
 
 // 🔥 Serve file uploads
-app.use('/uploads', express.static('src/uploads'));
-app.use('/uploads/user', express.static('src/uploads/user'));
-app.use('/uploads/chat', express.static('src/uploads/chat'));
+// app.use('/uploads', express.static('src/uploads'));
+// app.use('/uploads/user', express.static('src/uploads/user'));
+// app.use('/uploads/chat', express.static('src/uploads/chat'));
 
 // API Routes
 const apiRoutes = require('./src/routers/api');

@@ -34,6 +34,7 @@ const UserAdmin = () => {
 		role: "",
 		isBanned: "",
 		isOnline: "",
+		emailVerified: "",
 		page: 1,
 		limit: 20,
 		sortBy: "createdAt",
@@ -44,6 +45,7 @@ const UserAdmin = () => {
 		role: "",
 		isBanned: "",
 		isOnline: "",
+		emailVerified: "",
 		page: 1,
 		limit: 20,
 		sortBy: "createdAt",
@@ -65,6 +67,7 @@ const UserAdmin = () => {
 			params.limit = filters.limit;
 			params.sortBy = filters.sortBy;
 			params.order = filters.order;
+			if (filters.emailVerified !== "") params.emailVerified = filters.emailVerified;
 
 			const data = await getAllUsersAdmin(token, params);
 			setUsers(data.data || []);
@@ -104,6 +107,7 @@ const UserAdmin = () => {
 			role: "",
 			isBanned: "",
 			isOnline: "",
+			emailVerified: "",
 			page: 1,
 			limit: 20,
 			sortBy: "createdAt",
@@ -451,6 +455,16 @@ const UserAdmin = () => {
 						</div>
 						<div className="col-md-2">
 							<Form.Select
+								value={pendingFilters.emailVerified}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, emailVerified: e.target.value })}
+							>
+								<option value="">Xác thực email</option>
+								<option value="true">✅ Đã xác thực</option>
+								<option value="false">⚠️ Chưa xác thực</option>
+							</Form.Select>
+						</div>
+						<div className="col-md-2">
+							<Form.Select
 								value={pendingFilters.sortBy}
 								onChange={(e) => setPendingFilters({ ...pendingFilters, sortBy: e.target.value })}
 							>
@@ -537,6 +551,7 @@ const UserAdmin = () => {
 									<th>Email</th>
 									<th>Phone</th>
 									<th>Vai trò</th>
+									<th>Xác thực</th>
 									<th>Bài viết</th>
 									<th>Bình luận</th>
 									<th>Last Seen</th>
@@ -568,13 +583,20 @@ const UserAdmin = () => {
 										</td>
 										<td>{user.email}</td>
 										<td>{user.phone || '—'}</td>
-										<td>
-											<span className={`badge ${user.role === 'admin' ? 'bg-danger' : user.role === 'moderator' ? 'bg-warning' : 'bg-secondary'}`}>
-												{user.role}
-											</span>
-										</td>
-										<td>{user.postsCount || 0}</td>
-										<td>{user.commentsCount || 0}</td>
+											<td>
+												<span className={`badge ${user.role === 'admin' ? 'bg-danger' : user.role === 'moderator' ? 'bg-warning' : 'bg-secondary'}`}>
+													{user.role}
+												</span>
+											</td>
+											<td>
+												{user.emailVerified ? (
+													<span className="badge bg-success" title="Email đã xác thực">✓</span>
+												) : (
+													<span className="badge bg-warning" title="Email chưa xác thực">⚠</span>
+												)}
+											</td>
+											<td>{user.postsCount || 0}</td>
+											<td>{user.commentsCount || 0}</td>
 										<td>{user.lastSeen ? new Date(user.lastSeen).toLocaleString() : '—'}</td>
 										<td>
 											{user.isBanned ? (
@@ -663,14 +685,21 @@ const UserAdmin = () => {
 											<td><strong>Username:</strong></td>
 											<td>{selectedUser.username}</td>
 										</tr>
-										<tr>
-											<td><strong>Email:</strong></td>
-											<td>{selectedUser.email}</td>
-										</tr>
-										<tr>
-											<td><strong>Phone:</strong></td>
-											<td>{selectedUser.phone || '—'}</td>
-										</tr>
+											<tr>
+												<td><strong>Email:</strong></td>
+												<td>
+													{selectedUser.email}
+													{selectedUser.emailVerified ? (
+														<span className="badge bg-success ms-2" title="Email đã xác thực">✓ Đã xác thực</span>
+													) : (
+														<span className="badge bg-warning ms-2" title="Email chưa xác thực">⚠ Chưa xác thực</span>
+													)}
+												</td>
+											</tr>
+											<tr>
+												<td><strong>Phone:</strong></td>
+												<td>{selectedUser.phone || '—'}</td>
+											</tr>
 										<tr>
 											<td><strong>Khoa:</strong></td>
 											<td>{selectedUser.faculty}</td>

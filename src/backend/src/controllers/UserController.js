@@ -165,9 +165,9 @@ exports.register = async (req, res) => {
     username = username.toLowerCase();
     email = email.toLowerCase();
 
-    if (!email.endsWith(ALLOWED_EMAIL_DOMAIN)) {
-      return res.status(400).json({ success: false, error: `Email phải sử dụng tên miền ${ALLOWED_EMAIL_DOMAIN}` });
-    }
+    // if (!email.endsWith(ALLOWED_EMAIL_DOMAIN)) {
+    //   return res.status(400).json({ success: false, error: `Email phải sử dụng tên miền ${ALLOWED_EMAIL_DOMAIN}` });
+    // }
     // Kiểm tra username và password không được ngắn hơn 6 ký tự
     if (username.length < 6) {
       return res.status(400).json({ success: false, error: "Tên người dùng phải có ít nhất 6 ký tự" });
@@ -1148,6 +1148,7 @@ exports.getAllUsersAdmin = async (req, res) => {
       role,
       isBanned,
       isOnline,
+      emailVerified,
       sortBy = 'createdAt',
       order = 'desc',
     } = req.query;
@@ -1175,6 +1176,11 @@ exports.getAllUsersAdmin = async (req, res) => {
     // Lọc theo online status
     if (isOnline !== undefined) {
       query.isOnline = isOnline === 'true';
+    }
+
+    // Lọc theo trạng thái xác thực email
+    if (emailVerified !== undefined) {
+      query.emailVerified = emailVerified === 'true';
     }
 
     const skip = (page - 1) * limit;
