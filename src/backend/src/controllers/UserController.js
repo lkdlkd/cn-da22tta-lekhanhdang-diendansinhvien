@@ -8,7 +8,6 @@ const crypto = require('crypto');
 const { uploadToDrive, deleteFromDrive } = require('../utils/fileUpload');
 const { sendEmail } = require('../utils/emailService');
 
-const ALLOWED_EMAIL_DOMAIN = '@st.tvu.edu.vn';
 const VERIFICATION_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const RESEND_COOLDOWN_MS = 60 * 1000; // 1 minute
 
@@ -165,9 +164,12 @@ exports.register = async (req, res) => {
     username = username.toLowerCase();
     email = email.toLowerCase();
 
-    // if (!email.endsWith(ALLOWED_EMAIL_DOMAIN)) {
-    //   return res.status(400).json({ success: false, error: `Email phải sử dụng tên miền ${ALLOWED_EMAIL_DOMAIN}` });
-    // }
+    // Kiểm tra email domain - chỉ cho phép @gmail.com hoặc @st.tvu.edu.vn
+    const allowedDomains = ['@gmail.com', '@st.tvu.edu.vn'];
+    const isValidDomain = allowedDomains.some(domain => email.endsWith(domain));
+    if (!isValidDomain) {
+      return res.status(400).json({ success: false, error: 'Email phải sử dụng tên miền @gmail.com hoặc @st.tvu.edu.vn' });
+    }
     // Kiểm tra username và password không được ngắn hơn 6 ký tự
     if (username.length < 6) {
       return res.status(400).json({ success: false, error: "Tên người dùng phải có ít nhất 6 ký tự" });
@@ -365,7 +367,7 @@ exports.forgotPassword = async (req, res) => {
 
     const normalizedEmail = email.toLowerCase();
     const user = await User.findOne({ email: normalizedEmail });
-    
+
     if (!user) {
       // Không tiết lộ email có tồn tại hay không vì lý do bảo mật
       return res.json({ success: true, message: 'Nếu email tồn tại, link đặt lại mật khẩu đã được gửi đến hộp thư của bạn.' });
@@ -380,7 +382,7 @@ exports.forgotPassword = async (req, res) => {
     // Tạo mã reset và token
     const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
     const resetToken = crypto.randomBytes(32).toString('hex');
-    
+
     user.passwordResetCode = resetCode;
     user.passwordResetToken = resetToken;
     user.passwordResetExpires = new Date(Date.now() + VERIFICATION_TTL_MS); // 10 phút
@@ -446,11 +448,11 @@ exports.forgotPassword = async (req, res) => {
         </div>
       `;
 
-      await sendEmail({ 
-        to: user.email, 
-        subject, 
-        html, 
-        text: `Mã đặt lại mật khẩu của bạn là ${resetCode}. Link: ${resetLink}. Mã hết hạn sau 10 phút.` 
+      await sendEmail({
+        to: user.email,
+        subject,
+        html,
+        text: `Mã đặt lại mật khẩu của bạn là ${resetCode}. Link: ${resetLink}. Mã hết hạn sau 10 phút.`
       });
     } catch (emailErr) {
       console.error('Không thể gửi email đặt lại mật khẩu:', emailErr?.message || emailErr);
@@ -474,7 +476,7 @@ exports.verifyResetCode = async (req, res) => {
 
     const normalizedEmail = email.toLowerCase();
     const user = await User.findOne({ email: normalizedEmail }).select('+passwordResetCode +passwordResetExpires');
-    
+
     if (!user || !user.passwordResetCode) {
       return res.status(404).json({ success: false, error: 'Mã xác thực không hợp lệ hoặc đã hết hạn' });
     }
@@ -498,7 +500,7 @@ exports.verifyResetCode = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   try {
     const { token, email, code, newPassword } = req.body;
-    
+
     if (!newPassword || newPassword.length < 6) {
       return res.status(400).json({ success: false, error: 'Mật khẩu mới phải có ít nhất 6 ký tự' });
     }
@@ -507,10 +509,10 @@ exports.resetPassword = async (req, res) => {
 
     // Reset bằng token (từ link email)
     if (token) {
-      user = await User.findOne({ 
-        passwordResetToken: token 
+      user = await User.findOne({
+        passwordResetToken: token
       }).select('+passwordResetToken +passwordResetExpires +password');
-      
+
       if (!user) {
         return res.status(404).json({ success: false, error: 'Link đặt lại mật khẩu không hợp lệ hoặc đã được sử dụng' });
       }
@@ -522,10 +524,10 @@ exports.resetPassword = async (req, res) => {
     // Reset bằng code (nhập thủ công)
     else if (email && code) {
       const normalizedEmail = email.toLowerCase();
-      user = await User.findOne({ 
-        email: normalizedEmail 
+      user = await User.findOne({
+        email: normalizedEmail
       }).select('+passwordResetCode +passwordResetExpires +password');
-      
+
       if (!user || !user.passwordResetCode) {
         return res.status(404).json({ success: false, error: 'Mã xác thực không hợp lệ' });
       }

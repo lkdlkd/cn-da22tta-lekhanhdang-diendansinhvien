@@ -152,10 +152,13 @@ export function Register() {
     }
 
     const normalizedEmail = formData.email.trim().toLowerCase();
-    // if (!normalizedEmail.endsWith('@st.tvu.edu.vn')) {
-    //   setError('Bạn phải sử dụng email sinh viên @st.tvu.edu.vn để đăng ký.');
-    //   return;
-    // }
+    // Kiểm tra email domain
+    const allowedDomains = ['@gmail.com', '@st.tvu.edu.vn'];
+    const isValidDomain = allowedDomains.some(domain => normalizedEmail.endsWith(domain));
+    if (!isValidDomain) {
+      setError('Email phải sử dụng tên miền @gmail.com hoặc @st.tvu.edu.vn');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -436,7 +439,7 @@ export function Register() {
                           <div className="col-12 mb-4">
                             <label className="form-label" style={{ fontWeight: 600, fontSize: '14px', color: '#333', marginBottom: '10px' }}>
                               <i className="bi bi-envelope-fill me-2" style={{ color: '#667eea' }}></i>
-                              Email sinh viên <span className="text-danger">*</span>
+                              Email <span className="text-danger">*</span>
                             </label>
                             <input
                               type="email"
@@ -447,7 +450,7 @@ export function Register() {
                               onChange={e => setFormData({ ...formData, email: e.target.value })}
                               required
                               autoComplete="email"
-                              aria-label="Email sinh viên"
+                              aria-label="Email"
                               style={{
                                 borderRadius: '12px',
                                 padding: '14px 20px',

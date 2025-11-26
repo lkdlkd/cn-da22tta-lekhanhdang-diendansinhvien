@@ -316,11 +316,8 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
 
     sendPrivateMessage(peerId, msgData, (res) => {
       if (!res || res.success !== true) {
-        console.warn('⚠️ [PrivateChat] Message not accepted by server:', res);
-        const reason = res?.error === 'unauthenticated'
-          ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
-          : 'Không thể gửi tin nhắn. Vui lòng thử lại.';
-        alert(reason);
+        const reason = res?.error
+        toast.error(reason);
         return;
       }
       // Clear only on success
@@ -402,11 +399,8 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
         };
         sendPrivateMessage(peerId, msgData, (res) => {
           if (!res || res.success !== true) {
-            console.warn('⚠️ [PrivateChat] Message with files not accepted:', res);
-            const reason = res?.error === 'unauthenticated'
-              ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
-              : 'Không thể gửi file. Vui lòng thử lại.';
-            alert(reason);
+            const reason = res?.error;
+            toast.error(reason);
             return;
           }
           // Clear only on success

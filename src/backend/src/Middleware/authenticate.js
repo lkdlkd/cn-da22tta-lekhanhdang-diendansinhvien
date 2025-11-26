@@ -17,6 +17,9 @@ const authenticateUser = async (req, res, next) => {
         if (!user) {
             return res.status(404).json({ success: false, error: "Vui lòng đăng nhập để thực hiện" });
         }
+        if(user.isBanned) {
+            return res.status(403).json({ success: false, error: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để biết thêm chi tiết." });
+        }
         req.user = user;
         req.role = user.role;
         next();

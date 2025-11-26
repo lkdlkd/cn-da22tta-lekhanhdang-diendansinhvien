@@ -30,6 +30,17 @@ module.exports = function registerPrivateChatHandlers(io, socket, onlineUsers) {
       }
 
       const senderId = socket.userId;
+
+      // Kiểm tra user có bị ban không
+      const User = require('../models/User');
+      const user = await User.findById(senderId).select('isBanned').lean();
+      if (user?.isBanned) {
+        console.error('⚠️ Banned user tried to send private message:', senderId);
+        if (typeof callback === 'function') {
+          return callback({ success: false, error: 'Tài khoản của bạn đã bị khóa' });
+        }
+        return;
+      }
       const participants = [senderId, peerId].sort();
       const roomId = participants.join('_');
 
@@ -109,6 +120,11 @@ module.exports = function registerPrivateChatHandlers(io, socket, onlineUsers) {
       if (!socket.userId) return;
 
       const senderId = socket.userId;
+
+      // Kiểm tra user có bị ban không
+      const User = require('../models/User');
+      const user = await User.findById(senderId).select('isBanned').lean();
+      if (user?.isBanned) return;
       const participants = [senderId, peerId].sort();
       const roomId = participants.join('_');
 

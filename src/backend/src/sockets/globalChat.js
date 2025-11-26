@@ -24,6 +24,16 @@ module.exports = function registerGlobalChatHandlers(io, socket) {
         return;
       }
 
+      // Kiểm tra user có bị ban không
+      const user = await User.findById(socket.userId).select('isBanned').lean();
+      if (user?.isBanned) {
+        console.error('⚠️ Banned user tried to send global message:', socket.userId);
+        if (typeof callback === 'function') {
+          return callback({ success: false, error: 'Tài khoản của bạn đã bị khóa' });
+        }
+        return;
+      }
+
       const { message } = data;
 
       // Save message to DB
@@ -68,10 +78,13 @@ module.exports = function registerGlobalChatHandlers(io, socket) {
 
       const { isTyping } = data;
 
-      // Get user info
+      // Get user info và kiểm tra ban status
       const user = await User.findById(socket.userId)
-        .select('username displayName')
+        .select('username displayName isBanned')
         .lean();
+
+      // Không cho phép user bị ban gửi typing indicator
+      if (user?.isBanned) return;
 
       // Broadcast to others in global chat (exclude sender)
       socket.to('global_chat').emit('chat:global:typing', {
