@@ -100,7 +100,6 @@ exports.login = async (req, res) => {
       $or: [
         { username: username },
         { email: username },
-        { phone: username }
       ]
     }).select('+password');
     if (!user) {

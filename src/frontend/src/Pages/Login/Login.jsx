@@ -140,7 +140,7 @@ export function Login() {
                   <div className="mb-4">
                     <label htmlFor="username" className="form-label" style={{ fontWeight: 600, fontSize: '14px', color: '#333', marginBottom: '10px' }}>
                       <i className="bi bi-person-fill me-2" style={{ color: '#667eea' }}></i>
-                      Email, username hoặc số điện thoại
+                      Email hoặc username
                     </label>
                     <div className="position-relative">
                       <input
@@ -148,12 +148,12 @@ export function Login() {
                         className="form-control"
                         id="username"
                         name="username"
-                        placeholder="Nhập email, username hoặc số điện thoại"
+                        placeholder="Nhập email hoặc username"
                         value={username}
                         onChange={e => setUsername(e.target.value)}
                         required
                         autoComplete="username"
-                        aria-label="Email, username hoặc số điện thoại"
+                        aria-label="Email hoặc username"
                         style={{
                           borderRadius: '12px',
                           padding: '14px 20px',
