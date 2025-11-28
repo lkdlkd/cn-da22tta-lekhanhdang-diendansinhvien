@@ -352,7 +352,7 @@ const ModerationDashboard = () => {
 					<div className="d-flex flex-wrap justify-content-between align-items-start gap-3 border-bottom pb-3">
 						<div>
 							<h1 className="h2 mb-1 d-flex align-items-center gap-2">
-								<i className="ph-shield-check" style={{ fontSize: '2rem', color: '#8b5cf6' }}></i>
+								<i className="bi-shield-check" style={{ fontSize: '2rem', color: '#8b5cf6' }}></i>
 								Quản lý duyệt bài
 							</h1>
 							<p className="text-muted mb-0" style={{ fontSize: '0.95rem' }}>Theo dõi tiến trình kiểm duyệt và phản hồi bài viết</p>
@@ -363,8 +363,8 @@ const ModerationDashboard = () => {
 							)}
 							<div className="d-flex flex-wrap gap-2 justify-content-end">
 								<span
-									className="badge rounded-pill px-3 py-2 fw-semibold text-uppercase"
-									style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#fff' }}
+									className="badge bg-primary text-white fw-semibold px-3 py-2 d-flex align-items-center gap-2"
+									style={{ color: '#000000ff' }}
 								>
 									{roleLabel}
 								</span>
@@ -373,7 +373,7 @@ const ModerationDashboard = () => {
 									onClick={handleRefreshAll}
 									disabled={loading || isProcessing}
 								>
-									<i className={`ph-arrow-clockwise ${loading ? 'ph-spin' : ''}`}></i>
+									<i className={`bi-arrow-clockwise ${loading ? 'bi-spin' : ''}`}></i>
 									Làm mới
 								</button>
 							</div>
@@ -386,10 +386,10 @@ const ModerationDashboard = () => {
 			{stats && (
 				<div className="row g-3 mb-4">
 					{[
-						{ label: 'Chờ duyệt', value: stats.pending, icon: 'ph-clock', accent: 'text-warning' },
-						{ label: 'Đã duyệt', value: stats.approved, icon: 'ph-check-circle', accent: 'text-success' },
-						{ label: 'Đã từ chối', value: stats.rejected, icon: 'ph-x-circle', accent: 'text-danger' },
-						{ label: 'Tổng bài viết', value: stats.total, icon: 'ph-article', accent: 'text-primary' }
+						{ label: 'Chờ duyệt', value: stats.pending, icon: 'bi-clock', accent: 'text-warning' },
+						{ label: 'Đã duyệt', value: stats.approved, icon: 'bi-check-circle', accent: 'text-success' },
+						{ label: 'Đã từ chối', value: stats.rejected, icon: 'bi-x-circle', accent: 'text-danger' },
+						{ label: 'Tổng bài viết', value: stats.total, icon: 'bi-file-earmark-text', accent: 'text-primary' }
 					].map((card) => (
 						<div className="col-md-6 col-xl-3" key={card.label}>
 							<div className="card border-0 shadow-sm h-100">
@@ -418,11 +418,11 @@ const ModerationDashboard = () => {
 					<div className="row g-3 mb-3">
 						<div className="col-md-4">
 							<label className="form-label text-muted text-uppercase fw-semibold" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>
-								<i className="ph-magnifying-glass me-1"></i>Tìm kiếm
+								<i className="bi-search me-1"></i>Tìm kiếm
 							</label>
 							<div className="input-group">
 								<span className="input-group-text bg-light border-0">
-									<i className="ph-magnifying-glass"></i>
+									<i className="bi-search"></i>
 								</span>
 								<input
 									type="text"
@@ -435,7 +435,7 @@ const ModerationDashboard = () => {
 						</div>
 						<div className="col-md-3">
 							<label className="form-label text-muted text-uppercase fw-semibold" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>
-								<i className="ph-folder me-1"></i>Danh mục
+								<i className="bi-folder me-1"></i>Danh mục
 							</label>
 							<select
 								className="form-select border-0 bg-light"
@@ -452,7 +452,7 @@ const ModerationDashboard = () => {
 						</div>
 						<div className="col-md-3">
 							<label className="form-label text-muted text-uppercase fw-semibold" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>
-								<i className="ph-calendar me-1"></i>Thời gian
+								<i className="bi-calendar me-1"></i>Thời gian
 							</label>
 							<select
 								className="form-select border-0 bg-light"
@@ -479,7 +479,7 @@ const ModerationDashboard = () => {
 									setSortOrder('desc');
 								}}
 							>
-								<i className="ph-eraser"></i>
+								<i className="bi-eraser"></i>
 								Xóa lọc
 							</button>
 						</div>
@@ -489,7 +489,7 @@ const ModerationDashboard = () => {
 					<div className="row g-3 align-items-center">
 						<div className="col-md-3">
 							<label className="form-label text-muted text-uppercase fw-semibold" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>
-								<i className="ph-sort-ascending me-1"></i>Sắp xếp theo
+								<i className="bi-sort-alpha-down me-1"></i>Sắp xếp theo
 							</label>
 							<select
 								className="form-select border-0 bg-light"
@@ -503,7 +503,7 @@ const ModerationDashboard = () => {
 						</div>
 						<div className="col-md-2">
 							<label className="form-label text-muted text-uppercase fw-semibold" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>
-								<i className="ph-arrows-down-up me-1"></i>Thứ tự
+								<i className="bi-arrows-down-up me-1"></i>Thứ tự
 							</label>
 							<select
 								className="form-select border-0 bg-light"
@@ -517,7 +517,7 @@ const ModerationDashboard = () => {
 						<div className="col-md-7">
 							<div className="d-flex align-items-center gap-3 h-100">
 								<div className="d-flex align-items-center gap-2">
-									<i className="ph-list-checks" style={{ fontSize: '1.25rem', color: '#6366f1' }}></i>
+									<i className="bi-list-checks" style={{ fontSize: '1.25rem', color: '#6366f1' }}></i>
 									<div>
 										<div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Hiển thị</div>
 										<div className="fw-bold" style={{ fontSize: '1.1rem', color: '#1f2937' }}>{filteredCount}/{totalPending}</div>
@@ -525,7 +525,7 @@ const ModerationDashboard = () => {
 								</div>
 								<div className="vr" style={{ height: '40px' }}></div>
 								<div className="d-flex align-items-center gap-2">
-									<i className="ph-hourglass-medium" style={{ fontSize: '1.25rem', color: '#f59e0b' }}></i>
+									<i className="bi-hourglass-medium" style={{ fontSize: '1.25rem', color: '#f59e0b' }}></i>
 									<div>
 										<div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Chờ xử lý</div>
 										<div className="fw-bold" style={{ fontSize: '1.1rem', color: '#1f2937' }}>{stats?.pending ?? totalPending}</div>
@@ -572,7 +572,7 @@ const ModerationDashboard = () => {
 												onClick={() => handlePageChange(currentPage - 1)}
 												disabled={currentPage === 1}
 											>
-												<i className="ph-caret-left"></i>
+												<i className="bi-caret-left"></i>
 											</button>
 
 											{/* Page Numbers */}
@@ -601,7 +601,7 @@ const ModerationDashboard = () => {
 												onClick={() => handlePageChange(currentPage + 1)}
 												disabled={currentPage === totalPages}
 											>
-												<i className="ph-caret-right"></i>
+												<i className="bi-caret-right"></i>
 											</button>
 										</div>
 									)}
@@ -632,7 +632,7 @@ const ModerationDashboard = () => {
 								</div>
 							) : filteredCount === 0 ? (
 								<div className="text-center py-5">
-									<i className="ph-clipboard-text" style={{ fontSize: '3rem', color: '#9ca3af' }}></i>
+									<i className="bi-clipboard-text" style={{ fontSize: '3rem', color: '#9ca3af' }}></i>
 									<p className="text-muted mt-3 mb-0">
 										{searchTerm.trim() || categoryFilter !== 'all'
 											? 'Không tìm thấy bài viết phù hợp với bộ lọc hiện tại'
@@ -679,13 +679,13 @@ const ModerationDashboard = () => {
 																className="btn btn-link btn-sm p-0 text-decoration-none"
 																onClick={() => handleCopyPostLink(post.slug)}
 															>
-																<i className="ph-copy-simple me-1"></i>Sao chép
+																<i className="bi-copy-simple me-1"></i>Sao chép
 															</button>
 															<button
 																className="btn btn-link btn-sm p-0 text-decoration-none"
 																onClick={() => handleOpenPublicPost(post.slug)}
 															>
-																<i className="ph-arrow-square-out me-1"></i>Mở tab
+																<i className="bi-arrow-square-out me-1"></i>Mở tab
 															</button>
 														</>
 													)}
@@ -702,7 +702,7 @@ const ModerationDashboard = () => {
 													<div className="d-flex flex-wrap gap-2 mb-3">
 														{post.tags.map((tag, idx) => (
 															<span key={idx} className="badge bg-light text-dark border" style={{ fontSize: '0.85rem' }}>
-																<i className="ph-hash me-1"></i>{tag}
+																<i className="bi-hash me-1"></i>{tag}
 															</span>
 														))}
 													</div>
@@ -712,7 +712,7 @@ const ModerationDashboard = () => {
 												{post.attachments && post.attachments.length > 0 && (
 													<div className="mb-3">
 														<div className="d-flex align-items-center gap-2 mb-2" style={{ fontSize: '0.9rem' }}>
-															<i className="ph-paperclip text-muted"></i>
+															<i className="bi-paperclip text-muted"></i>
 															<span className="text-muted">{post.attachments.length} tệp đính kèm</span>
 														</div>
 													</div>
@@ -720,9 +720,9 @@ const ModerationDashboard = () => {
 
 												{/* Stats */}
 												<div className="d-flex flex-wrap gap-3 text-muted mb-3" style={{ fontSize: '0.9rem' }}>
-													<span><i className="ph-eye me-1"></i>{post.views || 0} lượt xem</span>
-													<span><i className="ph-heart me-1"></i>{post.likesCount || 0} lượt thích</span>
-													<span><i className="ph-chat me-1"></i>{post.commentsCount || 0} bình luận</span>
+													<span><i className="bi-eye me-1"></i>{post.views || 0} lượt xem</span>
+													<span><i className="bi-heart me-1"></i>{post.likesCount || 0} lượt thích</span>
+													<span><i className="bi-chat me-1"></i>{post.commentsCount || 0} bình luận</span>
 												</div>
 
 												{/* Actions */}
@@ -732,7 +732,7 @@ const ModerationDashboard = () => {
 														onClick={() => handleApprove(post._id)}
 														disabled={isProcessing}
 													>
-														<i className="ph-check"></i>
+														<i className="bi-check"></i>
 														Duyệt
 													</button>
 													<button
@@ -740,14 +740,14 @@ const ModerationDashboard = () => {
 														onClick={() => openRejectModal(post)}
 														disabled={isProcessing}
 													>
-														<i className="ph-x"></i>
+														<i className="bi-x"></i>
 														Từ chối
 													</button>
 													<button
 														className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2"
 														onClick={() => openDetailsModal(post)}
 													>
-														<i className="ph-list"></i>
+														<i className="bi-list"></i>
 														Chi tiết
 													</button>
 													<button
@@ -755,7 +755,7 @@ const ModerationDashboard = () => {
 														onClick={() => navigate(`/post/${post.slug}`)}
 														disabled={!post.slug}
 													>
-														<i className="ph-eye"></i>
+														<i className="bi-eye"></i>
 														Xem nhanh
 													</button>
 												</div>
@@ -805,7 +805,7 @@ const ModerationDashboard = () => {
 												onClick={() => handleOpenPublicPost(action.slug)}
 												disabled={!action.slug}
 											>
-												<i className="ph-arrow-square-out me-1"></i>Mở bài viết
+												<i className="bi-arrow-square-out me-1"></i>Mở bài viết
 											</button>
 										</div>
 									))}
@@ -819,19 +819,19 @@ const ModerationDashboard = () => {
 							<h6 className="text-uppercase text-muted fw-semibold mb-3" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>Gợi ý thao tác</h6>
 							<ul className="list-unstyled mb-0" style={{ fontSize: '0.9rem' }}>
 								<li className="d-flex gap-2 mb-2">
-									<i className="ph-lightning text-warning mt-1"></i>
+									<i className="bi-lightning text-warning mt-1"></i>
 									<span>Ưu tiên kiểm duyệt theo thời gian tạo và danh mục quan trọng.</span>
 								</li>
 								<li className="d-flex gap-2 mb-2">
-									<i className="ph-note-pencil text-primary mt-1"></i>
+									<i className="bi-note-pencil text-primary mt-1"></i>
 									<span>Ghi rõ lý do khi từ chối để tác giả cải thiện nội dung.</span>
 								</li>
 								<li className="d-flex gap-2 mb-2">
-									<i className="ph-eye text-success mt-1"></i>
+									<i className="bi-eye text-success mt-1"></i>
 									<span>Xem nhanh nội dung trước khi duyệt để tránh bỏ sót lỗi.</span>
 								</li>
 								<li className="d-flex gap-2">
-									<i className="ph-users-three text-info mt-1"></i>
+									<i className="bi-users-three text-info mt-1"></i>
 									<span>Trao đổi với Admin khi phát hiện nội dung nhạy cảm.</span>
 								</li>
 							</ul>
@@ -847,7 +847,7 @@ const ModerationDashboard = () => {
 						<div className="modal-content">
 							<div className="modal-header">
 								<h5 className="modal-title d-flex align-items-center gap-2">
-									<i className="ph-file-text"></i>
+									<i className="bi-file-text"></i>
 									Chi tiết bài viết
 								</h5>
 								<button type="button" className="btn-close" onClick={closeDetailsModal}></button>
@@ -863,13 +863,13 @@ const ModerationDashboard = () => {
 												className="btn btn-link btn-sm text-decoration-none"
 												onClick={() => handleCopyPostLink(selectedPost.slug)}
 											>
-												<i className="ph-copy-simple me-1"></i>Sao chép
+												<i className="bi-copy-simple me-1"></i>Sao chép
 											</button>
 											<button
 												className="btn btn-link btn-sm text-decoration-none"
 												onClick={() => handleOpenPublicPost(selectedPost.slug)}
 											>
-												<i className="ph-arrow-square-out me-1"></i>Mở tab
+												<i className="bi-arrow-square-out me-1"></i>Mở tab
 											</button>
 										</>
 									)}
@@ -916,7 +916,7 @@ const ModerationDashboard = () => {
 									onClick={() => handleOpenPublicPost(selectedPost.slug)}
 									disabled={!selectedPost.slug}
 								>
-									<i className="ph-arrow-square-out"></i>
+									<i className="bi-arrow-square-out"></i>
 									Mở tab mới
 								</button>
 								<button
@@ -924,7 +924,7 @@ const ModerationDashboard = () => {
 									onClick={() => handleApprove(selectedPost._id, { closeDetails: true })}
 									disabled={isProcessing}
 								>
-									<i className="ph-check"></i>
+									<i className="bi-check"></i>
 									Duyệt
 								</button>
 								<button
@@ -932,7 +932,7 @@ const ModerationDashboard = () => {
 									onClick={handleOpenRejectFromDetails}
 									disabled={isProcessing}
 								>
-									<i className="ph-x"></i>
+									<i className="bi-x"></i>
 									Từ chối
 								</button>
 							</div>
@@ -971,13 +971,13 @@ const ModerationDashboard = () => {
 													className="btn btn-link btn-sm p-0 text-decoration-none"
 													onClick={() => handleCopyPostLink(selectedPost.slug)}
 												>
-													<i className="ph-copy-simple me-1"></i>Sao chép
+													<i className="bi-copy-simple me-1"></i>Sao chép
 												</button>
 												<button
 													className="btn btn-link btn-sm p-0 text-decoration-none"
 													onClick={() => handleOpenPublicPost(selectedPost.slug)}
 												>
-													<i className="ph-arrow-square-out me-1"></i>Mở
+													<i className="bi-arrow-square-out me-1"></i>Mở
 												</button>
 											</>
 										)}
@@ -1019,7 +1019,7 @@ const ModerationDashboard = () => {
 									{isProcessing ? (
 										<span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
 									) : (
-										<i className="ph-x"></i>
+										<i className="bi-x"></i>
 									)}
 									Xác nhận từ chối
 								</button>

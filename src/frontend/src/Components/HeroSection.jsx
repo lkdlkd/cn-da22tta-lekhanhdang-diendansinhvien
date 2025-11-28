@@ -87,7 +87,7 @@ export default function HeroSection() {
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                <i className="ph ph-compass me-2"></i>
+                <i className="bi bi-compass me-2"></i>
                 Phòng Chat
               </Link>
             </div>

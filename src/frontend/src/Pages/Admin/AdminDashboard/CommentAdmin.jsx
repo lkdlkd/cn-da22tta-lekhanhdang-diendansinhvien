@@ -203,7 +203,7 @@ const CommentAdmin = () => {
 						<div className="card mb-4">
 							<div className="card-header">
 								<h5 className="mb-0">
-									<i className="ph-trophy me-2"></i>
+									<i className="bi-trophy me-2"></i>
 									Top người bình luận nhiều nhất
 								</h5>
 							</div>
@@ -251,7 +251,7 @@ const CommentAdmin = () => {
 						<div className="card mb-4">
 							<div className="card-header">
 								<h5 className="mb-0">
-									<i className="ph-chart-line me-2"></i>
+									<i className="bi-calendar me-2"></i>
 									Thống kê theo tháng
 								</h5>
 							</div>
@@ -354,7 +354,7 @@ const CommentAdmin = () => {
 									fetchComments();
 								}}
 							>
-								<i className="ph-magnifying-glass me-2"></i>
+								<i className="bi-search me-2"></i>
 								Tìm kiếm
 							</button>
 						</div>
@@ -375,7 +375,7 @@ const CommentAdmin = () => {
 										// setTimeout(() => fetchComments(), 100);
 									}}
 								>
-									<i className="ph-x me-1"></i>
+									<i className="bi-x me-1"></i>
 									Xóa bộ lọc
 								</button>
 							</div>
@@ -454,7 +454,7 @@ const CommentAdmin = () => {
 													<div style={{ maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
 														{comment.postId.title}
 													</div>
-													<i className="ph-arrow-square-out ms-1" style={{ fontSize: '12px' }}></i>
+													<i className="bi-link-45deg ms-1" style={{ fontSize: '12px' }}></i>
 												</Link>
 											) : (
 												<span className="text-muted">Bài viết đã xóa</span>
@@ -579,7 +579,7 @@ const CommentAdmin = () => {
 											className="text-primary"
 										>
 											{selectedComment.postId.title}
-											<i className="ph-arrow-square-out ms-2"></i>
+											<i className="bi-link-45deg ms-2"></i>
 										</Link>
 									) : (
 										<span className="text-muted">Bài viết đã xóa</span>

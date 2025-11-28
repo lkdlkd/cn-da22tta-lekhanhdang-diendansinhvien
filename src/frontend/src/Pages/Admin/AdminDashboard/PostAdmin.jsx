@@ -386,9 +386,9 @@ const PostAdmin = () => {
 
 	const statCards = stats ? [
 		{ title: "Tổng bài viết", value: stats.totalPosts, accent: "text-primary" },
-		{ title: "Đã xuất bản", value: stats.publishedPosts, accent: "text-success" },
-		{ title: "Bản nháp", value: stats.draftPosts, accent: "text-warning" },
-		{ title: "Đã ghim", value: stats.pinnedPosts, accent: "text-primary" },
+		// { title: "Đã xuất bản", value: stats.publishedPosts, accent: "text-success" },
+		// { title: "Bản nháp", value: stats.draftPosts, accent: "text-warning" },
+		// { title: "Đã ghim", value: stats.pinnedPosts, accent: "text-primary" },
 		{ title: "Đã khóa", value: stats.lockedPosts, accent: "text-secondary" },
 		{ title: "Bài mới (7 ngày)", value: stats.recentPosts, accent: "text-info" }
 	].filter(card => card.value !== undefined) : [];
