@@ -70,18 +70,18 @@ const MyReports = () => {
 
   const getStatusBadge = (status) => {
     const badges = {
-      open: { text: 'Chờ xử lý', className: 'badge bg-warning' },
-      reviewed: { text: 'Đang xem xét', className: 'badge bg-info' },
-      closed: { text: 'Đã đóng', className: 'badge bg-success' }
+      open: { text: 'Chờ xử lý', className: 'badge bg-warning bg-opacity-10 text-warning border border-warning' },
+      reviewed: { text: 'Đang xem xét', className: 'badge bg-info bg-opacity-10 text-info border border-info' },
+      closed: { text: 'Đã đóng', className: 'badge bg-success bg-opacity-10 text-success border border-success' }
     };
-    return badges[status] || { text: status, className: 'badge bg-secondary' };
+    return badges[status] || { text: status, className: 'badge bg-secondary bg-opacity-10 text-secondary border' };
   };
 
   const getTargetTypeText = (type) => {
     const types = {
-      post: '📄 Bài viết',
-      comment: '💬 Bình luận',
-      user: '👤 User'
+      post: <><i className="bi bi-file-text me-1"></i>Bài viết</>,
+      comment: <><i className="bi bi-chat-left-text me-1"></i>Bình luận</>,
+      user: <><i className="bi bi-person me-1"></i>User</>
     };
     return types[type] || type;
   };
@@ -100,11 +100,11 @@ const MyReports = () => {
     <div className="">
       <div className="row">
         <div className="col-12">
-          <div className="card">
-            <div className="card-header bg-white">
+          <div className="card border">
+            <div className="card-header bg-white border-bottom">
               <div className="d-flex justify-content-between align-items-center">
-                <h4 className="mb-0">
-                  <i className="ph-warning-circle me-2"></i>
+                <h4 className="mb-0 fw-bold">
+                  <i className="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
                   Báo cáo của tôi
                 </h4>
                 <select 
@@ -128,18 +128,18 @@ const MyReports = () => {
                 <LoadingPost  count={5} />
               ) : reports.length === 0 ? (
                 <div className="text-center py-5 text-muted">
-                  <i className="ph-warning-circle" style={{ fontSize: '3rem' }}></i>
-                  <p className="mt-3">Bạn chưa có báo cáo nào</p>
+                  <i className="bi bi-exclamation-triangle" style={{ fontSize: '3rem' }}></i>
+                  <p className="mt-3 fs-5">Bạn chưa có báo cáo nào</p>
                 </div>
               ) : (
                 <>
                   <div className="list-group">
                     {reports.map(report => (
-                      <div key={report._id} className="list-group-item">
-                        <div className="d-flex justify-content-between align-items-start mb-2">
+                      <div key={report._id} className="list-group-item border">
+                        <div className="d-flex justify-content-between align-items-start mb-3">
                           <div className="flex-grow-1">
-                            <div className="d-flex align-items-center gap-2 mb-2">
-                              <span className="fw-bold">{getTargetTypeText(report.targetType)}</span>
+                            <div className="d-flex align-items-center gap-2 mb-3">
+                              <span className="fw-bold fs-6">{getTargetTypeText(report.targetType)}</span>
                               <span className={getStatusBadge(report.status).className}>
                                 {getStatusBadge(report.status).text}
                               </span>
@@ -147,50 +147,50 @@ const MyReports = () => {
 
                             {/* Target Info */}
                             {report.targetInfo ? (
-                              <div className="mb-2 p-2 bg-light rounded">
+                              <div className="mb-3 p-3 bg-light border rounded">
                                 {report.targetType === 'post' && (
-                                  <small className="text-muted">
-                                    <strong>Bài viết:</strong> {report.targetInfo.title}
-                                  </small>
+                                  <div className="text-muted">
+                                    <strong className="fw-semibold">Bài viết:</strong> {report.targetInfo.title}
+                                  </div>
                                 )}
                                 {report.targetType === 'comment' && (
-                                  <small className="text-muted">
-                                    <strong>Bình luận:</strong> {report.targetInfo.content?.substring(0, 100)}...
-                                  </small>
+                                  <div className="text-muted">
+                                    <strong className="fw-semibold">Bình luận:</strong> {report.targetInfo.content?.substring(0, 100)}...
+                                  </div>
                                 )}
                                 {report.targetType === 'user' && (
-                                  <small className="text-muted">
-                                    <strong>User:</strong> {report.targetInfo.displayName || report.targetInfo.username}
-                                  </small>
+                                  <div className="text-muted">
+                                    <strong className="fw-semibold">User:</strong> {report.targetInfo.displayName || report.targetInfo.username}
+                                  </div>
                                 )}
                               </div>
                             ) : (
-                              <div className="mb-2 p-2 bg-light rounded">
-                                <small className="text-danger">Nội dung đã bị xóa</small>
+                              <div className="mb-3 p-3 bg-light border rounded">
+                                <div className="text-danger fw-semibold">Nội dung đã bị xóa</div>
                               </div>
                             )}
 
                             {/* Reason */}
-                            <div className="mb-2">
-                              <strong className="text-muted small">Lý do:</strong>
-                              <p className="mb-0 small">{report.reason}</p>
+                            <div className="mb-3">
+                              <strong className="text-muted fw-semibold">Lý do:</strong>
+                              <p className="mb-0">{report.reason}</p>
                             </div>
 
                             {/* Date */}
-                            <small className="text-muted">
-                              <i className="ph-clock me-1"></i>
+                            <div className="text-muted">
+                              <i className="bi bi-clock me-1"></i>
                               {formatDate(report.createdAt)}
-                            </small>
+                            </div>
                           </div>
 
                           {/* Actions */}
                           <div>
                             {report.status === 'open' && (
                               <button 
-                                className="btn btn-sm btn-outline-danger"
+                                className="btn btn-outline-danger"
                                 onClick={() => handleCancelReport(report._id)}
                               >
-                                <i className="ph-x me-1"></i>
+                                <i className="bi bi-x-circle me-1"></i>
                                 Hủy báo cáo
                               </button>
                             )}
@@ -199,11 +199,11 @@ const MyReports = () => {
 
                         {/* Handler Info */}
                         {report.handledBy && (
-                          <div className="mt-2 pt-2 border-top">
-                            <small className="text-muted">
-                              <i className="ph-user-check me-1"></i>
-                              Xử lý bởi: <strong>{report.handledBy.displayName || report.handledBy.username}</strong>
-                            </small>
+                          <div className="mt-3 pt-3 border-top">
+                            <div className="text-muted">
+                              <i className="bi bi-person-check-fill me-1"></i>
+                              Xử lý bởi: <strong className="fw-semibold">{report.handledBy.displayName || report.handledBy.username}</strong>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -212,8 +212,8 @@ const MyReports = () => {
 
                   {/* Pagination */}
                   {pagination.pages > 1 && (
-                    <div className="d-flex justify-content-between align-items-center mt-3">
-                      <div className="text-muted">
+                    <div className="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                      <div className="text-muted fw-semibold">
                         Trang {pagination.page} / {pagination.pages} (Tổng: {pagination.total} báo cáo)
                       </div>
                       <nav>

@@ -147,9 +147,19 @@ const ReportAdmin = () => {
 
   const handleUpdateStatus = async (reportId, status, action = null) => {
     try {
+      const statusText = {
+        'open': 'Chờ xử lý',
+        'reviewed': 'Đang xem xét',
+        'closed': 'Đã đóng'
+      };
+      
+      const actionText = action 
+        ? ` và ${action === 'delete_content' ? 'xóa nội dung' : action === 'ban_user' ? 'ban user' : action === 'warn_user' ? 'cảnh báo user' : 'thực hiện hành động'}`
+        : '';
+      
       const result = await Swal.fire({
         title: 'Xác nhận',
-        text: `Cập nhật trạng thái thành "${status}"?`,
+        text: `Cập nhật trạng thái thành "${statusText[status] || status}"${actionText}?`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: 'Xác nhận',
@@ -296,43 +306,78 @@ const ReportAdmin = () => {
 
   return (
     <div className="">
-      <h2 className="mb-4">
-        <i className="ph-warning-circle me-2"></i>
-        Quản lý Báo cáo
-      </h2>
+      {/* Page Header */}
+      <div className="page-header mb-4">
+        <div className="card border">
+          <div className="card-body">
+            <h2 className="mb-0 fw-bold">
+              <i className="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+              Quản lý Báo cáo
+            </h2>
+          </div>
+        </div>
+      </div>
 
       {/* Statistics Cards */}
       {stats && (
         <div className="row mb-4">
-          <div className="col-md-3">
-            <div className="card text-white bg-primary">
-              <div className="card-body">
-                <h5 className="card-title">Tổng báo cáo</h5>
-                <h2>{stats.totalReports}</h2>
+          <div className="col-md-3 mb-3">
+            <div className="card border h-100">
+              <div className="card-body p-4">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <p className="mb-1 text-muted">Tổng báo cáo</p>
+                    <h3 className="mb-0 fw-bold text-primary">{stats.totalReports}</h3>
+                  </div>
+                  <div className="bg-primary bg-opacity-10 p-3 rounded-circle">
+                    <i className="bi bi-clipboard-data-fill text-primary" style={{ fontSize: '24px' }}></i>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <div className="col-md-3">
-            <div className="card text-white bg-warning">
-              <div className="card-body">
-                <h5 className="card-title">Chờ xử lý</h5>
-                <h2>{stats.byStatus.open}</h2>
+          <div className="col-md-3 mb-3">
+            <div className="card border h-100">
+              <div className="card-body p-4">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <p className="mb-1 text-muted">Chờ xử lý</p>
+                    <h3 className="mb-0 fw-bold text-warning">{stats.byStatus.open}</h3>
+                  </div>
+                  <div className="bg-warning bg-opacity-10 p-3 rounded-circle">
+                    <i className="bi bi-hourglass-split text-warning" style={{ fontSize: '24px' }}></i>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <div className="col-md-3">
-            <div className="card text-white bg-info">
-              <div className="card-body">
-                <h5 className="card-title">Đang xem xét</h5>
-                <h2>{stats.byStatus.reviewed}</h2>
+          <div className="col-md-3 mb-3">
+            <div className="card border h-100">
+              <div className="card-body p-4">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <p className="mb-1 text-muted">Đang xem xét</p>
+                    <h3 className="mb-0 fw-bold text-info">{stats.byStatus.reviewed}</h3>
+                  </div>
+                  <div className="bg-info bg-opacity-10 p-3 rounded-circle">
+                    <i className="bi bi-eye-fill text-info" style={{ fontSize: '24px' }}></i>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <div className="col-md-3">
-            <div className="card text-white bg-success">
-              <div className="card-body">
-                <h5 className="card-title">Đã đóng</h5>
-                <h2>{stats.byStatus.closed}</h2>
+          <div className="col-md-3 mb-3">
+            <div className="card border h-100">
+              <div className="card-body p-4">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <p className="mb-1 text-muted">Đã đóng</p>
+                    <h3 className="mb-0 fw-bold text-success">{stats.byStatus.closed}</h3>
+                  </div>
+                  <div className="bg-success bg-opacity-10 p-3 rounded-circle">
+                    <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '24px' }}></i>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -404,15 +449,15 @@ const ReportAdmin = () => {
             </div>
             <div className="col-md-12 d-flex gap-2 mt-2">
               <button className="btn btn-primary" onClick={applyFilters}>
-                <i className="ph-magnifying-glass me-1"></i>
+                <i className="bi bi-search me-1"></i>
                 Tìm kiếm
               </button>
               <button className="btn btn-outline-secondary" onClick={resetFilters}>
-                <i className="ph-arrow-counter-clockwise me-1"></i>
+                <i className="bi bi-arrow-counterclockwise me-1"></i>
                 Đặt lại
               </button>
               <button className="btn btn-outline-primary" onClick={fetchReports}>
-                <i className="ph-arrow-clockwise me-1"></i>
+                <i className="bi bi-arrow-clockwise me-1"></i>
                 Tải lại
               </button>
             </div>
@@ -443,41 +488,41 @@ const ReportAdmin = () => {
         <div className="card mb-3 border-primary">
           <div className="card-body">
             <div className="d-flex align-items-center justify-content-between">
-              <span>Đã chọn {selectedReports.length} báo cáo</span>
+              <strong>Đã chọn {selectedReports.length} báo cáo</strong>
               <div className="btn-group">
                 <button 
-                  className="btn btn-sm btn-info"
+                  className="btn btn-info"
                   onClick={() => handleBulkHandle('reviewed')}
                 >
-                  <i className="ph-eye me-1"></i>
+                  <i className="bi bi-eye-fill me-1"></i>
                   Đánh dấu xem xét
                 </button>
                 <button 
-                  className="btn btn-sm btn-success"
+                  className="btn btn-success"
                   onClick={() => handleBulkHandle('closed')}
                 >
-                  <i className="ph-check-circle me-1"></i>
+                  <i className="bi bi-check-circle-fill me-1"></i>
                   Đóng
                 </button>
                 <button 
-                  className="btn btn-sm btn-warning"
+                  className="btn btn-warning"
                   onClick={() => handleBulkHandle('closed', 'delete_content')}
                 >
-                  <i className="ph-trash me-1"></i>
+                  <i className="bi bi-trash-fill me-1"></i>
                   Xóa nội dung
                 </button>
                 <button 
-                  className="btn btn-sm btn-danger"
+                  className="btn btn-danger"
                   onClick={() => handleBulkHandle('closed', 'ban_user')}
                 >
-                  <i className="ph-prohibit me-1"></i>
+                  <i className="bi bi-person-x-fill me-1"></i>
                   Ban user
                 </button>
                 <button 
-                  className="btn btn-sm btn-danger"
+                  className="btn btn-danger"
                   onClick={handleBulkDelete}
                 >
-                  <i className="ph-trash me-1"></i>
+                  <i className="bi bi-trash-fill me-1"></i>
                   Xóa báo cáo
                 </button>
               </div>
@@ -493,8 +538,9 @@ const ReportAdmin = () => {
             <LoadingPost count={5} />
           ) : reports.length === 0 ? (
             <div className="text-center py-5 text-muted">
-              <i className="ph-warning-circle" style={{ fontSize: '3rem' }}></i>
-              <p className="mt-2">Không có báo cáo nào</p>
+              <i className="bi bi-inbox" style={{ fontSize: '64px', opacity: 0.3 }}></i>
+              <h5 className="mt-3">Không có báo cáo nào</h5>
+              <p>Thử thay đổi bộ lọc để xem kết quả khác</p>
               <button className="btn btn-outline-secondary" onClick={resetFilters}>
                 Đặt lại bộ lọc
               </button>
@@ -502,8 +548,8 @@ const ReportAdmin = () => {
           ) : (
             <>
               <div className="table-responsive">
-                <table className="table table-hover">
-                  <thead>
+                <table className="table table-hover align-middle">
+                  <thead className="table-light">
                     <tr>
                       <th>
                         <input 
@@ -539,11 +585,11 @@ const ReportAdmin = () => {
                               src={report.reporterId?.avatarUrl || 'https://via.placeholder.com/40'} 
                               alt="avatar"
                               className="rounded-circle me-2"
-                              style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                              style={{ width: '40px', height: '40px', objectFit: 'cover' }}
                             />
                             <div>
-                              <div>{report.reporterId?.displayName || report.reporterId?.username}</div>
-                              <small className="text-muted">{report.reporterId?.email}</small>
+                              <div className="fw-semibold">{report.reporterId?.displayName || report.reporterId?.username}</div>
+                              <div className="text-muted">{report.reporterId?.email}</div>
                             </div>
                           </div>
                         </td>
@@ -557,30 +603,28 @@ const ReportAdmin = () => {
                           {report.targetInfo ? (
                             <div>
                               {report.targetType === 'post' && (
-                                <small className="text-truncate d-block" style={{ maxWidth: '200px' }} title={report.targetInfo.title}>
+                                <div className="text-truncate" style={{ maxWidth: '200px' }} title={report.targetInfo.title}>
                                   {report.targetInfo.title}
-                                </small>
-                              )}
-                              {report.targetType === 'comment' && (
-                                <small className="text-truncate d-block" style={{ maxWidth: '200px' }} title={report.targetInfo.content}>
-                                  {report.targetInfo.content}
-                                </small>
-                              )}
-                              {report.targetType === 'user' && (
-                                <small>
-                                  {report.targetInfo.displayName || report.targetInfo.username}
-                                </small>
-                              )}
-                              {(report.targetType === 'post' || report.targetType === 'comment') && report.targetInfo?.authorId && (
-                                <div>
-                                  <small className="text-muted">Bởi: {report.targetInfo.authorId.displayName || report.targetInfo.authorId.username}</small>
                                 </div>
                               )}
+                              {report.targetType === 'comment' && (
+                                <div className="text-truncate" style={{ maxWidth: '200px' }} title={report.targetInfo.content}>
+                                  {report.targetInfo.content}
+                                </div>
+                              )}
+                              {report.targetType === 'user' && (
+                                <div>
+                                  {report.targetInfo.displayName || report.targetInfo.username}
+                                </div>
+                              )}
+                              {(report.targetType === 'post' || report.targetType === 'comment') && report.targetInfo?.authorId && (
+                                <div className="text-muted">Bởi: {report.targetInfo.authorId.displayName || report.targetInfo.authorId.username}</div>
+                              )}
                               <button 
-                                className="btn btn-link btn-sm p-0"
+                                className="btn btn-link p-0 mt-1"
                                 onClick={() => handleViewTargetReports(report.targetType, report.targetId)}
                               >
-                                <i className="ph-eye me-1"></i>
+                                <i className="bi bi-eye-fill me-1"></i>
                                 Xem tất cả báo cáo
                               </button>
                             </div>
@@ -589,9 +633,9 @@ const ReportAdmin = () => {
                           )}
                         </td>
                         <td>
-                          <small className="text-truncate d-block" style={{ maxWidth: '200px' }} title={report.reason}>
+                          <div className="text-truncate" style={{ maxWidth: '250px' }} title={report.reason}>
                             {report.reason}
-                          </small>
+                          </div>
                         </td>
                         <td>
                           <div className="d-flex align-items-center gap-2">
@@ -600,7 +644,7 @@ const ReportAdmin = () => {
                                report.status === 'reviewed' ? 'Đang xem xét' : 'Đã đóng'}
                             </span>
                             <select 
-                              className="form-select form-select-sm"
+                              className="form-select"
                               style={{ width: 'auto' }}
                               value={report.status}
                               onChange={(e) => handleUpdateStatus(report._id, e.target.value)}
@@ -612,20 +656,22 @@ const ReportAdmin = () => {
                           </div>
                         </td>
                         <td>
-                          <small>{formatDate(report.createdAt)}</small>
+                          <div>{formatDate(report.createdAt)}</div>
                         </td>
                         <td>
                           <button 
-                            className="btn btn-sm btn-info me-1"
+                            className="btn btn-info me-1"
                             onClick={() => handleViewDetail(report)}
+                            title="Xem chi tiết"
                           >
-                            <i className="ph-eye"></i>
+                            <i className="bi bi-eye-fill"></i>
                           </button>
                           <button 
-                            className="btn btn-sm btn-danger"
+                            className="btn btn-danger"
                             onClick={() => handleDeleteReport(report._id)}
+                            title="Xóa"
                           >
-                            <i className="ph-trash"></i>
+                            <i className="bi bi-trash-fill"></i>
                           </button>
                         </td>
                       </tr>
@@ -637,13 +683,13 @@ const ReportAdmin = () => {
               {/* Pagination */}
               <div className="d-flex justify-content-between align-items-center mt-3">
                 <div className="d-flex align-items-center gap-3">
-                  <span>
+                  <strong>
                     Hiển thị {reports.length} / {pagination.total} báo cáo
-                  </span>
+                  </strong>
                   <div className="d-flex align-items-center gap-2">
                     <span>Kích thước trang:</span>
                     <select
-                      className="form-select form-select-sm"
+                      className="form-select"
                       style={{ width: 'auto' }}
                       value={pagination.limit}
                       onChange={(e) => {
@@ -719,8 +765,11 @@ const ReportAdmin = () => {
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog modal-lg">
             <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Chi tiết báo cáo</h5>
+              <div className="modal-header bg-primary text-white">
+                <h5 className="modal-title fw-bold">
+                  <i className="bi bi-info-circle-fill me-2"></i>
+                  Chi tiết báo cáo
+                </h5>
                 <button 
                   type="button" 
                   className="btn-close"
@@ -739,8 +788,8 @@ const ReportAdmin = () => {
                         style={{ width: '40px', height: '40px', objectFit: 'cover' }}
                       />
                       <div>
-                        <div>{selectedReport.reporterId?.displayName || selectedReport.reporterId?.username}</div>
-                        <small className="text-muted">{selectedReport.reporterId?.email}</small>
+                        <div className="fw-semibold">{selectedReport.reporterId?.displayName || selectedReport.reporterId?.username}</div>
+                        <div className="text-muted">{selectedReport.reporterId?.email}</div>
                       </div>
                     </div>
                   </div>
@@ -789,8 +838,8 @@ const ReportAdmin = () => {
                             style={{ width: '60px', height: '60px', objectFit: 'cover' }}
                           />
                           <div>
-                            <h6>{selectedReport.targetInfo.displayName || selectedReport.targetInfo.username}</h6>
-                            <small className="text-muted">{selectedReport.targetInfo.email}</small>
+                            <h6 className="mb-1">{selectedReport.targetInfo.displayName || selectedReport.targetInfo.username}</h6>
+                            <div className="text-muted">{selectedReport.targetInfo.email}</div>
                           </div>
                         </div>
                       )}
@@ -824,7 +873,7 @@ const ReportAdmin = () => {
                       className="btn btn-info"
                       onClick={() => handleUpdateStatus(selectedReport._id, 'reviewed')}
                     >
-                      <i className="ph-eye me-1"></i>
+                      <i className="bi bi-eye-fill me-2"></i>
                       Đánh dấu xem xét
                     </button>
                   )}
@@ -834,28 +883,28 @@ const ReportAdmin = () => {
                         className="btn btn-success"
                         onClick={() => handleUpdateStatus(selectedReport._id, 'closed')}
                       >
-                        <i className="ph-check-circle me-1"></i>
+                        <i className="bi bi-check-circle-fill me-2"></i>
                         Đóng (Không vi phạm)
                       </button>
                       <button 
                         className="btn btn-warning"
                         onClick={() => handleUpdateStatus(selectedReport._id, 'closed', 'delete_content')}
                       >
-                        <i className="ph-trash me-1"></i>
+                        <i className="bi bi-trash-fill me-2"></i>
                         Xóa nội dung
                       </button>
                       <button 
                         className="btn btn-warning"
                         onClick={() => handleUpdateStatus(selectedReport._id, 'closed', 'warn_user')}
                       >
-                        <i className="ph-warning me-1"></i>
+                        <i className="bi bi-exclamation-triangle-fill me-2"></i>
                         Cảnh báo user
                       </button>
                       <button 
                         className="btn btn-danger"
                         onClick={() => handleUpdateStatus(selectedReport._id, 'closed', 'ban_user')}
                       >
-                        <i className="ph-prohibit me-1"></i>
+                        <i className="bi bi-person-x-fill me-2"></i>
                         Ban user
                       </button>
                     </>
@@ -878,8 +927,9 @@ const ReportAdmin = () => {
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog modal-lg">
             <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">
+              <div className="modal-header bg-primary text-white">
+                <h5 className="modal-title fw-bold">
+                  <i className="bi bi-list-ul me-2"></i>
                   Tất cả báo cáo ({targetReports.length})
                 </h5>
                 <button 
@@ -906,8 +956,8 @@ const ReportAdmin = () => {
                               />
                               <strong>{report.reporterId?.displayName || report.reporterId?.username}</strong>
                             </div>
-                            <p className="mb-1">{report.reason}</p>
-                            <small className="text-muted">{formatDate(report.createdAt)}</small>
+                            <p className="mb-2">{report.reason}</p>
+                            <div className="text-muted">{formatDate(report.createdAt)}</div>
                           </div>
                           <span className={getStatusBadge(report.status)}>
                             {report.status === 'open' ? 'Chờ xử lý' : 
