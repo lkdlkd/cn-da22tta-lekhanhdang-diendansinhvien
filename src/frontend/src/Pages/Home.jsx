@@ -553,9 +553,9 @@ const Home = () => {
                     documents.slice(0, 5).map((doc) => {
                       const cat = getDocCategory(doc);
                       return (
-                        <a
+                        <Link
                           key={doc._id}
-                          href={doc.storageUrl}
+                          to={doc.storageUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="list-group-item list-group-item-action border-0 d-flex align-items-center"
@@ -582,7 +582,7 @@ const Home = () => {
                             <img src={doc.ownerId.avatarUrl} alt="" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
                             <span className="text-muted" style={{ fontSize: '12px' }}>{doc.ownerId.displayName || doc.ownerId.username}</span>
                           </div>
-                        </a>
+                        </Link>
                       );
                     })
                   ) : (

@@ -34,9 +34,11 @@ async function createNotification({ userId, type, data }, io) {
 
     // Emit socket event để gửi thông báo realtime
     if (io) {
-      io.emit('notification:new', {
+      const notificationData = notification.toObject ? notification.toObject() : notification;
+      // Emit đến room của user cụ thể
+      io.to(String(userId)).emit('notification:new', {
         userId,
-        notification: notification.toObject()
+        notification: notificationData
       });
     }
 

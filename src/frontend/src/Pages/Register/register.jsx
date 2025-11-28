@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { register, verifyEmailOTP, resendVerificationOTP } from '../../Utils/api';
-
+import { useNavigate } from 'react-router-dom';
 const facultiesData = {
   'Trường Kỹ thuật và Công nghệ': [
     'Khoa Công nghệ thông tin',
@@ -53,6 +53,7 @@ const facultiesData = {
 
 export function Register() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     displayName: '',
@@ -173,7 +174,7 @@ export function Register() {
           setStep(3);
         } else {
           setTimeout(() => {
-            window.location.href = '/login';
+            navigate('/login');
           }, 1500);
         }
       } else {
@@ -199,7 +200,7 @@ export function Register() {
       if (res.success) {
         setSuccess(res.message || 'Xác thực thành công! Đang chuyển đến trang đăng nhập...');
         setTimeout(() => {
-          window.location.href = '/login';
+          navigate('/login');
         }, 1500);
       } else {
         setError(res.error || 'Không thể xác thực email');

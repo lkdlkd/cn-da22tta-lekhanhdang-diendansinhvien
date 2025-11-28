@@ -187,7 +187,7 @@ const ListChat = () => {
     setUnreadCounts((prevCounts) => {
       const currentCount = prevCounts[conversationId] || 0;
       const newCount = currentCount + 1;
-      console.log('   Current:', currentCount, '→ New:', newCount);
+      // console.log('   Current:', currentCount, '→ New:', newCount);
       return {
         ...prevCounts,
         [conversationId]: newCount,
@@ -311,7 +311,7 @@ const ListChat = () => {
       const shouldIncrement = String(peerUsername) !== String(selectedUsernameRef.current);
 
       if (shouldIncrement) {
-        console.log('📈 [ListChat] Increasing unread for conv:', targetConv._id);
+        // console.log('📈 [ListChat] Increasing unread for conv:', targetConv._id);
         incrementUnread(targetConv._id);
         playNotificationSound();
       } else {
@@ -352,13 +352,13 @@ const ListChat = () => {
 
     // Only register if we have auth and haven't registered yet
     if (auth.token && auth.user) {
-      console.log('🎧 [ListChat] Setting up notify listener (ONCE)');
+      // console.log('🎧 [ListChat] Setting up notify listener (ONCE)');
       onPrivateNotify(stableHandlerRef.current);
     }
 
     return () => {
       if (stableHandlerRef.current) {
-        console.log('🔇 [ListChat] Cleaning up notify listener');
+          // console.log('🔇 [ListChat] Cleaning up notify listener');
         offPrivateNotify(stableHandlerRef.current);
       }
     };
@@ -368,7 +368,7 @@ const ListChat = () => {
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && socket.connected) {
-        console.log('👀 [ListChat] Tab visible, re-registering private notify listener');
+        // console.log('👀 [ListChat] Tab visible, re-registering private notify listener');
         // Force re-render to ensure listener is active
         setConversations(prev => [...prev]);
       }
@@ -413,7 +413,7 @@ const ListChat = () => {
       } finally {
         setSearching(false);
       }
-    }, 500); // Wait 500ms after last keystroke
+    }, 1000); // Wait 1000ms after last keystroke
   };
 
   // Helper to calculate total unread count
@@ -503,7 +503,7 @@ const ListChat = () => {
               <input
                 type="search"
                 className="form-control border-0 bg-white"
-                placeholder="Tìm bạn hoặc phòng chat"
+                placeholder="Tìm bạn username..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 ref={searchInputRef}

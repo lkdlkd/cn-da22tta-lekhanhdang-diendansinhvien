@@ -96,6 +96,10 @@ io.on("connection", async (socket) => {
   // Auto-register user as online if authenticated
   if (socket.userId) {
     try {
+      // Join user vào room cá nhân để nhận thông báo
+      socket.join(String(socket.userId));
+      console.log(`✅ User ${socket.userId} joined personal notification room`);
+
       // Cập nhật trạng thái online trong DB
       await User.findByIdAndUpdate(socket.userId, {
         isOnline: true,
@@ -125,6 +129,10 @@ io.on("connection", async (socket) => {
     if (!targetUserId) return;
 
     try {
+      // Join user vào room cá nhân để nhận thông báo
+      socket.join(String(targetUserId));
+      console.log(`✅ User ${targetUserId} joined personal notification room (via event)`);
+
       // Cập nhật trạng thái online trong DB
       await User.findByIdAndUpdate(targetUserId, {
         isOnline: true,

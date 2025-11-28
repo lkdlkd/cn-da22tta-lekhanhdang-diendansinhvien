@@ -19,8 +19,9 @@ import PostItem from '../../Components/PostItem';
 import LoadingPost from '../../Components/LoadingPost';
 import { toast } from 'react-toastify';
 import EditPostModal from '../../Components/EditPostModal';
-const { socket } = require('../../Utils/socket');
+import { useNavigate } from 'react-router-dom';
 
+const { socket } = require('../../Utils/socket');
 const UserProfile = () => {
   const { username } = useParams();
   const [users, setUser] = useState(null);
@@ -46,7 +47,7 @@ const UserProfile = () => {
 
   // State for liked posts
   const [likedPosts, setLikedPosts] = useState(new Set());
-
+  const navigate = useNavigate();
   // Sync liked posts from posts data
   useEffect(() => {
     if (posts && posts.length > 0 && currentUserId) {
@@ -634,7 +635,7 @@ const UserProfile = () => {
   // Handle post click
   const onPostClick = (post) => {
     // Could navigate to post detail
-    window.location.href = `/post/${post.slug}`;
+    navigate(`/post/${post.slug}`);
   };
 
   if (loading) {
@@ -762,16 +763,16 @@ const UserProfile = () => {
       {/* Tabs */}
       <ul className="nav nav-tabs mb-4">
         <li className="nav-item">
-          <a className="nav-link active" href="#posts">
+          <Link className="nav-link active" to="#posts">
             <i className="ph ph-newspaper me-2"></i>
             Bài viết ({users.stats?.postsCount || 0})
-          </a>
+          </Link>
         </li>
         <li className="nav-item">
-          <a className="nav-link disabled" href="#about">
+          <Link className="nav-link disabled" to="#about">
             <i className="ph ph-info me-2"></i>
             Giới thiệu
-          </a>
+          </Link>
         </li>
       </ul>
 

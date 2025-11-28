@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../../Context/AuthContext";
 import { toast } from "react-toastify";
 import { getUserByUsername, getPrivateChatHistory, uploadChatFiles } from "../../Utils/api";
@@ -676,15 +676,15 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
                                           </small>
                                         )}
                                       </div>
-                                      <a
-                                        href={att.storageUrl}
+                                      <Link
+                                        to={att.storageUrl}
                                         download
                                         className={`btn btn-sm ${isMine ? 'btn-light' : 'btn-outline-secondary'}`}
                                         style={{ padding: '0.15rem 0.4rem', fontSize: '0.8rem' }}
                                         onClick={(e) => e.stopPropagation()}
                                       >
                                         <i className="bi bi-download"></i>
-                                      </a>
+                                      </Link>
                                     </div>
                                   </div>
                                 ) : (
@@ -708,29 +708,29 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
                                       <i className={`${getFileIcon(att.filename)} fs-5`}></i>
                                     </div>
                                     <div className="flex-grow-1 overflow-hidden me-2">
-                                      <a
-                                        href={att.storageUrl}
+                                      <Link
+                                        to={att.storageUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className={`text-decoration-none d-block text-truncate ${isMine ? 'text-white' : 'text-dark'}`}
                                         style={{ fontSize: "0.85rem", fontWeight: "500" }}
                                       >
                                         {att.filename}
-                                      </a>
+                                      </Link>
                                       {att.size && (
                                         <small className={`${isMine ? 'text-white text-opacity-75' : 'text-muted'}`} style={{ fontSize: "0.75rem" }}>
                                           {formatFileSize(att.size)}
                                         </small>
                                       )}
                                     </div>
-                                    <a
-                                      href={att.storageUrl}
+                                    <Link
+                                      to={att.storageUrl}
                                       download
                                       className={`btn btn-sm ${isMine ? 'btn-light' : 'btn-outline-primary'}`}
                                       style={{ padding: '0.25rem 0.5rem' }}
                                     >
                                       <i className="bi bi-download"></i>
-                                    </a>
+                                    </Link>
                                   </div>
                                 )}
                               </div>

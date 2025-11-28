@@ -11,6 +11,7 @@ import {
 	deleteMultipleComments,
 	getCommentsStats
 } from "../../../Utils/api";
+import { Link } from "react-router-dom";
 import LoadingPost from "@/Components/LoadingPost";
 
 const CommentAdmin = () => {
@@ -443,8 +444,8 @@ const CommentAdmin = () => {
 										<td>{comment.authorId?.username || "N/A"}</td>
 										<td>
 											{comment.postId ? (
-												<a
-													href={`/post/${comment.postId.slug}`}
+												<Link
+													to={`/post/${comment.postId.slug}`}
 													target="_blank"
 													rel="noopener noreferrer"
 													className="text-decoration-none"
@@ -454,7 +455,7 @@ const CommentAdmin = () => {
 														{comment.postId.title}
 													</div>
 													<i className="ph-arrow-square-out ms-1" style={{ fontSize: '12px' }}></i>
-												</a>
+												</Link>
 											) : (
 												<span className="text-muted">Bài viết đã xóa</span>
 											)}
@@ -571,15 +572,15 @@ const CommentAdmin = () => {
 								<p>
 									<strong>Bài viết:</strong>{" "}
 									{selectedComment.postId ? (
-										<a
-											href={`/post/${selectedComment.postId.slug}`}
+										<Link
+											to={`/post/${selectedComment.postId.slug}`}
 											target="_blank"
 											rel="noopener noreferrer"
 											className="text-primary"
 										>
 											{selectedComment.postId.title}
 											<i className="ph-arrow-square-out ms-2"></i>
-										</a>
+										</Link>
 									) : (
 										<span className="text-muted">Bài viết đã xóa</span>
 									)}

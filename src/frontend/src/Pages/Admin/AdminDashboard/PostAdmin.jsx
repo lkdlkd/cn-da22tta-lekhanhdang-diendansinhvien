@@ -22,6 +22,7 @@ import {
 	rejectPost
 } from "../../../Utils/api";
 import LoadingPost from "@/Components/LoadingPost";
+import { Link } from "react-router-dom";
 
 const PostAdmin = () => {
 	const [posts, setPosts] = useState([]);
@@ -829,14 +830,14 @@ const PostAdmin = () => {
 									<p>
 										<strong>Slug:</strong> {selectedPost.slug || "—"}
 										{selectedPost.slug && (
-											<a
-												href={`/post/${selectedPost.slug}`}
+											<Link
+												to={`/post/${selectedPost.slug}`}
 												target="_blank"
 												rel="noreferrer"
 												className="ms-2"
 											>
 												Xem bài viết
-											</a>
+											</Link>
 										)}
 									</p>
 								</div>
@@ -880,9 +881,9 @@ const PostAdmin = () => {
 									<ul className="mt-2">
 										{selectedPost.attachments.map(att => (
 											<li key={att._id}>
-												<a href={att.storageUrl} target="_blank" rel="noreferrer">
+												<Link to={att.storageUrl} target="_blank" rel="noreferrer">
 													{att.filename}
-												</a>
+												</Link>
 											</li>
 										))}
 									</ul>

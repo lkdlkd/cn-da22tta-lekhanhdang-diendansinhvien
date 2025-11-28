@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { login } from '../../Utils/api';
 import { AuthContext } from "../../Context/AuthContext";
-
+import { useNavigate } from 'react-router-dom';
 export function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -13,6 +13,7 @@ export function Login() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { updateAuth } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,7 +29,7 @@ export function Login() {
         // Kiểm tra nếu lỗi do chưa xác thực email
         if (data.requiresVerification && data.email) {
           // Chuyển đến trang đăng ký với step 3 (verification)
-          window.location.href = `/register?step=3&email=${encodeURIComponent(data.email)}`;
+          navigate(`/register?step=3&email=${encodeURIComponent(data.email)}`);
         } else {
           setError(data.error || 'Đăng nhập thất bại');
         }

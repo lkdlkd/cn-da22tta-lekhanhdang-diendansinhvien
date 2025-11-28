@@ -14,6 +14,7 @@ import {
 } from "../../Utils/socket";
 import { toast } from "react-toastify";
 import LoadingPost from "@/Components/LoadingPost";
+import { Link } from "react-router-dom";
 
 const GlobalChat = () => {
   const { auth } = useContext(AuthContext);
@@ -402,9 +403,9 @@ const GlobalChat = () => {
       );
     } else {
       return (
-        <a
+        <Link
           key={attachment._id}
-          href={attachment.storageUrl}
+          to={attachment.storageUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="d-flex align-items-center gap-2 text-decoration-none bg-light p-2 rounded mb-2"
@@ -416,7 +417,7 @@ const GlobalChat = () => {
             <small className="text-muted">{(attachment.size / 1024).toFixed(1)} KB</small>
           </div>
           <i className="bi bi-download"></i>
-        </a>
+        </Link>
       );
     }
   };

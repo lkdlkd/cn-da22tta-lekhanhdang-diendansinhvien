@@ -157,8 +157,10 @@ exports.getAllNotificationsAdmin = async (req, res) => {
     // Lọc theo type
     if (type) query.type = type;
     
-    // Lọc theo read status
-    if (read !== undefined) query.read = read === 'true';
+    // Lọc theo read status - chỉ lọc khi read có giá trị 'true' hoặc 'false'
+    if (read !== undefined && read !== '' && read !== null) {
+      query.read = read === 'true';
+    }
 
     const skip = (page - 1) * limit;
     const sortOrder = order === 'desc' ? -1 : 1;
@@ -285,17 +287,32 @@ exports.sendBulkNotifications = async (req, res) => {
 
     const result = await Notification.insertMany(notifications);
 
-    // Emit socket events
+    // Populate thông tin userId trước khi emit
+    const populatedNotifications = await Notification.find({
+      _id: { $in: result.map(n => n._id) }
+    })
+      .populate('userId', 'username displayName avatarUrl email')
+      .lean();
+
+    // Emit socket events realtime
     if (req.app.get('io')) {
-      result.forEach(notification => {
-        req.app.get('io').to(String(notification.userId)).emit('notification:new', notification);
+      const io = req.app.get('io');
+      populatedNotifications.forEach(notification => {
+        const targetUserId = notification.userId?._id || notification.userId;
+        // Emit với format giống notificationService
+        io.to(String(targetUserId)).emit('notification:new', {
+          userId: targetUserId,
+          notification: notification
+        });
       });
+      console.log(`✅ Đã gửi ${populatedNotifications.length} thông báo realtime`);
     }
 
     res.json({ 
       success: true, 
       message: `Đã gửi ${result.length} thông báo`,
-      count: result.length
+      count: result.length,
+      notifications: populatedNotifications
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

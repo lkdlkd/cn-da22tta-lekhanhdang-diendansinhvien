@@ -716,7 +716,7 @@ exports.getOnlineUsers = async (req, res) => {
     const onlineUsers = await User.find({
       isOnline: true,
       isBanned: { $ne: true },
-      role: { $ne: 'admin' }
+      // role: { $ne: 'admin' }
     })
       .select('_id username displayName avatar avatarUrl isOnline lastSeen createdAt')
       .limit(limit)

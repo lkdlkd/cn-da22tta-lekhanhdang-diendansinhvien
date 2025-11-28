@@ -368,7 +368,7 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
       if (onClose) {
         onClose();
       } else {
-        window.location.href = "/";
+        navigate('/');
       }
     } catch (error) {
       console.error("Error deleting post:", error);

@@ -2,12 +2,14 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../../Context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 import {
   getAllNotificationsAdmin,
   getNotificationsStats,
   deleteMultipleNotifications,
   deleteUserNotifications,
-  sendBulkNotifications
+  sendBulkNotifications,
+  getAllUsersAdmin
 } from '../../../Utils/api';
 import LoadingPost from '@/Components/LoadingPost';
 
@@ -18,14 +20,14 @@ function NotificationsAdmin() {
   const [notifications, setNotifications] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('list'); // list, stats, bulk
+  const [showSendModal, setShowSendModal] = useState(false);
 
   // Filters
   const [filters, setFilters] = useState({
     page: 1,
     limit: 20,
-    username: '', // Thay userId thành username để dễ tìm kiếm hơn
-    type: '', // Mặc định chỉ hiển thị notifications type "like"
+    username: '',
+    type: '',
     read: '',
     sortBy: 'createdAt',
     order: 'desc'
@@ -40,55 +42,58 @@ function NotificationsAdmin() {
 
   // Bulk send state
   const [bulkForm, setBulkForm] = useState({
-    userIds: '',
+    sendTo: 'all', // all, username, select
+    usernames: '',
+    selectedUsers: [],
     type: 'system',
     message: '',
-    data: {}
   });
 
-  // Selected notifications for bulk actions
   const [selectedNotifications, setSelectedNotifications] = useState([]);
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    // if (!auth.token || !auth.user?.isAdmin) {
-    //   navigate('/');
-    //   return;
-    // }
-    if (activeTab === 'list') {
-      loadNotifications();
-    } else if (activeTab === 'stats') {
-      loadStats();
-    }
-  }, [auth.token, auth.user, filters, activeTab]);
+    loadData();
+  }, [filters]);
 
-  const loadNotifications = async () => {
+  useEffect(() => {
+    if (showSendModal && bulkForm.sendTo === 'select') {
+      loadUsers();
+    }
+  }, [showSendModal, bulkForm.sendTo]);
+
+  const loadData = async () => {
     try {
       setLoading(true);
-      const data = await getAllNotificationsAdmin(auth.token, filters);
+      const [notifData, statsData] = await Promise.all([
+        getAllNotificationsAdmin(auth.token, filters),
+        getNotificationsStats(auth.token)
+      ]);
 
-      if (data.success) {
-        setNotifications(data.data);
-        setPagination(data.pagination);
+      if (notifData.success) {
+        setNotifications(notifData.data);
+        setPagination(notifData.pagination);
+      }
+
+      if (statsData.success) {
+        setStats(statsData.stats);
       }
     } catch (error) {
-      console.error('Error loading notifications:', error);
+      console.error('Error loading data:', error);
+      toast.error('Lỗi khi tải dữ liệu');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadStats = async () => {
+  const loadUsers = async () => {
     try {
-      setLoading(true);
-      const data = await getNotificationsStats(auth.token);
-
-      if (data.success) {
-        setStats(data.stats);
+      const data = await getAllUsersAdmin(auth.token, { limit: 1000 });
+      if (data.data) {
+        setUsers(data.data);
       }
     } catch (error) {
-      console.error('Error loading stats:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error loading users:', error);
     }
   };
 
@@ -98,7 +103,18 @@ function NotificationsAdmin() {
       return;
     }
 
-    if (!window.confirm(`Bạn có chắc muốn xóa ${selectedNotifications.length} thông báo?`)) return;
+    const result = await Swal.fire({
+      title: 'Xác nhận xóa',
+      text: `Bạn có chắc muốn xóa ${selectedNotifications.length} thông báo?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy'
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
       const data = await deleteMultipleNotifications(auth.token, selectedNotifications);
@@ -106,7 +122,7 @@ function NotificationsAdmin() {
       if (data.success) {
         toast.success(data.message);
         setSelectedNotifications([]);
-        loadNotifications();
+        loadData();
       }
     } catch (error) {
       console.error('Error deleting notifications:', error);
@@ -115,14 +131,25 @@ function NotificationsAdmin() {
   };
 
   const handleDeleteUserNotifications = async (userId) => {
-    if (!window.confirm('Bạn có chắc muốn xóa tất cả thông báo của user này?')) return;
+    const result = await Swal.fire({
+      title: 'Xác nhận xóa',
+      text: 'Bạn có chắc muốn xóa tất cả thông báo của user này?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy'
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
       const data = await deleteUserNotifications(auth.token, userId);
 
       if (data.success) {
         toast.success(data.message);
-        loadNotifications();
+        loadData();
       }
     } catch (error) {
       console.error('Error deleting user notifications:', error);
@@ -133,16 +160,31 @@ function NotificationsAdmin() {
   const handleBulkSend = async (e) => {
     e.preventDefault();
 
-    // Nếu type = system, gửi cho tất cả users (userIds = 'all')
-    // Nếu type khác, cần nhập userIds
-    const isSendToAll = bulkForm.type === 'system';
-    const userIdsArray = isSendToAll
-      ? ['all']
-      : bulkForm.userIds.split(',').map(id => id.trim()).filter(id => id);
+    let userIdsArray = [];
 
-    if (!isSendToAll && userIdsArray.length === 0) {
-      toast.error('Vui lòng nhập ít nhất một User ID');
-      return;
+    if (bulkForm.sendTo === 'all') {
+      userIdsArray = ['all'];
+    } else if (bulkForm.sendTo === 'username') {
+      const usernames = bulkForm.usernames.split(',').map(u => u.trim()).filter(u => u);
+      if (usernames.length === 0) {
+        toast.error('Vui lòng nhập ít nhất một username');
+        return;
+      }
+      
+      // Load users and filter by username
+      await loadUsers();
+      const matchedUsers = users.filter(u => usernames.includes(u.username));
+      if (matchedUsers.length === 0) {
+        toast.error('Không tìm thấy user nào với username đã nhập');
+        return;
+      }
+      userIdsArray = matchedUsers.map(u => u._id);
+    } else if (bulkForm.sendTo === 'select') {
+      if (bulkForm.selectedUsers.length === 0) {
+        toast.error('Vui lòng chọn ít nhất một user');
+        return;
+      }
+      userIdsArray = bulkForm.selectedUsers;
     }
 
     if (!bulkForm.message.trim()) {
@@ -156,12 +198,14 @@ function NotificationsAdmin() {
         userIdsArray,
         bulkForm.type,
         bulkForm.message,
-        bulkForm.data
+        {}
       );
 
       if (data.success) {
         toast.success(data.message);
-        setBulkForm({ userIds: '', type: 'system', message: '', data: {} });
+        setBulkForm({ sendTo: 'all', usernames: '', selectedUsers: [], type: 'system', message: '' });
+        setShowSendModal(false);
+        loadData();
       } else {
         toast.error('Có lỗi: ' + data.error);
       }
@@ -170,6 +214,7 @@ function NotificationsAdmin() {
       toast.error('Có lỗi xảy ra');
     }
   };
+
 
   const toggleSelectNotification = (notificationId) => {
     setSelectedNotifications(prev => {
@@ -187,6 +232,15 @@ function NotificationsAdmin() {
     } else {
       setSelectedNotifications(notifications.map(n => n._id));
     }
+  };
+
+  const toggleUserSelection = (userId) => {
+    setBulkForm(prev => ({
+      ...prev,
+      selectedUsers: prev.selectedUsers.includes(userId)
+        ? prev.selectedUsers.filter(id => id !== userId)
+        : [...prev.selectedUsers, userId]
+    }));
   };
 
   const getTimeAgo = (date) => {
@@ -210,117 +264,145 @@ function NotificationsAdmin() {
     return Math.floor(seconds) + ' giây trước';
   };
 
+  const getTypeBadgeColor = (type) => {
+    const colors = {
+      system: 'primary',
+      like: 'danger',
+      comment: 'success',
+      mention: 'warning'
+    };
+    return colors[type] || 'secondary';
+  };
+
   return (
-    <div className="">
-      <div className="">
-        {/* Page Header - Enhanced */}
-        <div className="page-header mb-4">
-          <div className="page-block">
+    <div className="container-fluid">
+      {/* Page Header */}
+      <div className="page-header mb-4">
+        <div className="card border">
+          <div className="card-body">
             <div className="row align-items-center">
-              <div className="col-md-12">
-                <div className="d-flex align-items-center justify-content-between">
-                  <div>
-                    <h2 className="mb-1 fw-bold">
-                      <i className="ph-duotone ph-shield-check me-2" style={{ color: '#4680ff' }}></i>
-                      Quản lý Thông báo
-                    </h2>
-                    <p className="text-muted mb-0">
-                      <i className="ph ph-info me-1"></i>
-                      Quản lý và theo dõi tất cả thông báo trong hệ thống
-                    </p>
+              <div className="col-md-8">
+                <h2 className="mb-1 fw-bold">
+                  <i className="bi bi-bell-fill me-2 text-primary"></i>
+                  Quản lý Thông báo
+                </h2>
+                <p className="text-muted mb-0">
+                  <i className="bi bi-info-circle me-1"></i>
+                  Quản lý và theo dõi tất cả thông báo trong hệ thống
+                </p>
+              </div>
+              <div className="col-md-4 text-end">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowSendModal(true)}
+                >
+                  <i className="bi bi-send-fill me-2"></i>
+                  Gửi thông báo
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {loading ? (
+        <LoadingPost />
+      ) : (
+        <>
+          {/* Statistics Cards */}
+          {stats && (
+            <div className="row mb-4">
+              <div className="col-xl-3 col-md-6 mb-3">
+                <div className="card border h-100">
+                  <div className="card-body p-4">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <p className="mb-1 text-muted">Tổng thông báo</p>
+                        <h3 className="mb-0 fw-bold text-primary">{stats.totalNotifications || 0}</h3>
+                      </div>
+                      <div className="bg-primary bg-opacity-10 p-3 rounded-circle">
+                        <i className="bi bi-bell-fill text-primary" style={{ fontSize: '24px' }}></i>
+                      </div>
+                    </div>
                   </div>
-                  <div className="badge bg-light-primary text-primary px-3 py-2" style={{ fontSize: '14px' }}>
-                    <i className="ph ph-database me-1"></i>
-                    Tổng: {pagination.total || 0} thông báo
+                </div>
+              </div>
+
+              <div className="col-xl-3 col-md-6 mb-3">
+                <div className="card border h-100">
+                  <div className="card-body p-4">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <p className="mb-1 text-muted">Chưa đọc</p>
+                        <h3 className="mb-0 fw-bold text-danger">{stats.unreadNotifications || 0}</h3>
+                      </div>
+                      <div className="bg-danger bg-opacity-10 p-3 rounded-circle">
+                        <i className="bi bi-envelope-fill text-danger" style={{ fontSize: '24px' }}></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-xl-3 col-md-6 mb-3">
+                <div className="card border h-100">
+                  <div className="card-body p-4">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <p className="mb-1 text-muted">Đã đọc</p>
+                        <h3 className="mb-0 fw-bold text-success">{stats.readNotifications || 0}</h3>
+                      </div>
+                      <div className="bg-success bg-opacity-10 p-3 rounded-circle">
+                        <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '24px' }}></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-xl-3 col-md-6 mb-3">
+                <div className="card border h-100">
+                  <div className="card-body p-4">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <p className="mb-1 text-muted">Gần đây (7 ngày)</p>
+                        <h3 className="mb-0 fw-bold text-info">{stats.recentNotifications || 0}</h3>
+                      </div>
+                      <div className="bg-info bg-opacity-10 p-3 rounded-circle">
+                        <i className="bi bi-clock-fill text-info" style={{ fontSize: '24px' }}></i>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Tabs - Enhanced with modern design */}
-        <div className="row mb-4">
-          <div className="col-12">
-            <div className="card shadow-sm border-0">
-              <div className="card-body p-3">
-                <ul className="nav nav-pills nav-fill" role="tablist" style={{ gap: '10px' }}>
-                  <li className="nav-item">
-                    <button
-                      className={`nav-link ${activeTab === 'list' ? 'active' : ''}`}
-                      onClick={() => setActiveTab('list')}
-                      style={{
-                        borderRadius: '10px',
-                        fontWeight: '500',
-                        transition: 'all 0.3s ease'
-                      }}
-                    >
-                      <i className="ph-duotone ph-list-bullets me-2"></i>
-                      Danh sách thông báo
-                    </button>
-                  </li>
-                  <li className="nav-item">
-                    <button
-                      className={`nav-link ${activeTab === 'stats' ? 'active' : ''}`}
-                      onClick={() => setActiveTab('stats')}
-                      style={{
-                        borderRadius: '10px',
-                        fontWeight: '500',
-                        transition: 'all 0.3s ease'
-                      }}
-                    >
-                      <i className="ph-duotone ph-chart-bar me-2"></i>
-                      Thống kê & Báo cáo
-                    </button>
-                  </li>
-                  <li className="nav-item">
-                    <button
-                      className={`nav-link ${activeTab === 'bulk' ? 'active' : ''}`}
-                      onClick={() => setActiveTab('bulk')}
-                      style={{
-                        borderRadius: '10px',
-                        fontWeight: '500',
-                        transition: 'all 0.3s ease'
-                      }}
-                    >
-                      <i className="ph-duotone ph-paper-plane-tilt me-2"></i>
-                      Gửi thông báo
-                    </button>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === 'list' && (
+          {/* Notifications List */}
           <div className="row">
             <div className="col-12">
-              <div className="card shadow-sm border-0">
+              <div className="card border">
                 <div className="card-header bg-white border-bottom">
                   <div className="row g-3 align-items-center">
                     <div className="col-md-3">
                       <div className="input-group">
-                        <span className="input-group-text bg-light border-0">
-                          <i className="ph-duotone ph-magnifying-glass text-primary"></i>
+                        <span className="input-group-text">
+                          <i className="bi bi-search text-primary"></i>
                         </span>
                         <input
                           type="text"
-                          className="form-control border-0 bg-light"
+                          className="form-control"
                           placeholder="Tìm kiếm theo username..."
                           value={filters.username}
                           onChange={(e) => setFilters({ ...filters, username: e.target.value, page: 1 })}
-                          style={{ fontSize: '14px' }}
                         />
                       </div>
                     </div>
                     <div className="col-md-2">
                       <select
-                        className="form-select border-0 bg-light"
+                        className="form-select"
                         value={filters.type}
                         onChange={(e) => setFilters({ ...filters, type: e.target.value, page: 1 })}
-                        style={{ fontSize: '14px' }}
                       >
                         <option value="">🔔 Tất cả loại</option>
                         <option value="like">❤️ Like</option>
@@ -331,10 +413,9 @@ function NotificationsAdmin() {
                     </div>
                     <div className="col-md-2">
                       <select
-                        className="form-select border-0 bg-light"
+                        className="form-select"
                         value={filters.read}
                         onChange={(e) => setFilters({ ...filters, read: e.target.value, page: 1 })}
-                        style={{ fontSize: '14px' }}
                       >
                         <option value="">Tất cả trạng thái</option>
                         <option value="true">✓ Đã đọc</option>
@@ -343,10 +424,9 @@ function NotificationsAdmin() {
                     </div>
                     <div className="col-md-2">
                       <select
-                        className="form-select border-0 bg-light"
+                        className="form-select"
                         value={filters.sortBy}
                         onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                        style={{ fontSize: '14px' }}
                       >
                         <option value="createdAt">📅 Ngày tạo</option>
                         <option value="type">📂 Loại</option>
@@ -357,27 +437,27 @@ function NotificationsAdmin() {
                       <div className="d-flex gap-2">
                         <div className="btn-group flex-grow-1" role="group">
                           <button
-                            className={`btn ${filters.order === 'desc' ? 'btn-primary' : 'btn-light'}`}
+                            className={`btn ${filters.order === 'desc' ? 'btn-primary' : 'btn-outline-primary'}`}
                             onClick={() => setFilters({ ...filters, order: 'desc' })}
-                            style={{ fontSize: '14px' }}
+                            title="Sắp xếp giảm dần"
                           >
-                            <i className="ph-bold ph-sort-descending"></i>
+                            <i className="bi bi-sort-down"></i>
                           </button>
                           <button
-                            className={`btn ${filters.order === 'asc' ? 'btn-primary' : 'btn-light'}`}
+                            className={`btn ${filters.order === 'asc' ? 'btn-primary' : 'btn-outline-primary'}`}
                             onClick={() => setFilters({ ...filters, order: 'asc' })}
-                            style={{ fontSize: '14px' }}
+                            title="Sắp xếp tăng dần"
                           >
-                            <i className="ph-bold ph-sort-ascending"></i>
+                            <i className="bi bi-sort-up"></i>
                           </button>
                         </div>
                         {selectedNotifications.length > 0 && (
                           <button
                             className="btn btn-danger"
                             onClick={handleDeleteMultiple}
-                            style={{ fontSize: '14px', whiteSpace: 'nowrap' }}
+                            style={{ whiteSpace: 'nowrap' }}
                           >
-                            <i className="ph-bold ph-trash me-1"></i>
+                            <i className="bi bi-trash-fill me-1"></i>
                             Xóa ({selectedNotifications.length})
                           </button>
                         )}
@@ -392,15 +472,15 @@ function NotificationsAdmin() {
                   ) : notifications.length === 0 ? (
                     <div className="text-center py-5">
                       <div className="mb-4">
-                        <i className="ph-duotone ph-bell-slash text-muted" style={{ fontSize: '80px', opacity: 0.3 }}></i>
+                        <i className="bi bi-bell-slash text-muted" style={{ fontSize: '80px', opacity: 0.3 }}></i>
                       </div>
                       <h5 className="text-muted mb-2">Không tìm thấy thông báo</h5>
                       <p className="text-muted mb-0">Thử thay đổi bộ lọc để xem kết quả khác</p>
                     </div>
                   ) : (
                     <div className="table-responsive p-1">
-                      <table className="table table-hover align-middle mb-0" style={{ fontSize: '14px' }}>
-                        <thead className="bg-light">
+                      <table className="table table-hover align-middle mb-0">
+                        <thead className="table-light">
                           <tr>
                             <th style={{ width: '50px' }} className="text-center">
                               <input
@@ -411,19 +491,19 @@ function NotificationsAdmin() {
                               />
                             </th>
                             <th style={{ minWidth: '200px' }}>
-                              <i className="ph ph-user me-1"></i>User
+                              <i className="bi bi-person-fill me-1"></i>User
                             </th>
                             <th style={{ width: '120px' }} className="text-center">
-                              <i className="ph ph-tag me-1"></i>Loại
+                              <i className="bi bi-tag-fill me-1"></i>Loại
                             </th>
                             <th style={{ minWidth: '250px' }}>
-                              <i className="ph ph-chat-text me-1"></i>Nội dung
+                              <i className="bi bi-chat-dots-fill me-1"></i>Nội dung
                             </th>
                             <th style={{ width: '120px' }} className="text-center">
-                              <i className="ph ph-check-circle me-1"></i>Trạng thái
+                              <i className="bi bi-check-circle-fill me-1"></i>Trạng thái
                             </th>
                             <th style={{ width: '140px' }}>
-                              <i className="ph ph-clock me-1"></i>Thời gian
+                              <i className="bi bi-clock-fill me-1"></i>Thời gian
                             </th>
                             <th style={{ width: '80px' }} className="text-center">Thao tác</th>
                           </tr>
@@ -498,20 +578,20 @@ function NotificationsAdmin() {
                               </td>
                               <td className="text-center">
                                 {notification.read ? (
-                                  <span className="badge bg-light-success text-success d-inline-flex align-items-center gap-1" style={{ fontSize: '12px' }}>
-                                    <i className="ph-fill ph-check-circle"></i>
+                                  <span className="badge bg-success d-inline-flex align-items-center gap-1" style={{ fontSize: '12px' }}>
+                                    <i className="bi bi-check-circle-fill"></i>
                                     Đã đọc
                                   </span>
                                 ) : (
-                                  <span className="badge bg-light-warning text-warning d-inline-flex align-items-center gap-1" style={{ fontSize: '12px' }}>
-                                    <i className="ph-fill ph-circle"></i>
+                                  <span className="badge bg-warning d-inline-flex align-items-center gap-1" style={{ fontSize: '12px' }}>
+                                    <i className="bi bi-circle-fill"></i>
                                     Chưa đọc
                                   </span>
                                 )}
                               </td>
                               <td>
                                 <div className="d-flex align-items-center gap-1 text-muted">
-                                  <i className="ph ph-clock" style={{ fontSize: '16px' }}></i>
+                                  <i className="bi bi-clock" style={{ fontSize: '16px' }}></i>
                                   <small>{getTimeAgo(notification.createdAt)}</small>
                                 </div>
                               </td>
@@ -522,16 +602,17 @@ function NotificationsAdmin() {
                                     type="button"
                                     data-bs-toggle="dropdown"
                                     style={{ width: '32px', height: '32px', padding: 0 }}
+                                    title="Thao tác"
                                   >
-                                    <i className="ph-bold ph-dots-three-outline-vertical"></i>
+                                    <i className="bi bi-three-dots-vertical"></i>
                                   </button>
-                                  <ul className="dropdown-menu dropdown-menu-end shadow-sm border-0" style={{ minWidth: '200px' }}>
+                                  <ul className="dropdown-menu dropdown-menu-end" style={{ minWidth: '200px' }}>
                                     <li>
                                       <button
                                         className="dropdown-item text-danger d-flex align-items-center gap-2"
                                         onClick={() => handleDeleteUserNotifications(notification.userId._id)}
                                       >
-                                        <i className="ph-bold ph-trash"></i>
+                                        <i className="bi bi-trash-fill"></i>
                                         Xóa tất cả của user
                                       </button>
                                     </li>
@@ -558,8 +639,9 @@ function NotificationsAdmin() {
                               <button
                                 className="page-link rounded-start"
                                 onClick={() => setFilters({ ...filters, page: pagination.page - 1 })}
+                                disabled={pagination.page === 1}
                               >
-                                <i className="ph-bold ph-caret-left"></i>
+                                <i className="bi bi-chevron-left"></i>
                               </button>
                             </li>
                             {[...Array(Math.min(pagination.pages, 5))].map((_, i) => {
@@ -588,8 +670,9 @@ function NotificationsAdmin() {
                               <button
                                 className="page-link rounded-end"
                                 onClick={() => setFilters({ ...filters, page: pagination.page + 1 })}
+                                disabled={pagination.page === pagination.pages}
                               >
-                                <i className="ph-bold ph-caret-right"></i>
+                                <i className="bi bi-chevron-right"></i>
                               </button>
                             </li>
                           </ul>
@@ -601,443 +684,219 @@ function NotificationsAdmin() {
               </div>
             </div>
           </div>
-        )}
+        </>
+      )}
 
-        {activeTab === 'stats' && (
-          <div className="row">
-            {loading ? (
-              <LoadingPost count={4} />
-            ) : !stats ? (
-              <div className="col-12">
-                <div className="card shadow-sm border-0">
-                  <div className="card-body text-center py-5">
-                    <div className="mb-4">
-                      <i className="ph-duotone ph-chart-bar-horizontal text-muted" style={{ fontSize: '80px', opacity: 0.3 }}></i>
-                    </div>
-                    <h5 className="text-muted mb-2">Không có dữ liệu thống kê</h5>
-                    <p className="text-muted mb-0">Dữ liệu sẽ xuất hiện khi có thông báo trong hệ thống</p>
-                  </div>
-                </div>
+      {/* Send Notification Modal */}
+      {showSendModal && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content">
+              <div className="modal-header bg-primary text-white">
+                <h5 className="modal-title fw-bold">
+                  <i className="bi bi-send-fill me-2"></i>
+                  Gửi thông báo
+                </h5>
+                <button 
+                  type="button" 
+                  className="btn-close btn-close-white" 
+                  onClick={() => setShowSendModal(false)}
+                ></button>
               </div>
-            ) : (
-              <>
-                {/* Stats Cards - Enhanced with gradient */}
-                <div className="col-xl-3 col-md-6">
-                  <div className="card shadow-sm border-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                    <div className="card-body text-white p-4">
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className="rounded-circle bg-white bg-opacity-25 p-3">
-                          <i className="ph-duotone ph-bell" style={{ fontSize: '32px' }}></i>
-                        </div>
-                        <div className="badge bg-white bg-opacity-25 px-3 py-2">Tổng quan</div>
-                      </div>
-                      <h2 className="mb-1 fw-bold">{stats.totalNotifications.toLocaleString()}</h2>
-                      <p className="mb-0 opacity-75">Tổng thông báo</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-xl-3 col-md-6">
-                  <div className="card shadow-sm border-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
-                    <div className="card-body text-white p-4">
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className="rounded-circle bg-white bg-opacity-25 p-3">
-                          <i className="ph-duotone ph-bell-ringing" style={{ fontSize: '32px' }}></i>
-                        </div>
-                        <div className="badge bg-white bg-opacity-25 px-3 py-2">Chưa đọc</div>
-                      </div>
-                      <h2 className="mb-1 fw-bold">{stats.unreadNotifications.toLocaleString()}</h2>
-                      <p className="mb-0 opacity-75">Thông báo mới</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-xl-3 col-md-6">
-                  <div className="card shadow-sm border-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
-                    <div className="card-body text-white p-4">
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className="rounded-circle bg-white bg-opacity-25 p-3">
-                          <i className="ph-duotone ph-check-circle" style={{ fontSize: '32px' }}></i>
-                        </div>
-                        <div className="badge bg-white bg-opacity-25 px-3 py-2">Đã đọc</div>
-                      </div>
-                      <h2 className="mb-1 fw-bold">{stats.readNotifications.toLocaleString()}</h2>
-                      <p className="mb-0 opacity-75">Thông báo đã xem</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-xl-3 col-md-6">
-                  <div className="card shadow-sm border-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' }}>
-                    <div className="card-body text-white p-4">
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className="rounded-circle bg-white bg-opacity-25 p-3">
-                          <i className="ph-duotone ph-clock-clockwise" style={{ fontSize: '32px' }}></i>
-                        </div>
-                        <div className="badge bg-white bg-opacity-25 px-3 py-2">Gần đây</div>
-                      </div>
-                      <h2 className="mb-1 fw-bold">{stats.recentNotifications.toLocaleString()}</h2>
-                      <p className="mb-0 opacity-75">7 ngày qua</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Charts - Enhanced */}
-                <div className="col-lg-6">
-                  <div className="card shadow-sm border-0">
-                    <div className="card-header bg-white border-bottom">
-                      <div className="d-flex align-items-center justify-content-between">
-                        <h5 className="mb-0 fw-bold">
-                          <i className="ph-duotone ph-chart-pie text-primary me-2"></i>
-                          Phân loại thông báo
-                        </h5>
-                        <span className="badge bg-light-primary text-primary">
-                          {stats.notificationsByType?.length || 0} loại
-                        </span>
-                      </div>
-                    </div>
-                    <div className="card-body">
-                      {stats.notificationsByType && stats.notificationsByType.length > 0 ? (
-                        <div className="list-group list-group-flush">
-                          {stats.notificationsByType.map((item, index) => {
-                            const total = stats.totalNotifications;
-                            const percentage = ((item.count / total) * 100).toFixed(1);
-                            const colors = ['#667eea', '#f093fb', '#4facfe', '#fa709a'];
-                            const icons = { like: '❤️', comment: '💬', mention: '@', system: '⚙️' };
-                            return (
-                              <div key={item._id} className="list-group-item border-0 px-0 py-3">
-                                <div className="d-flex align-items-center justify-content-between mb-2">
-                                  <div className="d-flex align-items-center gap-2">
-                                    <span style={{ fontSize: '20px' }}>{icons[item._id] || '🔔'}</span>
-                                    <span className="fw-semibold text-capitalize">{item._id}</span>
-                                  </div>
-                                  <div className="d-flex align-items-center gap-2">
-                                    <span className="text-muted">{percentage}%</span>
-                                    <span className="badge rounded-pill px-3" style={{ backgroundColor: colors[index % colors.length] }}>
-                                      {item.count.toLocaleString()}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="progress" style={{ height: '8px', borderRadius: '10px' }}>
-                                  <div
-                                    className="progress-bar"
-                                    role="progressbar"
-                                    style={{
-                                      width: `${percentage}%`,
-                                      backgroundColor: colors[index % colors.length],
-                                      borderRadius: '10px'
-                                    }}
-                                  ></div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="text-center py-4">
-                          <i className="ph-duotone ph-database text-muted mb-3" style={{ fontSize: '48px', opacity: 0.3 }}></i>
-                          <p className="text-muted mb-0">Chưa có dữ liệu phân loại</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-lg-6">
-                  <div className="card shadow-sm border-0">
-                    <div className="card-header bg-white border-bottom">
-                      <div className="d-flex align-items-center justify-content-between">
-                        <h5 className="mb-0 fw-bold">
-                          <i className="ph-duotone ph-users-three text-primary me-2"></i>
-                          Top người dùng hoạt động
-                        </h5>
-                        <span className="badge bg-light-primary text-primary">
-                          Top 10
-                        </span>
-                      </div>
-                    </div>
-                    <div className="card-body" style={{ maxHeight: '500px', overflowY: 'auto' }}>
-                      {stats.topUsersByNotifications && stats.topUsersByNotifications.length > 0 ? (
-                        <div className="list-group list-group-flush">
-                          {stats.topUsersByNotifications.map((user, index) => {
-                            const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
-                            const rankColor = index < 3 ? rankColors[index] : '#6c757d';
-                            return (
-                              <div key={user.userId} className="list-group-item border-0 px-0 py-3">
-                                <div className="d-flex align-items-center gap-3">
-                                  <div
-                                    className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                                    style={{
-                                      width: '36px',
-                                      height: '36px',
-                                      backgroundColor: rankColor,
-                                      fontSize: '14px'
-                                    }}
-                                  >
-                                    {index + 1}
-                                  </div>
-                                  <div className="position-relative">
-                                    <img
-                                      src={user.avatarUrl || `https://ui-avatars.com/api/?name=${user.username}&background=random`}
-                                      alt={user.username}
-                                      className="rounded-circle"
-                                      style={{
-                                        width: '48px',
-                                        height: '48px',
-                                        objectFit: 'cover',
-                                        border: '3px solid #f0f0f0'
-                                      }}
-                                    />
-                                    {index === 0 && (
-                                      <span
-                                        className="position-absolute bottom-0 end-0 translate-middle badge rounded-pill"
-                                        style={{ backgroundColor: '#FFD700', padding: '4px' }}
-                                      >
-                                        👑
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex-grow-1" style={{ minWidth: 0 }}>
-                                    <div className="fw-semibold text-truncate">{user.displayName || user.username}</div>
-                                    <small className="text-muted text-truncate d-block">@{user.username}</small>
-                                  </div>
-                                  <div className="text-end">
-                                    <div className="badge bg-light-primary text-primary px-3 py-2">
-                                      <i className="ph-fill ph-bell me-1"></i>
-                                      {user.notificationsCount}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="text-center py-4">
-                          <i className="ph-duotone ph-user-list text-muted mb-3" style={{ fontSize: '48px', opacity: 0.3 }}></i>
-                          <p className="text-muted mb-0">Chưa có dữ liệu người dùng</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'bulk' && (
-          <div className="row justify-content-center">
-            <div className="col-lg-8">
-              <div className="card shadow-sm border-0">
-                <div className="card-header bg-gradient text-white border-0" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                  <div className="d-flex align-items-center gap-3">
-                    <div className="rounded-circle bg-white bg-opacity-25 p-3">
-                      <i className="ph-duotone ph-paper-plane-tilt" style={{ fontSize: '32px' }}></i>
-                    </div>
-                    <div>
-                      <h4 className="mb-1 fw-bold">Gửi thông báo hàng loạt</h4>
-                      <p className="mb-0 opacity-75">Gửi thông báo đến nhiều người dùng cùng lúc</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="card-body p-4">
-                  <form onSubmit={handleBulkSend}>
-                    {/* Type Selection - Enhanced */}
-                    <div className="mb-4">
-                      <label className="form-label fw-semibold mb-3">
-                        <i className="ph-duotone ph-tag me-2 text-primary"></i>
-                        Loại thông báo
-                      </label>
-                      <div className="row g-3">
-                        {[
-                          { value: 'system', label: 'System', icon: '⚙️', desc: 'Gửi tất cả users', color: '#4facfe' },
-                          { value: 'like', label: 'Like', icon: '❤️', desc: 'Chọn users cụ thể', color: '#f093fb' },
-                          { value: 'comment', label: 'Comment', icon: '💬', desc: 'Chọn users cụ thể', color: '#667eea' },
-                          { value: 'mention', label: 'Mention', icon: '@', desc: 'Chọn users cụ thể', color: '#fa709a' }
-                        ].map((type) => (
-                          <div key={type.value} className="col-6">
-                            <input
-                              type="radio"
-                              className="btn-check"
-                              name="notificationType"
-                              id={`type-${type.value}`}
-                              value={type.value}
-                              checked={bulkForm.type === type.value}
-                              onChange={(e) => setBulkForm({ ...bulkForm, type: e.target.value })}
-                            />
-                            <label
-                              className={`btn btn-outline-primary w-100 p-3 text-start ${bulkForm.type === type.value ? 'active' : ''}`}
-                              htmlFor={`type-${type.value}`}
-                              style={{
-                                border: bulkForm.type === type.value ? `2px solid ${type.color}` : '2px solid #e0e0e0',
-                                transition: 'all 0.3s ease'
-                              }}
-                            >
-                              <div className="d-flex align-items-center gap-3">
-                                <span style={{ fontSize: '28px' }}>{type.icon}</span>
-                                <div>
-                                  <div className="fw-bold">{type.label}</div>
-                                  <small className="text-muted">{type.desc}</small>
-                                </div>
-                              </div>
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* User IDs Input - Conditional */}
-                    {bulkForm.type !== 'system' && (
-                      <div className="mb-4">
-                        <label className="form-label fw-semibold">
-                          <i className="ph-duotone ph-users-three me-2 text-primary"></i>
-                          User IDs (phân cách bằng dấu phẩy)
-                        </label>
-                        <textarea
-                          className="form-control border-2"
-                          rows="4"
-                          placeholder="673c7d5e123456789abcdef0, 673c7d5e123456789abcdef1, 673c7d5e123456789abcdef2..."
-                          value={bulkForm.userIds}
-                          onChange={(e) => setBulkForm({ ...bulkForm, userIds: e.target.value })}
-                          required
-                          style={{
-                            fontSize: '14px',
-                            resize: 'vertical',
-                            fontFamily: 'Monaco, monospace'
-                          }}
+              <form onSubmit={handleBulkSend}>
+                <div className="modal-body p-4">
+                  {/* Send To Radio Buttons */}
+                  <div className="mb-4">
+                    <label className="form-label fw-semibold">
+                      <i className="bi bi-people-fill me-2 text-primary"></i>
+                      Gửi tới
+                    </label>
+                    <div className="d-flex flex-column gap-3">
+                      <div className="form-check p-3 border rounded">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="sendTo"
+                          id="sendToAll"
+                          value="all"
+                          checked={bulkForm.sendTo === 'all'}
+                          onChange={(e) => setBulkForm({ ...bulkForm, sendTo: e.target.value })}
                         />
-                        <div className="form-text d-flex align-items-center gap-2 mt-2">
-                          <i className="ph ph-info"></i>
-                          Nhập danh sách User IDs, mỗi ID cách nhau bằng dấu phẩy
-                        </div>
+                        <label className="form-check-label ms-2 w-100" htmlFor="sendToAll">
+                          <div className="d-flex align-items-center gap-2">
+                            <i className="bi bi-broadcast text-primary" style={{ fontSize: '20px' }}></i>
+                            <div>
+                              <div className="fw-semibold">Tất cả người dùng</div>
+                              <small className="text-muted">Gửi thông báo đến toàn bộ người dùng</small>
+                            </div>
+                          </div>
+                        </label>
                       </div>
-                    )}
-
-                    {/* System Alert */}
-                    {bulkForm.type === 'system' && (
-                      <div className="alert alert-info d-flex align-items-start gap-3 mb-4 border-0 shadow-sm" style={{ backgroundColor: '#e3f2fd' }}>
-                        <div className="rounded-circle bg-info bg-opacity-25 p-2">
-                          <i className="ph-fill ph-broadcast text-info" style={{ fontSize: '24px' }}></i>
-                        </div>
-                        <div className="flex-grow-1">
-                          <h6 className="mb-1 fw-bold text-info">
-                            <i className="ph-fill ph-megaphone me-1"></i>
-                            Gửi cho tất cả người dùng
-                          </h6>
-                          <p className="mb-0 text-muted" style={{ fontSize: '14px' }}>
-                            Thông báo hệ thống sẽ được gửi đến <strong>tất cả người dùng</strong> trong hệ thống.
-                            Vui lòng kiểm tra kỹ nội dung trước khi gửi.
-                          </p>
-                        </div>
+                      
+                      <div className="form-check p-3 border rounded">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="sendTo"
+                          id="sendToUsername"
+                          value="username"
+                          checked={bulkForm.sendTo === 'username'}
+                          onChange={(e) => setBulkForm({ ...bulkForm, sendTo: e.target.value })}
+                        />
+                        <label className="form-check-label ms-2 w-100" htmlFor="sendToUsername">
+                          <div className="d-flex align-items-center gap-2">
+                            <i className="bi bi-person-fill text-warning" style={{ fontSize: '20px' }}></i>
+                            <div>
+                              <div className="fw-semibold">Theo username</div>
+                              <small className="text-muted">Nhập danh sách username cách nhau bởi dấu phẩy</small>
+                            </div>
+                          </div>
+                        </label>
                       </div>
-                    )}
+                      
+                      <div className="form-check p-3 border rounded">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="sendTo"
+                          id="sendToSelect"
+                          value="select"
+                          checked={bulkForm.sendTo === 'select'}
+                          onChange={(e) => setBulkForm({ ...bulkForm, sendTo: e.target.value })}
+                        />
+                        <label className="form-check-label ms-2 w-100" htmlFor="sendToSelect">
+                          <div className="d-flex align-items-center gap-2">
+                            <i className="bi bi-check2-square text-success" style={{ fontSize: '20px' }}></i>
+                            <div>
+                              <div className="fw-semibold">Chọn người dùng</div>
+                              <small className="text-muted">Chọn người dùng cụ thể từ danh sách</small>
+                            </div>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
 
-                    {/* Message Content */}
+                  {/* Username Input */}
+                  {bulkForm.sendTo === 'username' && (
                     <div className="mb-4">
                       <label className="form-label fw-semibold">
-                        <i className="ph-duotone ph-chat-text me-2 text-primary"></i>
-                        Nội dung thông báo
-                        <span className="text-danger">*</span>
+                        <i className="bi bi-person-lines-fill me-2 text-primary"></i>
+                        Danh sách username
                       </label>
                       <textarea
-                        className="form-control border-2"
-                        rows="6"
-                        placeholder="Nhập nội dung thông báo của bạn tại đây...&#10;&#10;Ví dụ: Hệ thống sẽ bảo trì từ 2h-4h sáng ngày mai. Vui lòng lưu công việc trước khi đăng xuất."
-                        value={bulkForm.message}
-                        onChange={(e) => setBulkForm({ ...bulkForm, message: e.target.value })}
-                        required
-                        style={{
-                          fontSize: '14px',
-                          resize: 'vertical',
-                          lineHeight: '1.6'
-                        }}
+                        className="form-control"
+                        rows="4"
+                        placeholder="username1, username2, username3..."
+                        value={bulkForm.usernames}
+                        onChange={(e) => setBulkForm({ ...bulkForm, usernames: e.target.value })}
                       />
-                      <div className="d-flex justify-content-between align-items-center mt-2">
-                        <div className="form-text d-flex align-items-center gap-2">
-                          <i className="ph ph-pencil-simple"></i>
-                          Viết nội dung rõ ràng, dễ hiểu
-                        </div>
-                        <span className={`badge ${bulkForm.message.length > 0 ? 'bg-primary' : 'bg-secondary'}`}>
-                          {bulkForm.message.length} ký tự
-                        </span>
+                      <small className="text-muted">Nhập các username cách nhau bởi dấu phẩy</small>
+                    </div>
+                  )}
+
+                  {/* User Selection */}
+                  {bulkForm.sendTo === 'select' && (
+                    <div className="mb-4">
+                      <label className="form-label fw-semibold">
+                        <i className="bi bi-people-fill me-2 text-primary"></i>
+                        Chọn người dùng ({bulkForm.selectedUsers.length} đã chọn)
+                      </label>
+                      <div className="border rounded p-3" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                        {users.length === 0 ? (
+                          <div className="text-center text-muted py-3">
+                            <i className="bi bi-hourglass-split me-2"></i>
+                            Đang tải danh sách người dùng...
+                          </div>
+                        ) : (
+                          users.map(user => (
+                            <div key={user._id} className="form-check mb-2 p-2 rounded hover-bg-light">
+                              <input
+                                className="form-check-input"
+                                type="checkbox"
+                                id={`user-${user._id}`}
+                                checked={bulkForm.selectedUsers.includes(user._id)}
+                                onChange={() => toggleUserSelection(user._id)}
+                              />
+                              <label className="form-check-label ms-2 d-flex align-items-center gap-2 w-100" htmlFor={`user-${user._id}`}>
+                                <img
+                                  src={user.avatarUrl || `https://ui-avatars.com/api/?name=${user.username}`}
+                                  alt={user.username}
+                                  className="rounded-circle"
+                                  style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                                />
+                                <div>
+                                  <div className="fw-semibold">{user.displayName || user.username}</div>
+                                  <small className="text-muted">@{user.username}</small>
+                                </div>
+                              </label>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
+                  )}
 
-                    {/* Warning for non-system types */}
-                    {bulkForm.type !== 'system' && (
-                      <div className="alert alert-warning d-flex align-items-start gap-3 mb-4 border-0 shadow-sm" style={{ backgroundColor: '#fff3cd' }}>
-                        <div className="rounded-circle bg-warning bg-opacity-25 p-2">
-                          <i className="ph-fill ph-warning text-warning" style={{ fontSize: '24px' }}></i>
-                        </div>
-                        <div className="flex-grow-1">
-                          <h6 className="mb-1 fw-bold text-warning">
-                            <i className="ph-fill ph-shield-warning me-1"></i>
-                            Lưu ý quan trọng
-                          </h6>
-                          <p className="mb-0 text-muted" style={{ fontSize: '14px' }}>
-                            Thông báo sẽ được gửi đến các user IDs đã liệt kê.
-                            Hãy kiểm tra kỹ danh sách trước khi gửi vì <strong>không thể hoàn tác</strong>.
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                  {/* Notification Type */}
+                  <div className="mb-4">
+                    <label className="form-label fw-semibold">
+                      <i className="bi bi-tag-fill me-2 text-primary"></i>
+                      Loại thông báo
+                    </label>
+                    <select
+                      className="form-select"
+                      value={bulkForm.type}
+                      onChange={(e) => setBulkForm({ ...bulkForm, type: e.target.value })}
+                    >
+                      <option value="system">⚙️ System</option>
+                      <option value="like">❤️ Like</option>
+                      <option value="comment">💬 Comment</option>
+                      <option value="mention">@ Mention</option>
+                    </select>
+                  </div>
 
-                    {/* Action Buttons */}
-                    <div className="d-flex justify-content-end gap-3 pt-3 border-top">
-                      <button
-                        type="button"
-                        className="btn btn-light px-4 py-2"
-                        onClick={() => setBulkForm({ userIds: '', type: 'system', message: '', data: {} })}
-                        style={{ minWidth: '120px' }}
-                      >
-                        <i className="ph-bold ph-x me-2"></i>
-                        Hủy bỏ
-                      </button>
-                      <button
-                        type="submit"
-                        className="btn btn-primary px-4 py-2 shadow-sm"
-                        style={{ minWidth: '180px' }}
-                      >
-                        <i className="ph-bold ph-paper-plane-tilt me-2"></i>
-                        {bulkForm.type === 'system' ? 'Gửi cho tất cả' : 'Gửi thông báo'}
-                      </button>
+                  {/* Message */}
+                  <div className="mb-4">
+                    <label className="form-label fw-semibold">
+                      <i className="bi bi-chat-left-text-fill me-2 text-primary"></i>
+                      Nội dung thông báo
+                      <span className="text-danger">*</span>
+                    </label>
+                    <textarea
+                      className="form-control"
+                      rows="5"
+                      placeholder="Nhập nội dung thông báo..."
+                      value={bulkForm.message}
+                      onChange={(e) => setBulkForm({ ...bulkForm, message: e.target.value })}
+                      required
+                    />
+                    <div className="d-flex justify-content-between mt-2">
+                      <small className="text-muted">Viết nội dung rõ ràng, dễ hiểu</small>
+                      <span className={`badge ${bulkForm.message.length > 0 ? 'bg-primary' : 'bg-secondary'}`}>
+                        {bulkForm.message.length} ký tự
+                      </span>
                     </div>
-                  </form>
+                  </div>
                 </div>
-              </div>
-
-              {/* Help Card */}
-              <div className="card shadow-sm border-0 mt-4" style={{ backgroundColor: '#f8f9fa' }}>
-                <div className="card-body p-4">
-                  <h6 className="fw-bold mb-3">
-                    <i className="ph-duotone ph-question text-primary me-2"></i>
-                    Hướng dẫn sử dụng
-                  </h6>
-                  <ul className="list-unstyled mb-0" style={{ fontSize: '14px' }}>
-                    <li className="mb-2 d-flex gap-2">
-                      <i className="ph-fill ph-check-circle text-success mt-1"></i>
-                      <span><strong>System:</strong> Gửi thông báo quan trọng đến tất cả người dùng (bảo trì, cập nhật...)</span>
-                    </li>
-                    <li className="mb-2 d-flex gap-2">
-                      <i className="ph-fill ph-check-circle text-success mt-1"></i>
-                      <span><strong>Like/Comment/Mention:</strong> Gửi thông báo tương tác đến nhóm người dùng cụ thể</span>
-                    </li>
-                    <li className="mb-2 d-flex gap-2">
-                      <i className="ph-fill ph-check-circle text-success mt-1"></i>
-                      <span>User IDs có thể lấy từ danh sách người dùng hoặc database</span>
-                    </li>
-                    <li className="d-flex gap-2">
-                      <i className="ph-fill ph-check-circle text-success mt-1"></i>
-                      <span>Thông báo sẽ hiển thị ngay lập tức cho người dùng online</span>
-                    </li>
-                  </ul>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowSendModal(false)}
+                  >
+                    <i className="bi bi-x-circle me-2"></i>
+                    Hủy
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    <i className="bi bi-send-fill me-2"></i>
+                    Gửi thông báo
+                  </button>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

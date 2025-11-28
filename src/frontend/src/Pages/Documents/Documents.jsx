@@ -496,12 +496,12 @@ const Documents = () => {
                       <td><small>{new Date(d.createdAt).toLocaleString('vi-VN')}</small></td>
                       <td>
                         <div className="btn-group">
-                          <a className="btn btn-sm btn-outline-primary" href={d.storageUrl} target="_blank" rel="noreferrer">
+                          <Link className="btn btn-sm btn-outline-primary" to={d.storageUrl} target="_blank" rel="noreferrer">
                             <i className="ph-arrow-square-out me-1"></i>Mở
-                          </a>
-                          <a className="btn btn-sm btn-outline-secondary" href={d.storageUrl} download>
+                          </Link>
+                          <Link className="btn btn-sm btn-outline-secondary" to={d.storageUrl} download>
                             <i className="ph-download-simple me-1"></i>Tải xuống
-                          </a>
+                          </Link>
                         </div>
                       </td>
                     </tr>
