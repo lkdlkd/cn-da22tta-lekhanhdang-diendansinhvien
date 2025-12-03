@@ -163,11 +163,11 @@ exports.register = async (req, res) => {
     username = username.toLowerCase();
     email = email.toLowerCase();
 
-    // Kiểm tra email domain - chỉ cho phép @gmail.com hoặc @st.tvu.edu.vn
-    const allowedDomains = ['@gmail.com', '@st.tvu.edu.vn'];
+    // Kiểm tra email domain - chỉ cho phép @st.tvu.edu.vn
+    const allowedDomains = [ '@st.tvu.edu.vn'];
     const isValidDomain = allowedDomains.some(domain => email.endsWith(domain));
     if (!isValidDomain) {
-      return res.status(400).json({ success: false, error: 'Email phải sử dụng tên miền @gmail.com hoặc @st.tvu.edu.vn' });
+      return res.status(400).json({ success: false, error: 'Email phải sử dụng tên miền @st.tvu.edu.vn' });
     }
     // Kiểm tra username và password không được ngắn hơn 6 ký tự
     if (username.length < 6) {

@@ -188,7 +188,7 @@ export function ForgotPassword() {
                                             <div className="mb-4">
                                                 <label htmlFor="email" className="form-label" style={{ fontWeight: 600, fontSize: '14px', color: '#333', marginBottom: '10px' }}>
                                                     <i className="bi bi-envelope-fill me-2" style={{ color: '#667eea' }}></i>
-                                                    Email (@st.tvu.edu.vn hoặc @gmail.com)
+                                                    Email (@st.tvu.edu.vn)
                                                 </label>
                                                 <div className="position-relative">
                                                     <input

@@ -154,10 +154,10 @@ export function Register() {
 
     const normalizedEmail = formData.email.trim().toLowerCase();
     // Kiểm tra email domain
-    const allowedDomains = ['@gmail.com', '@st.tvu.edu.vn'];
+    const allowedDomains = ['@st.tvu.edu.vn'];
     const isValidDomain = allowedDomains.some(domain => normalizedEmail.endsWith(domain));
     if (!isValidDomain) {
-      setError('Email phải sử dụng tên miền @gmail.com hoặc @st.tvu.edu.vn');
+      setError('Email phải sử dụng tên miền @st.tvu.edu.vn');
       return;
     }
 
