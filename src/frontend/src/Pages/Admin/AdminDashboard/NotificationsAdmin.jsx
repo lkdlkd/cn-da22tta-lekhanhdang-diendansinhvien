@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../../Context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { Table } from 'react-bootstrap';
 import Swal from 'sweetalert2';
 import {
   getAllNotificationsAdmin,
@@ -170,7 +171,7 @@ function NotificationsAdmin() {
         toast.error('Vui lòng nhập ít nhất một username');
         return;
       }
-      
+
       // Load users and filter by username
       await loadUsers();
       const matchedUsers = users.filter(u => usernames.includes(u.username));
@@ -479,7 +480,7 @@ function NotificationsAdmin() {
                     </div>
                   ) : (
                     <div className="table-responsive p-1">
-                      <table className="table table-hover align-middle mb-0">
+                      <Table hover responsive bordered className="align-middle mb-0">
                         <thead className="table-light">
                           <tr>
                             <th style={{ width: '50px' }} className="text-center">
@@ -490,8 +491,10 @@ function NotificationsAdmin() {
                                 onChange={toggleSelectAll}
                               />
                             </th>
+                            <th>STT</th>
+                            <th style={{ width: '80px' }} className="text-center">Thao tác</th>
                             <th style={{ minWidth: '200px' }}>
-                              <i className="bi bi-person-fill me-1"></i>User
+                              <i className="bi bi-person-fill me-1"></i>Người dùng
                             </th>
                             <th style={{ width: '120px' }} className="text-center">
                               <i className="bi bi-tag-fill me-1"></i>Loại
@@ -505,11 +508,10 @@ function NotificationsAdmin() {
                             <th style={{ width: '140px' }}>
                               <i className="bi bi-clock-fill me-1"></i>Thời gian
                             </th>
-                            <th style={{ width: '80px' }} className="text-center">Thao tác</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {notifications.map((notification) => (
+                          {notifications.map((notification, idx) => (
                             <tr key={notification._id} style={{ transition: 'all 0.2s ease' }}>
                               <td className="text-center">
                                 <input
@@ -518,6 +520,30 @@ function NotificationsAdmin() {
                                   checked={selectedNotifications.includes(notification._id)}
                                   onChange={() => toggleSelectNotification(notification._id)}
                                 />
+                              </td>
+                              <td>{idx + 1}</td>
+                              <td className="text-center">
+                                <div className="dropdown">
+                                  <button
+                                    className="btn btn-primary dropdown-toggle"
+                                    type="button"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                  >
+                                    Thao tác <i className="bi bi-chevron-down ms-1"></i>
+                                  </button>
+                                  <ul className="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                      <button
+                                        className="dropdown-item text-danger d-flex align-items-center gap-2"
+                                        onClick={() => handleDeleteUserNotifications(notification.userId._id)}
+                                      >
+                                        <i className="bi bi-trash-fill"></i>
+                                        Xóa tất cả của user
+                                      </button>
+                                    </li>
+                                  </ul>
+                                </div>
                               </td>
                               <td>
                                 <div className="d-flex align-items-center gap-2">
@@ -554,9 +580,9 @@ function NotificationsAdmin() {
                               </td>
                               <td className="text-center">
                                 <span className={`badge d-inline-flex align-items-center gap-1 ${notification.type === 'like' ? 'bg-danger' :
-                                    notification.type === 'comment' ? 'bg-primary' :
-                                      notification.type === 'mention' ? 'bg-purple' :
-                                        'bg-info'
+                                  notification.type === 'comment' ? 'bg-primary' :
+                                    notification.type === 'mention' ? 'bg-purple' :
+                                      'bg-info'
                                   }`} style={{ fontSize: '12px', padding: '6px 12px' }}>
                                   {notification.type === 'like' && '❤️'}
                                   {notification.type === 'comment' && '💬'}
@@ -595,34 +621,11 @@ function NotificationsAdmin() {
                                   <small>{getTimeAgo(notification.createdAt)}</small>
                                 </div>
                               </td>
-                              <td className="text-center">
-                                <div className="dropdown">
-                                  <button
-                                    className="btn btn-sm btn-light rounded-circle"
-                                    type="button"
-                                    data-bs-toggle="dropdown"
-                                    style={{ width: '32px', height: '32px', padding: 0 }}
-                                    title="Thao tác"
-                                  >
-                                    <i className="bi bi-three-dots-vertical"></i>
-                                  </button>
-                                  <ul className="dropdown-menu dropdown-menu-end" style={{ minWidth: '200px' }}>
-                                    <li>
-                                      <button
-                                        className="dropdown-item text-danger d-flex align-items-center gap-2"
-                                        onClick={() => handleDeleteUserNotifications(notification.userId._id)}
-                                      >
-                                        <i className="bi bi-trash-fill"></i>
-                                        Xóa tất cả của user
-                                      </button>
-                                    </li>
-                                  </ul>
-                                </div>
-                              </td>
+
                             </tr>
                           ))}
                         </tbody>
-                      </table>
+                      </Table>
                     </div>
                   )}
 
@@ -697,9 +700,9 @@ function NotificationsAdmin() {
                   <i className="bi bi-send-fill me-2"></i>
                   Gửi thông báo
                 </h5>
-                <button 
-                  type="button" 
-                  className="btn-close btn-close-white" 
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
                   onClick={() => setShowSendModal(false)}
                 ></button>
               </div>
@@ -732,7 +735,7 @@ function NotificationsAdmin() {
                           </div>
                         </label>
                       </div>
-                      
+
                       <div className="form-check p-3 border rounded">
                         <input
                           className="form-check-input"
@@ -753,7 +756,7 @@ function NotificationsAdmin() {
                           </div>
                         </label>
                       </div>
-                      
+
                       <div className="form-check p-3 border rounded">
                         <input
                           className="form-check-input"

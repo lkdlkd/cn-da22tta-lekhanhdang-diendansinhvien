@@ -331,20 +331,20 @@ export default function CategoryDashboard() {
                                     />
                                 </th>
                                 <th>STT</th>
+                                <th>Thao tác</th>
                                 <th>Tiêu đề</th>
-                                <th>Slug</th>
+                                <th>Đường dẫn</th>
                                 <th>Mô tả</th>
                                 <th>Số bài viết</th>
-                                <th>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan={7} className="text-center">
+                                <tr><td colSpan={8} className="text-center">
                                     <LoadingPost count={5} />
                                 </td></tr>
                             ) : categories.length === 0 ? (
-                                <tr><td colSpan={7} className="text-center">Không có danh mục nào</td></tr>
+                                <tr><td colSpan={8} className="text-center">Không có danh mục nào</td></tr>
                             ) : categories.map((cat, idx) => (
                                 <tr key={cat._id}>
                                     <td>
@@ -355,16 +355,46 @@ export default function CategoryDashboard() {
                                         />
                                     </td>
                                     <td>{idx + 1}</td>
+                                    <td>
+                                        <div className="dropdown">
+                                            <button
+                                                className="btn btn-primary dropdown-toggle"
+                                                type="button"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false"
+                                            >
+                                                Thao tác <i className="bi bi-chevron-down ms-1"></i>
+                                            </button>
+                                            <ul className="dropdown-menu">
+                                                <li>
+                                                    <button
+                                                        className="dropdown-item"
+                                                        onClick={() => handleEdit(cat)}
+                                                    >
+                                                        <i className="bi bi-pencil me-2 text-warning"></i>
+                                                        Sửa
+                                                    </button>
+                                                </li>
+                                                <li><hr className="dropdown-divider" /></li>
+                                                <li>
+                                                    <button
+                                                        className="dropdown-item text-danger"
+                                                        onClick={() => handleDelete(cat._id)}
+                                                    >
+                                                        <i className="bi bi-trash me-2"></i>
+                                                        Xóa
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
                                     <td>{cat.title}</td>
                                     <td>{cat.slug}</td>
                                     <td>{cat.description}</td>
                                     <td>
                                         <span className="badge bg-primary">{cat.postCount || 0}</span>
                                     </td>
-                                    <td>
-                                        <button className="btn btn-sm btn-warning me-2" onClick={() => handleEdit(cat)}>Sửa</button>
-                                        <button className="btn btn-sm btn-danger" onClick={() => handleDelete(cat._id)}>Xóa</button>
-                                    </td>
+
                                 </tr>
                             ))}
                         </tbody>
@@ -400,8 +430,8 @@ export default function CategoryDashboard() {
                             <input name="title" value={form.title} onChange={handleChange} className="form-control" placeholder="Tiêu đề" required />
                         </div>
                         <div className="mb-3">
-                            <label className="form-label">Slug</label>
-                            <input name="slug" value={form.slug} onChange={handleChange} className="form-control" placeholder="Slug" required />
+                            <label className="form-label">Đường dẫn</label>
+                            <input name="slug" value={form.slug} onChange={handleChange} className="form-control" placeholder="Đường dẫn" required />
                         </div>
                         <div className="mb-3">
                             <label className="form-label">Mô tả</label>

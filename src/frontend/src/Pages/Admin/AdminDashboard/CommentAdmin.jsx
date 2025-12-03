@@ -415,13 +415,13 @@ const CommentAdmin = () => {
 										/>
 									</th>
 									<th>STT</th>
+									<th>Hành động</th>
 									<th>Nội dung</th>
 									<th>Tác giả</th>
 									<th>Bài viết</th>
-									<th>Likes</th>
-									<th>Replies</th>
+									<th>Lượt thích</th>
+									<th>Trả lời</th>
 									<th>Ngày tạo</th>
-									<th>Hành động</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -435,6 +435,39 @@ const CommentAdmin = () => {
 											/>
 										</td>
 										<td>{(filters.page - 1) * filters.limit + idx + 1}</td>
+										<td>
+											<div className="dropdown">
+												<button
+													className="btn btn-primary dropdown-toggle"
+													type="button"
+													data-bs-toggle="dropdown"
+													aria-expanded="false"
+												>
+													Thao tác <i className="bi bi-chevron-down ms-1"></i>
+												</button>
+												<ul className="dropdown-menu">
+													<li>
+														<button
+															className="dropdown-item"
+															onClick={() => handleShowModal(comment)}
+														>
+															<i className="bi bi-eye me-2 text-info"></i>
+															Xem chi tiết
+														</button>
+													</li>
+													<li><hr className="dropdown-divider" /></li>
+													<li>
+														<button
+															className="dropdown-item text-danger"
+															onClick={() => handleDelete(comment._id)}
+														>
+															<i className="bi bi-trash me-2"></i>
+															Xóa
+														</button>
+													</li>
+												</ul>
+											</div>
+										</td>
 										<td>
 											<div style={{ maxWidth: "300px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
 												{comment.content}
@@ -463,22 +496,7 @@ const CommentAdmin = () => {
 										<td>{comment.likesCount || 0}</td>
 										<td>{comment.repliesCount || 0}</td>
 										<td>{new Date(comment.createdAt).toLocaleDateString()}</td>
-										<td>
-											<div className="btn-group" role="group">
-												<button
-													className="btn btn-info btn-sm"
-													onClick={() => handleShowModal(comment)}
-												>
-													Xem
-												</button>
-												<button
-													className="btn btn-danger btn-sm"
-													onClick={() => handleDelete(comment._id)}
-												>
-													Xóa
-												</button>
-											</div>
-										</td>
+
 									</tr>
 								))}
 							</tbody>

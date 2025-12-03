@@ -663,16 +663,16 @@ const PostAdmin = () => {
 										/>
 									</th>
 									<th>STT</th>
+									<th>Hành động</th>
 									<th>Tiêu đề</th>
 									<th>Tác giả</th>
 									<th>Danh mục</th>
 									<th>Lượt xem</th>
-									<th>Likes</th>
-									<th>Comments</th>
+									<th>Lượt thích</th>
+									<th>Bình luận</th>
 									<th>Ngày tạo</th>
 									<th>Trạng thái</th>
 									<th>Duyệt</th>
-									<th>Hành động</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -686,6 +686,112 @@ const PostAdmin = () => {
 											/>
 										</td>
 										<td>{(filters.page - 1) * filters.limit + idx + 1}</td>
+										<td>
+											<div className="dropdown">
+												<button
+													className="btn btn-primary dropdown-toggle"
+													type="button"
+													data-bs-toggle="dropdown"
+													aria-expanded="false"
+												>
+													Thao tác <i className="bi bi-chevron-down ms-1"></i>
+												</button>
+												<ul className="dropdown-menu">
+													<li>
+														<button
+															className="dropdown-item"
+															onClick={() => handleShowModal(post)}
+														>
+															<i className="bi bi-eye me-2 text-info"></i>
+															Xem chi tiết
+														</button>
+													</li>
+													<li>
+														<button
+															className="dropdown-item"
+															onClick={() => handleOpenPublicPost(post.slug)}
+															disabled={!post.slug}
+														>
+															<i className="bi bi-link-45deg me-2 text-primary"></i>
+															Mở bài viết
+														</button>
+													</li>
+													<li><hr className="dropdown-divider" /></li>
+													<li>
+														<button
+															className="dropdown-item"
+															onClick={() => handleTogglePin(post._id)}
+														>
+															<i className={`bi ${post.pinned ? 'bi-pin-angle-fill' : 'bi-pin-angle'} me-2 text-warning`}></i>
+															{post.pinned ? 'Bỏ ghim' : 'Ghim bài viết'}
+														</button>
+													</li>
+													<li>
+														<button
+															className="dropdown-item"
+															onClick={() => handleToggleLock(post._id)}
+														>
+															<i className={`bi ${post.locked ? 'bi-unlock' : 'bi-lock'} me-2 text-secondary`}></i>
+															{post.locked ? 'Mở khóa' : 'Khóa bài viết'}
+														</button>
+													</li>
+													{post.moderationStatus === "pending" && (
+														<>
+															<li><hr className="dropdown-divider" /></li>
+															<li>
+																<button
+																	className="dropdown-item text-success"
+																	onClick={() => handleApprove(post._id)}
+																>
+																	<i className="bi bi-check-circle me-2"></i>
+																	Duyệt bài viết
+																</button>
+															</li>
+															<li>
+																<button
+																	className="dropdown-item text-danger"
+																	onClick={() => handleReject(post._id)}
+																>
+																	<i className="bi bi-x-circle me-2"></i>
+																	Từ chối
+																</button>
+															</li>
+														</>
+													)}
+													<li><hr className="dropdown-divider" /></li>
+													{post.isDeleted ? (
+														<li>
+															<button
+																className="dropdown-item text-success"
+																onClick={() => handleRestore(post._id)}
+															>
+																<i className="bi bi-arrow-counterclockwise me-2"></i>
+																Khôi phục
+															</button>
+														</li>
+													) : (
+														<li>
+															<button
+																className="dropdown-item text-warning"
+																onClick={() => handleSoftDelete(post._id)}
+															>
+																<i className="bi bi-eye-slash me-2"></i>
+																Ẩn bài viết
+															</button>
+														</li>
+													)}
+													<li>
+														<button
+															className="dropdown-item text-danger"
+															onClick={() => handleDelete(post._id)}
+														>
+															<i className="bi bi-trash me-2"></i>
+															Xóa vĩnh viễn
+														</button>
+													</li>
+												</ul>
+											</div>
+										</td>
 										<td className="text-break">
 											<div className="fw-semibold">{post.title}</div>
 											{post.slug && <small className="text-muted d-block">/{post.slug}</small>}
@@ -700,7 +806,18 @@ const PostAdmin = () => {
 												</div>
 											)}
 										</td>
-										<td>{post.authorId?.username || "N/A"}</td>
+										<td>
+											<ul>
+												<li className="fw-semibold"><div className="fw-semibold"><img
+													src={post.authorId?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
+													alt={post.authorId?.username}
+													style={{ width: "40px", height: "40px", borderRadius: "50%" }}
+												/> - {post.authorId?.displayName || post.authorId?.username || "N/A"}</div></li>
+												<li className="fw-semibold">Username: {post.authorId?.username || "N/A"}</li>
+											</ul>
+
+
+										</td>
 										<td>{post.categoryId?.title || "N/A"}</td>
 										<td>{post.views || 0}</td>
 										<td>{post.likesCount || 0}</td>
@@ -708,78 +825,7 @@ const PostAdmin = () => {
 										<td>{formatDateTime(post.createdAt)}</td>
 										<td>{renderStatusBadges(post)}</td>
 										<td>{renderModerationBadge(post)}</td>
-										<td>
-											<div className="btn-group" role="group">
-												<button
-													className="btn btn-info btn-sm"
-													onClick={() => handleShowModal(post)}
-												>
-													Xem
-												</button>
-												<button
-													className="btn btn-outline-primary btn-sm"
-													onClick={() => handleOpenPublicPost(post.slug)}
-													disabled={!post.slug}
-													title={post.slug ? "Mở bài viết công khai" : "Bài viết chưa có slug"}
-												>
-													🔗
-												</button>
-												<button
-													className={`btn btn-sm ${post.pinned ? 'btn-warning' : 'btn-outline-warning'}`}
-													onClick={() => handleTogglePin(post._id)}
-													title={post.pinned ? "Bỏ ghim" : "Ghim"}
-												>
-													📌
-												</button>
-												<button
-													className={`btn btn-sm ${post.locked ? 'btn-secondary' : 'btn-outline-secondary'}`}
-													onClick={() => handleToggleLock(post._id)}
-													title={post.locked ? "Mở khóa" : "Khóa"}
-												>
-													🔒
-												</button>
-												{post.moderationStatus === "pending" && (
-													<>
-														<button
-															className="btn btn-success btn-sm"
-															onClick={() => handleApprove(post._id)}
-														>
-															Duyệt
-														</button>
-														<button
-															className="btn btn-outline-danger btn-sm"
-															onClick={() => handleReject(post._id)}
-														>
-															Từ chối
-														</button>
-													</>
-												)}
-												{post.isDeleted ? (
-													<button
-														className="btn btn-success btn-sm"
-														onClick={() => handleRestore(post._id)}
-													>
-														Khôi phục
-													</button>
-												) : (
-													<>
-														<button
-															className="btn btn-warning btn-sm"
-															onClick={() => handleSoftDelete(post._id)}
-														>
-															Ẩn
-														</button>
-														<button
-															className="btn btn-danger btn-sm ms-2"
-															onClick={() => handleDelete(post._id)}
-														>
-															Xóa
-														</button>
-													</>
-												)}
 
-											</div>
-										</td>
 									</tr>
 								))}
 							</tbody>

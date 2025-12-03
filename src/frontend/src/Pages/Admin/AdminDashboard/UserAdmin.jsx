@@ -214,15 +214,13 @@ const UserAdmin = () => {
 						<label class="form-label fw-bold">
 							<i class="bi bi-person-badge me-2"></i>
 							Vai trò hiện tại: 
-							<span class="badge ${
-								currentRole === 'admin' ? 'bg-danger' : 
-								currentRole === 'mod' ? 'bg-warning text-dark' : 
-								'bg-secondary'
-							} ms-2">${
-								currentRole === 'admin' ? 'Admin' : 
-								currentRole === 'mod' ? 'Mod' : 
-								'Student'
-							}</span>
+							<span class="badge ${currentRole === 'admin' ? 'bg-danger' :
+					currentRole === 'mod' ? 'bg-warning text-dark' :
+						'bg-secondary'
+				} ms-2">${currentRole === 'admin' ? 'Admin' :
+					currentRole === 'mod' ? 'Mod' :
+						'Student'
+				}</span>
 						</label>
 					</div>
 					<div class="mb-3">
@@ -253,7 +251,7 @@ const UserAdmin = () => {
 			cancelButtonText: '<i class="bi bi-x-circle me-2"></i>Hủy',
 			confirmButtonColor: '#0d6efd',
 			cancelButtonColor: '#6c757d',
-			customClass: { 
+			customClass: {
 				container: 'swal-on-modal',
 				popup: 'rounded-3',
 				confirmButton: 'btn btn-primary px-4',
@@ -415,7 +413,7 @@ const UserAdmin = () => {
 						<div className="col-md-2">
 							<Form.Select
 								value={pendingFilters.role}
-								onChange={(e) => setPendingFilters({...pendingFilters, role: e.target.value})}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, role: e.target.value })}
 							>
 								<option value="">Tất cả vai trò</option>
 								<option value="student">👨‍🎓 Student</option>
@@ -546,22 +544,22 @@ const UserAdmin = () => {
 										/>
 									</th>
 									<th>STT</th>
-									<th>Avatar</th>
-									<th>Username</th>
-									<th>Email</th>
-									<th>Phone</th>
+									<th>Hành động</th>
+									<th>Ảnh đại diện</th>
+									<th>Thông tin</th>
+									<th>Khoa - Lớp</th>
 									<th>Vai trò</th>
 									<th>Xác thực</th>
 									<th>Bài viết</th>
 									<th>Bình luận</th>
-									<th>Last Seen</th>
+									<th>Hoạt động gần đây</th>
 									<th>Trạng thái</th>
-									<th>Hành động</th>
 								</tr>
 							</thead>
 							<tbody>
 								{users.map((user, idx) => (
 									<tr key={user._id}>
+
 										<td>
 											<Form.Check
 												type="checkbox"
@@ -570,6 +568,70 @@ const UserAdmin = () => {
 											/>
 										</td>
 										<td>{(filters.page - 1) * filters.limit + idx + 1}</td>
+
+										<td>
+											<div className="dropdown">
+												<button
+													className="btn btn-primary dropdown-toggle"
+													type="button"
+													data-bs-toggle="dropdown"
+													aria-expanded="false"
+												>
+													Thao tác <i className="bi bi-chevron-down ms-1"></i>
+												</button>
+												<ul className="dropdown-menu">
+													<li>
+														<button
+															className="dropdown-item"
+															onClick={() => handleShowModal(user)}
+														>
+															<i className="bi bi-eye me-2 text-info"></i>
+															Xem chi tiết
+														</button>
+													</li>
+													<li>
+														<button
+															className="dropdown-item"
+															onClick={() => handleUpdateRole(user._id, user.role)}
+														>
+															<i className="bi bi-person-badge me-2 text-primary"></i>
+															Cập nhật vai trò
+														</button>
+													</li>
+													<li><hr className="dropdown-divider" /></li>
+													{user.isBanned ? (
+														<li>
+															<button
+																className="dropdown-item text-success"
+																onClick={() => handleUnban(user._id)}
+															>
+																<i className="bi bi-unlock me-2"></i>
+																Bỏ cấm
+															</button>
+														</li>
+													) : (
+														<li>
+															<button
+																className="dropdown-item text-warning"
+																onClick={() => handleBan(user._id)}
+															>
+																<i className="bi bi-ban me-2"></i>
+																Cấm
+															</button>
+														</li>
+													)}
+													<li>
+														<button
+															className="dropdown-item text-danger"
+															onClick={() => handleDelete(user._id)}
+														>
+															<i className="bi bi-trash me-2"></i>
+															Xóa
+														</button>
+													</li>
+												</ul>
+											</div>
+										</td>
 										<td>
 											<img
 												src={user.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
@@ -578,25 +640,31 @@ const UserAdmin = () => {
 											/>
 										</td>
 										<td>
-											{user.username}
-											{user.isOnline && <span className="badge bg-success ms-2">Online</span>}
+											<ul>
+												<li><strong>Tên:</strong> {user.displayName || '—'} </li>
+												<li><strong>Username:</strong> {user.username}</li>
+												<li><strong>Email:</strong> {user.email}</li>
+												<li><strong>Phone:</strong> {user.phone || '—'}</li>
+											</ul>
 										</td>
-										<td>{user.email}</td>
-										<td>{user.phone || '—'}</td>
-											<td>
-												<span className={`badge ${user.role === 'admin' ? 'bg-danger' : user.role === 'moderator' ? 'bg-warning' : 'bg-secondary'}`}>
-													{user.role}
-												</span>
-											</td>
-											<td>
-												{user.emailVerified ? (
-													<span className="badge bg-success" title="Email đã xác thực">✓</span>
-												) : (
-													<span className="badge bg-warning" title="Email chưa xác thực">⚠</span>
-												)}
-											</td>
-											<td>{user.postsCount || 0}</td>
-											<td>{user.commentsCount || 0}</td>
+										<td>
+											{user.faculty} - {user.class}
+										</td>
+									
+										<td>
+											<span className={`badge ${user.role === 'admin' ? 'bg-danger' : user.role === 'moderator' ? 'bg-warning' : 'bg-secondary'}`}>
+												{user.role}
+											</span>
+										</td>
+										<td>
+											{user.emailVerified ? (
+												<span className="badge bg-success" title="Email đã xác thực">✓</span>
+											) : (
+												<span className="badge bg-warning" title="Email chưa xác thực">⚠</span>
+											)}
+										</td>
+										<td>{user.postsCount || 0}</td>
+										<td>{user.commentsCount || 0}</td>
 										<td>{user.lastSeen ? new Date(user.lastSeen).toLocaleString() : '—'}</td>
 										<td>
 											{user.isBanned ? (
@@ -606,44 +674,7 @@ const UserAdmin = () => {
 											)}
 											{user.isOnline && <span className="badge bg-info ms-2">Online</span>}
 										</td>
-										<td>
-											<div className="btn-group" role="group">
-												<button
-													className="btn btn-info btn-sm"
-													onClick={() => handleShowModal(user)}
-												>
-													Xem
-												</button>
-												<button
-													className="btn btn-primary btn-sm"
-													onClick={() => handleUpdateRole(user._id, user.role)}
-													title="Cập nhật vai trò"
-												>
-													Vai trò
-												</button>
-												{user.isBanned ? (
-													<button
-														className="btn btn-success btn-sm"
-														onClick={() => handleUnban(user._id)}
-													>
-														Bỏ cấm
-													</button>
-												) : (
-													<button
-														className="btn btn-warning btn-sm"
-														onClick={() => handleBan(user._id)}
-													>
-														Cấm
-													</button>
-												)}
-												<button
-													className="btn btn-danger btn-sm"
-													onClick={() => handleDelete(user._id)}
-												>
-													Xóa
-												</button>
-											</div>
-										</td>
+
 									</tr>
 								))}
 							</tbody>
@@ -685,21 +716,21 @@ const UserAdmin = () => {
 											<td><strong>Username:</strong></td>
 											<td>{selectedUser.username}</td>
 										</tr>
-											<tr>
-												<td><strong>Email:</strong></td>
-												<td>
-													{selectedUser.email}
-													{selectedUser.emailVerified ? (
-														<span className="badge bg-success ms-2" title="Email đã xác thực">✓ Đã xác thực</span>
-													) : (
-														<span className="badge bg-warning ms-2" title="Email chưa xác thực">⚠ Chưa xác thực</span>
-													)}
-												</td>
-											</tr>
-											<tr>
-												<td><strong>Phone:</strong></td>
-												<td>{selectedUser.phone || '—'}</td>
-											</tr>
+										<tr>
+											<td><strong>Email:</strong></td>
+											<td>
+												{selectedUser.email}
+												{selectedUser.emailVerified ? (
+													<span className="badge bg-success ms-2" title="Email đã xác thực">✓ Đã xác thực</span>
+												) : (
+													<span className="badge bg-warning ms-2" title="Email chưa xác thực">⚠ Chưa xác thực</span>
+												)}
+											</td>
+										</tr>
+										<tr>
+											<td><strong>Phone:</strong></td>
+											<td>{selectedUser.phone || '—'}</td>
+										</tr>
 										<tr>
 											<td><strong>Khoa:</strong></td>
 											<td>{selectedUser.faculty}</td>

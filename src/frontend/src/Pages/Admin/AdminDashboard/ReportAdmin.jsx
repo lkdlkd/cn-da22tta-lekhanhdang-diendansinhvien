@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  getAllReportsAdmin, 
-  getReportsStatsAdmin, 
-  updateReportStatusAdmin, 
-  deleteReportAdmin, 
+import {
+  getAllReportsAdmin,
+  getReportsStatsAdmin,
+  updateReportStatusAdmin,
+  deleteReportAdmin,
   deleteMultipleReportsAdmin,
   bulkHandleReportsAdmin,
-  getReportsByTargetAdmin 
+  getReportsByTargetAdmin
 } from '../../../Utils/api';
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import LoadingPost from '@/Components/LoadingPost';
+import { Table } from 'react-bootstrap';
 
 const ReportAdmin = () => {
   const [reports, setReports] = useState([]);
@@ -22,7 +23,7 @@ const ReportAdmin = () => {
     total: 0,
     pages: 0
   });
-  
+
   // Filters (fetch-on-submit pattern)
   const defaultFilters = {
     status: '',
@@ -42,7 +43,7 @@ const ReportAdmin = () => {
 
   // Selected reports for bulk actions
   const [selectedReports, setSelectedReports] = useState([]);
-  
+
   // Modal states
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
@@ -65,7 +66,7 @@ const ReportAdmin = () => {
   const fetchReports = async () => {
     try {
       setLoading(true);
-  const result = await getAllReportsAdmin(token, pagination.page, pagination.limit, appliedFilters);
+      const result = await getAllReportsAdmin(token, pagination.page, pagination.limit, appliedFilters);
       if (result.success) {
         setReports(result.data);
         setPagination(prev => ({
@@ -152,11 +153,11 @@ const ReportAdmin = () => {
         'reviewed': 'Đang xem xét',
         'closed': 'Đã đóng'
       };
-      
-      const actionText = action 
+
+      const actionText = action
         ? ` và ${action === 'delete_content' ? 'xóa nội dung' : action === 'ban_user' ? 'ban user' : action === 'warn_user' ? 'cảnh báo user' : 'thực hiện hành động'}`
         : '';
-      
+
       const result = await Swal.fire({
         title: 'Xác nhận',
         text: `Cập nhật trạng thái thành "${statusText[status] || status}"${actionText}?`,
@@ -390,8 +391,8 @@ const ReportAdmin = () => {
           <div className="row g-3">
             <div className="col-md-3">
               <label className="form-label">Trạng thái</label>
-              <select 
-                className="form-select" 
+              <select
+                className="form-select"
                 value={pendingFilters.status}
                 onChange={(e) => handleFilterChange('status', e.target.value)}
               >
@@ -403,8 +404,8 @@ const ReportAdmin = () => {
             </div>
             <div className="col-md-3">
               <label className="form-label">Loại đối tượng</label>
-              <select 
-                className="form-select" 
+              <select
+                className="form-select"
                 value={pendingFilters.targetType}
                 onChange={(e) => handleFilterChange('targetType', e.target.value)}
               >
@@ -416,9 +417,9 @@ const ReportAdmin = () => {
             </div>
             <div className="col-md-4">
               <label className="form-label">Tìm kiếm</label>
-              <input 
-                type="text" 
-                className="form-control" 
+              <input
+                type="text"
+                className="form-control"
                 placeholder="Tìm theo nội dung..."
                 value={pendingFilters.keyword}
                 onChange={(e) => handleFilterChange('keyword', e.target.value)}
@@ -428,7 +429,7 @@ const ReportAdmin = () => {
             <div className="col-md-2">
               <label className="form-label">Sắp xếp theo</label>
               <div className="d-flex gap-2">
-                <select 
+                <select
                   className="form-select"
                   value={pendingFilters.sortBy}
                   onChange={(e) => handleFilterChange('sortBy', e.target.value)}
@@ -437,8 +438,8 @@ const ReportAdmin = () => {
                   <option value="status">Trạng thái</option>
                   <option value="targetType">Loại đối tượng</option>
                 </select>
-                <select 
-                  className="form-select" 
+                <select
+                  className="form-select"
                   value={pendingFilters.order}
                   onChange={(e) => handleFilterChange('order', e.target.value)}
                 >
@@ -490,35 +491,35 @@ const ReportAdmin = () => {
             <div className="d-flex align-items-center justify-content-between">
               <strong>Đã chọn {selectedReports.length} báo cáo</strong>
               <div className="btn-group">
-                <button 
+                <button
                   className="btn btn-info"
                   onClick={() => handleBulkHandle('reviewed')}
                 >
                   <i className="bi bi-eye-fill me-1"></i>
                   Đánh dấu xem xét
                 </button>
-                <button 
+                <button
                   className="btn btn-success"
                   onClick={() => handleBulkHandle('closed')}
                 >
                   <i className="bi bi-check-circle-fill me-1"></i>
                   Đóng
                 </button>
-                <button 
+                <button
                   className="btn btn-warning"
                   onClick={() => handleBulkHandle('closed', 'delete_content')}
                 >
                   <i className="bi bi-trash-fill me-1"></i>
                   Xóa nội dung
                 </button>
-                <button 
+                <button
                   className="btn btn-danger"
                   onClick={() => handleBulkHandle('closed', 'ban_user')}
                 >
                   <i className="bi bi-person-x-fill me-1"></i>
                   Ban user
                 </button>
-                <button 
+                <button
                   className="btn btn-danger"
                   onClick={handleBulkDelete}
                 >
@@ -548,41 +549,76 @@ const ReportAdmin = () => {
           ) : (
             <>
               <div className="table-responsive">
-                <table className="table table-hover align-middle">
+                <Table hover responsive bordered className="align-middle">
                   <thead className="table-light">
                     <tr>
                       <th>
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           className="form-check-input"
                           checked={selectedReports.length === reports.length}
                           onChange={handleSelectAll}
                         />
                       </th>
+                      <th>STT</th>
+                      <th >Thao tác</th>
                       <th>Người báo cáo</th>
                       <th>Loại</th>
                       <th>Đối tượng</th>
                       <th>Lý do</th>
                       <th>Trạng thái</th>
                       <th>Thời gian</th>
-                      <th>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {reports.map(report => (
+                    {reports.map((report, idx) => (
                       <tr key={report._id}>
                         <td>
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             className="form-check-input"
                             checked={selectedReports.includes(report._id)}
                             onChange={() => handleSelectReport(report._id)}
                           />
                         </td>
+                        <td>{idx + 1}</td>
+                        <td>
+                          <div className="dropdown">
+                            <button
+                              className="btn btn-primary dropdown-toggle"
+                              type="button"
+                              data-bs-toggle="dropdown"
+                              aria-expanded="false"
+                            >
+                              Thao tác <i className="bi bi-chevron-down ms-1"></i>
+                            </button>
+                            <ul className="dropdown-menu">
+                              <li>
+                                <button
+                                  className="dropdown-item"
+                                  onClick={() => handleViewDetail(report)}
+                                >
+                                  <i className="bi bi-eye-fill me-2 text-info"></i>
+                                  Xem chi tiết
+                                </button>
+                              </li>
+                              <li><hr className="dropdown-divider" /></li>
+                              <li>
+                                <button
+                                  className="dropdown-item text-danger"
+                                  onClick={() => handleDeleteReport(report._id)}
+                                >
+                                  <i className="bi bi-trash-fill me-2"></i>
+                                  Xóa
+                                </button>
+                              </li>
+                            </ul>
+                          </div>
+                        </td>
                         <td>
                           <div className="d-flex align-items-center">
-                            <img 
-                              src={report.reporterId?.avatarUrl || 'https://via.placeholder.com/40'} 
+                            <img
+                              src={report.reporterId?.avatarUrl || 'https://via.placeholder.com/40'}
                               alt="avatar"
                               className="rounded-circle me-2"
                               style={{ width: '40px', height: '40px', objectFit: 'cover' }}
@@ -595,8 +631,8 @@ const ReportAdmin = () => {
                         </td>
                         <td>
                           <span className={getTargetTypeBadge(report.targetType)}>
-                            {report.targetType === 'post' ? 'Bài viết' : 
-                             report.targetType === 'comment' ? 'Bình luận' : 'User'}
+                            {report.targetType === 'post' ? 'Bài viết' :
+                              report.targetType === 'comment' ? 'Bình luận' : 'User'}
                           </span>
                         </td>
                         <td>
@@ -620,7 +656,7 @@ const ReportAdmin = () => {
                               {(report.targetType === 'post' || report.targetType === 'comment') && report.targetInfo?.authorId && (
                                 <div className="text-muted">Bởi: {report.targetInfo.authorId.displayName || report.targetInfo.authorId.username}</div>
                               )}
-                              <button 
+                              <button
                                 className="btn btn-link p-0 mt-1"
                                 onClick={() => handleViewTargetReports(report.targetType, report.targetId)}
                               >
@@ -640,10 +676,10 @@ const ReportAdmin = () => {
                         <td>
                           <div className="d-flex align-items-center gap-2">
                             <span className={getStatusBadge(report.status)}>
-                              {report.status === 'open' ? 'Chờ xử lý' : 
-                               report.status === 'reviewed' ? 'Đang xem xét' : 'Đã đóng'}
+                              {report.status === 'open' ? 'Chờ xử lý' :
+                                report.status === 'reviewed' ? 'Đang xem xét' : 'Đã đóng'}
                             </span>
-                            <select 
+                            <select
                               className="form-select"
                               style={{ width: 'auto' }}
                               value={report.status}
@@ -658,26 +694,11 @@ const ReportAdmin = () => {
                         <td>
                           <div>{formatDate(report.createdAt)}</div>
                         </td>
-                        <td>
-                          <button 
-                            className="btn btn-info me-1"
-                            onClick={() => handleViewDetail(report)}
-                            title="Xem chi tiết"
-                          >
-                            <i className="bi bi-eye-fill"></i>
-                          </button>
-                          <button 
-                            className="btn btn-danger"
-                            onClick={() => handleDeleteReport(report._id)}
-                            title="Xóa"
-                          >
-                            <i className="bi bi-trash-fill"></i>
-                          </button>
-                        </td>
+
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </Table>
               </div>
 
               {/* Pagination */}
@@ -708,7 +729,7 @@ const ReportAdmin = () => {
                 <nav>
                   <ul className="pagination mb-0">
                     <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
-                      <button 
+                      <button
                         className="page-link"
                         onClick={() => setPagination(prev => { const next = { ...prev, page: 1 }; setSelectedReports([]); return next; })}
                       >
@@ -716,7 +737,7 @@ const ReportAdmin = () => {
                       </button>
                     </li>
                     <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
-                      <button 
+                      <button
                         className="page-link"
                         onClick={() => setPagination(prev => { const next = { ...prev, page: prev.page - 1 }; setSelectedReports([]); return next; })}
                       >
@@ -724,11 +745,11 @@ const ReportAdmin = () => {
                       </button>
                     </li>
                     {[...Array(pagination.pages)].map((_, i) => (
-                      <li 
-                        key={i} 
+                      <li
+                        key={i}
                         className={`page-item ${pagination.page === i + 1 ? 'active' : ''}`}
                       >
-                        <button 
+                        <button
                           className="page-link"
                           onClick={() => setPagination(prev => { const next = { ...prev, page: i + 1 }; setSelectedReports([]); return next; })}
                         >
@@ -737,7 +758,7 @@ const ReportAdmin = () => {
                       </li>
                     ))}
                     <li className={`page-item ${pagination.page === pagination.pages ? 'disabled' : ''}`}>
-                      <button 
+                      <button
                         className="page-link"
                         onClick={() => setPagination(prev => { const next = { ...prev, page: prev.page + 1 }; setSelectedReports([]); return next; })}
                       >
@@ -745,7 +766,7 @@ const ReportAdmin = () => {
                       </button>
                     </li>
                     <li className={`page-item ${pagination.page === pagination.pages ? 'disabled' : ''}`}>
-                      <button 
+                      <button
                         className="page-link"
                         onClick={() => setPagination(prev => { const next = { ...prev, page: pagination.pages || 1 }; setSelectedReports([]); return next; })}
                       >
@@ -770,8 +791,8 @@ const ReportAdmin = () => {
                   <i className="bi bi-info-circle-fill me-2"></i>
                   Chi tiết báo cáo
                 </h5>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn-close"
                   onClick={() => setShowDetailModal(false)}
                 ></button>
@@ -781,8 +802,8 @@ const ReportAdmin = () => {
                   <div className="col-md-6">
                     <strong>Người báo cáo:</strong>
                     <div className="d-flex align-items-center mt-2">
-                      <img 
-                        src={selectedReport.reporterId?.avatarUrl || 'https://via.placeholder.com/40'} 
+                      <img
+                        src={selectedReport.reporterId?.avatarUrl || 'https://via.placeholder.com/40'}
                         alt="avatar"
                         className="rounded-circle me-2"
                         style={{ width: '40px', height: '40px', objectFit: 'cover' }}
@@ -803,8 +824,8 @@ const ReportAdmin = () => {
                   <strong>Loại đối tượng:</strong>
                   <div className="mt-2">
                     <span className={getTargetTypeBadge(selectedReport.targetType)}>
-                      {selectedReport.targetType === 'post' ? 'Bài viết' : 
-                       selectedReport.targetType === 'comment' ? 'Bình luận' : 'User'}
+                      {selectedReport.targetType === 'post' ? 'Bài viết' :
+                        selectedReport.targetType === 'comment' ? 'Bình luận' : 'User'}
                     </span>
                   </div>
                 </div>
@@ -831,8 +852,8 @@ const ReportAdmin = () => {
                       )}
                       {selectedReport.targetType === 'user' && (
                         <div className="d-flex align-items-center">
-                          <img 
-                            src={selectedReport.targetInfo.avatarUrl || 'https://via.placeholder.com/60'} 
+                          <img
+                            src={selectedReport.targetInfo.avatarUrl || 'https://via.placeholder.com/60'}
                             alt="avatar"
                             className="rounded-circle me-3"
                             style={{ width: '60px', height: '60px', objectFit: 'cover' }}
@@ -851,8 +872,8 @@ const ReportAdmin = () => {
                   <strong>Trạng thái:</strong>
                   <div className="mt-2">
                     <span className={getStatusBadge(selectedReport.status)}>
-                      {selectedReport.status === 'open' ? 'Chờ xử lý' : 
-                       selectedReport.status === 'reviewed' ? 'Đang xem xét' : 'Đã đóng'}
+                      {selectedReport.status === 'open' ? 'Chờ xử lý' :
+                        selectedReport.status === 'reviewed' ? 'Đang xem xét' : 'Đã đóng'}
                     </span>
                   </div>
                 </div>
@@ -869,7 +890,7 @@ const ReportAdmin = () => {
               <div className="modal-footer">
                 <div className="btn-group me-auto">
                   {selectedReport.status === 'open' && (
-                    <button 
+                    <button
                       className="btn btn-info"
                       onClick={() => handleUpdateStatus(selectedReport._id, 'reviewed')}
                     >
@@ -879,28 +900,28 @@ const ReportAdmin = () => {
                   )}
                   {selectedReport.status !== 'closed' && (
                     <>
-                      <button 
+                      <button
                         className="btn btn-success"
                         onClick={() => handleUpdateStatus(selectedReport._id, 'closed')}
                       >
                         <i className="bi bi-check-circle-fill me-2"></i>
                         Đóng (Không vi phạm)
                       </button>
-                      <button 
+                      <button
                         className="btn btn-warning"
                         onClick={() => handleUpdateStatus(selectedReport._id, 'closed', 'delete_content')}
                       >
                         <i className="bi bi-trash-fill me-2"></i>
                         Xóa nội dung
                       </button>
-                      <button 
+                      <button
                         className="btn btn-warning"
                         onClick={() => handleUpdateStatus(selectedReport._id, 'closed', 'warn_user')}
                       >
                         <i className="bi bi-exclamation-triangle-fill me-2"></i>
                         Cảnh báo user
                       </button>
-                      <button 
+                      <button
                         className="btn btn-danger"
                         onClick={() => handleUpdateStatus(selectedReport._id, 'closed', 'ban_user')}
                       >
@@ -910,7 +931,7 @@ const ReportAdmin = () => {
                     </>
                   )}
                 </div>
-                <button 
+                <button
                   className="btn btn-secondary"
                   onClick={() => setShowDetailModal(false)}
                 >
@@ -932,8 +953,8 @@ const ReportAdmin = () => {
                   <i className="bi bi-list-ul me-2"></i>
                   Tất cả báo cáo ({targetReports.length})
                 </h5>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn-close"
                   onClick={() => setShowTargetReportsModal(false)}
                 ></button>
@@ -948,8 +969,8 @@ const ReportAdmin = () => {
                         <div className="d-flex justify-content-between align-items-start">
                           <div>
                             <div className="d-flex align-items-center mb-2">
-                              <img 
-                                src={report.reporterId?.avatarUrl || 'https://via.placeholder.com/30'} 
+                              <img
+                                src={report.reporterId?.avatarUrl || 'https://via.placeholder.com/30'}
                                 alt="avatar"
                                 className="rounded-circle me-2"
                                 style={{ width: '30px', height: '30px', objectFit: 'cover' }}
@@ -960,8 +981,8 @@ const ReportAdmin = () => {
                             <div className="text-muted">{formatDate(report.createdAt)}</div>
                           </div>
                           <span className={getStatusBadge(report.status)}>
-                            {report.status === 'open' ? 'Chờ xử lý' : 
-                             report.status === 'reviewed' ? 'Đang xem xét' : 'Đã đóng'}
+                            {report.status === 'open' ? 'Chờ xử lý' :
+                              report.status === 'reviewed' ? 'Đang xem xét' : 'Đã đóng'}
                           </span>
                         </div>
                       </div>
@@ -970,7 +991,7 @@ const ReportAdmin = () => {
                 )}
               </div>
               <div className="modal-footer">
-                <button 
+                <button
                   className="btn btn-secondary"
                   onClick={() => setShowTargetReportsModal(false)}
                 >
