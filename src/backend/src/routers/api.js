@@ -122,6 +122,9 @@ router.get('/mod/posts/stats', authenticateMod, postRoutes.getModerationStats);/
 
 router.get('/categories', categoryRoutes.getAllCategories);
 
+// ===== PUBLIC STATS (HOMEPAGE) =====
+router.get('/stats/forum', postRoutes.getForumStats);// Thống kê công khai cho homepage
+
 // ===== ADMIN - CATEGORY MANAGEMENT =====
 router.post('/categories', authenticateAdmin, categoryRoutes.createCategory);
 router.get('/admin/categories/stats', authenticateAdmin, categoryRoutes.getAllCategoriesWithStats);// Lấy danh mục với thống kê (postCount từng danh mục)

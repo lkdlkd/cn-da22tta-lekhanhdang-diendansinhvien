@@ -210,6 +210,19 @@ export const changePassword = async (token, data) => {
 };
 
 // ============================================
+// FORUM STATS API (Public)
+// ============================================
+export const getForumStats = async () => {
+  const response = await fetch(`${API_BASE}/stats/forum`, {
+    method: "GET",
+    headers: withNoStore({
+      "Content-Type": "application/json",
+    }),
+  });
+  return handleResponse(response);
+};
+
+// ============================================
 // CATEGORY APIs
 // ============================================
 export const getCategories = async () => {

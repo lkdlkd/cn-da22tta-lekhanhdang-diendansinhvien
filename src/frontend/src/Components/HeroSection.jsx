@@ -1,12 +1,29 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getForumStats } from '../Utils/api';
 
 export default function HeroSection() {
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalPosts: 0,
+    totalCategories: 0
+  });
 
-  // Trigger post create modal
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await getForumStats();
+        if (response.success) {
+          setStats(response.stats);
+        }
+      } catch (error) {
+        console.error('Error fetching forum stats:', error);
+      }
+    };
+    fetchStats();
+  }, []);
+
   const handleCreatePost = () => {
-    // This will be handled by PostCreate component's internal state
-    // We can trigger it by programmatically clicking the PostCreate button
     document.querySelector('[data-create-post-trigger]')?.click();
   };
   return (
@@ -47,7 +64,8 @@ export default function HeroSection() {
               fontSize: 'clamp(2rem, 5vw, 3.5rem)',
               textShadow: '0 2px 10px rgba(0,0,0,0.2)'
             }}>
-              Chào mừng đến với Diễn đàn Sinh viên TVU
+              <div>Chào mừng đến với</div>
+              <span>Diễn đàn Sinh viên TVU</span>
             </h1>
             <p className="lead mb-4" style={{
               fontSize: 'clamp(1rem, 2vw, 1.25rem)',
@@ -96,19 +114,19 @@ export default function HeroSection() {
             <div className="row mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.2)' }}>
               <div className="col-4">
                 <div className="text-center">
-                  <h3 className="fw-bold mb-0">1000+</h3>
+                  <h3 className="fw-bold mb-0">{stats.totalUsers?.toLocaleString() || 0}+</h3>
                   <small style={{ opacity: 0.8 }}>Thành viên</small>
                 </div>
               </div>
               <div className="col-4">
                 <div className="text-center">
-                  <h3 className="fw-bold mb-0">500+</h3>
+                  <h3 className="fw-bold mb-0">{stats.totalPosts?.toLocaleString() || 0}+</h3>
                   <small style={{ opacity: 0.8 }}>Bài viết</small>
                 </div>
               </div>
               <div className="col-4">
                 <div className="text-center">
-                  <h3 className="fw-bold mb-0">50+</h3>
+                  <h3 className="fw-bold mb-0">{stats.totalCategories?.toLocaleString() || 0}+</h3>
                   <small style={{ opacity: 0.8 }}>Chuyên mục</small>
                 </div>
               </div>

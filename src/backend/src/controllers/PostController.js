@@ -1560,3 +1560,36 @@ exports.getModerationStats = async (req, res) => {
 		res.status(500).json({ success: false, error: err.message });
 	}
 };
+
+// ===== PUBLIC FORUM STATS (FOR HOMEPAGE) =====
+exports.getForumStats = async (req, res) => {
+	try {
+		// Đếm số user (chỉ đếm user đã xác thực và không bị cấm)
+		const totalUsers = await User.countDocuments({
+			emailVerified: true,
+			isBanned: { $ne: true }
+		});	
+		console.log('Total Users:', totalUsers);
+
+		// Đếm số bài viết đã duyệt và không bị xóa
+		const totalPosts = await Post.countDocuments({
+			moderationStatus: 'approved',
+			isDeleted: { $ne: true }
+		});
+
+		// Đếm số danh mục
+		const totalCategories = await Category.countDocuments({});
+	
+		res.json({
+			success: true,
+			stats: {
+				totalUsers,
+				totalPosts,
+				totalCategories
+			}
+		});
+	} catch (err) {
+		console.error('Error in getForumStats:', err);
+		res.status(500).json({ success: false, error: err.message });
+	}
+};
