@@ -76,7 +76,7 @@ const Profile = () => {
         avatarUrl: user.avatarUrl || user.avatar || ""
       });
       setAvatarPreview(user.avatarUrl || user.avatar || "");
-      
+
       // Auto-detect school based on faculty
       if (user.faculty) {
         for (const [school, faculties] of Object.entries(facultiesData)) {
@@ -138,7 +138,7 @@ const Profile = () => {
     setError("");
     setSuccess("");
     const token = localStorage.getItem("token");
-    
+
     try {
       let submitData;
       if (avatarFile) {
@@ -152,7 +152,7 @@ const Profile = () => {
       } else {
         submitData = form;
       }
-      
+
       const res = await updateProfile(token, submitData);
       setProfile(res);
       setForm({
@@ -167,12 +167,12 @@ const Profile = () => {
       setAvatarPreview(res.avatarUrl || res.avatar || "");
       setEditMode(false);
       setSuccess("Cập nhật thành công!");
-      
+
       if (avatarFile && avatarPreview) {
         URL.revokeObjectURL(avatarPreview);
       }
       setAvatarFile(null);
-      
+
       // Reload page sau 1.5s để cập nhật avatar ở header
       setTimeout(() => {
         window.location.reload();
@@ -223,22 +223,22 @@ const Profile = () => {
       <div className="row justify-content-center">
         <div className="col-lg-8">
           {/* Header Card */}
-          <div 
-            className="card border-0 shadow-sm mb-4" 
-            style={{ 
+          <div
+            className="card border-0 shadow-sm mb-4"
+            style={{
               borderRadius: '16px',
               overflow: 'hidden'
             }}
           >
             {/* Cover/Banner */}
-            <div 
+            <div
               style={{
                 height: '180px',
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 position: 'relative'
               }}
             >
-              <div 
+              <div
                 style={{
                   position: 'absolute',
                   bottom: '-60px',
@@ -251,17 +251,17 @@ const Profile = () => {
                   <img
                     src={avatarPreview || `https://ui-avatars.com/api/?background=random&name=${profile.displayName || profile.username}&size=200`}
                     alt="Avatar"
-                    style={{ 
-                      width: '140px', 
-                      height: '140px', 
-                      borderRadius: '50%', 
-                      objectFit: 'cover', 
+                    style={{
+                      width: '140px',
+                      height: '140px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
                       border: '5px solid white',
                       boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                     }}
                   />
                   {editMode && (
-                    <label 
+                    <label
                       className="btn btn-primary btn-sm"
                       style={{
                         position: 'absolute',
@@ -280,12 +280,12 @@ const Profile = () => {
                         boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                       }}
                     >
-                      <i className="ph ph-camera" style={{ fontSize: '20px' }}></i>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        style={{ display: "none" }} 
-                        onChange={handleAvatarChange} 
+                      <i className="bi bi-camera" style={{ fontSize: '20px' }}></i>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={handleAvatarChange}
                       />
                     </label>
                   )}
@@ -307,7 +307,7 @@ const Profile = () => {
                   {profile.faculty} • {profile.class}
                 </p>
               )}
-              
+
               {/* Stats */}
               <div className="d-flex justify-content-center gap-4 mt-4">
                 <div className="text-center">
@@ -333,11 +333,11 @@ const Profile = () => {
           </div>
 
           {/* Form Card */}
-          <div 
-            className="card border-0 shadow-sm" 
+          <div
+            className="card border-0 shadow-sm"
             style={{ borderRadius: '16px' }}
           >
-            <div 
+            <div
               className="card-header bg-white d-flex justify-content-between align-items-center"
               style={{
                 borderBottom: '2px solid #f0f2f5',
@@ -350,8 +350,8 @@ const Profile = () => {
                 Thông tin cá nhân
               </h5>
               {!editMode && (
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn btn-primary btn-sm"
                   onClick={() => setEditMode(true)}
                   style={{
@@ -371,8 +371,8 @@ const Profile = () => {
             <div className="card-body p-4">
               {/* Messages */}
               {error && (
-                <div 
-                  className="alert alert-danger d-flex align-items-center mb-4" 
+                <div
+                  className="alert alert-danger d-flex align-items-center mb-4"
                   style={{ borderRadius: '10px', fontSize: '14px' }}
                 >
                   <i className="ph ph-warning-circle me-2" style={{ fontSize: '20px' }}></i>
@@ -380,8 +380,8 @@ const Profile = () => {
                 </div>
               )}
               {success && (
-                <div 
-                  className="alert alert-success d-flex align-items-center mb-4" 
+                <div
+                  className="alert alert-success d-flex align-items-center mb-4"
                   style={{ borderRadius: '10px', fontSize: '14px' }}
                 >
                   <i className="ph ph-check-circle me-2" style={{ fontSize: '20px' }}></i>
@@ -391,16 +391,56 @@ const Profile = () => {
 
               <form onSubmit={handleSubmit}>
                 <div className="row">
+                  {/* Username */}
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
+                      <i className="ph ph-user me-2"></i>
+                      Tên đăng nhập
+                    </label>
+                    <input
+                      value={profile.username}
+                      disabled
+                      className="form-control"
+                      style={{
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        border: '2px solid #e0e0e0',
+                        fontSize: '14px',
+                        backgroundColor: '#f8f9fa',
+                        cursor: 'not-allowed'
+                      }}
+                    />
+                  </div>
+                  {/* Email */}
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
+                      <i className="ph ph-envelope me-2"></i>
+                      Email
+                    </label>
+                    <input
+                      name="email"
+                      value={form.email}
+                      disabled
+                      className="form-control"
+                      style={{
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        border: '2px solid #e0e0e0',
+                        fontSize: '14px',
+                        backgroundColor: editMode ? 'white' : '#f8f9fa'
+                      }}
+                    />
+                  </div>
                   {/* Display Name */}
                   <div className="col-md-6 mb-3">
                     <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
                       <i className="ph ph-identification-card me-2"></i>
                       Tên hiển thị
                     </label>
-                    <input 
-                      name="displayName" 
-                      value={form.displayName} 
-                      onChange={handleChange} 
+                    <input
+                      name="displayName"
+                      value={form.displayName}
+                      onChange={handleChange}
                       disabled={!editMode}
                       className="form-control"
                       style={{
@@ -413,27 +453,7 @@ const Profile = () => {
                     />
                   </div>
 
-                  {/* Email */}
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
-                      <i className="ph ph-envelope me-2"></i>
-                      Email
-                    </label>
-                    <input 
-                      name="email" 
-                      value={form.email} 
-                      onChange={handleChange} 
-                      disabled={!editMode}
-                      className="form-control"
-                      style={{
-                        borderRadius: '10px',
-                        padding: '12px 16px',
-                        border: '2px solid #e0e0e0',
-                        fontSize: '14px',
-                        backgroundColor: editMode ? 'white' : '#f8f9fa'
-                      }}
-                    />
-                  </div>
+
 
                   {/* Phone */}
                   <div className="col-md-6 mb-3">
@@ -441,10 +461,10 @@ const Profile = () => {
                       <i className="ph ph-phone me-2"></i>
                       Số điện thoại
                     </label>
-                    <input 
-                      name="phone" 
-                      value={form.phone} 
-                      onChange={handleChange} 
+                    <input
+                      name="phone"
+                      value={form.phone}
+                      onChange={handleChange}
                       disabled={!editMode}
                       className="form-control"
                       placeholder="Chưa cập nhật"
@@ -458,26 +478,7 @@ const Profile = () => {
                     />
                   </div>
 
-                  {/* Username */}
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
-                      <i className="ph ph-user me-2"></i>
-                      Tên đăng nhập
-                    </label>
-                    <input 
-                      value={profile.username} 
-                      disabled
-                      className="form-control"
-                      style={{
-                        borderRadius: '10px',
-                        padding: '12px 16px',
-                        border: '2px solid #e0e0e0',
-                        fontSize: '14px',
-                        backgroundColor: '#f8f9fa',
-                        cursor: 'not-allowed'
-                      }}
-                    />
-                  </div>
+
 
                   {/* Faculty */}
                   <div className="col-md-6 mb-3">
@@ -506,7 +507,7 @@ const Profile = () => {
                       ))}
                     </select>
                   </div>
-                  
+
                   <div className="col-md-6 mb-3">
                     <label className="form-label" style={{ fontWeight: 600, fontSize: '14px' }}>
                       <i className="ph ph-building me-2"></i>
@@ -542,10 +543,10 @@ const Profile = () => {
                       <i className="ph ph-students me-2"></i>
                       Lớp
                     </label>
-                    <input 
-                      name="class" 
-                      value={form.class} 
-                      onChange={handleChange} 
+                    <input
+                      name="class"
+                      value={form.class}
+                      onChange={handleChange}
                       disabled={!editMode}
                       className="form-control"
                       placeholder="Chưa cập nhật"
@@ -565,10 +566,10 @@ const Profile = () => {
                       <i className="ph ph-note-pencil me-2"></i>
                       Tiểu sử
                     </label>
-                    <textarea 
-                      name="bio" 
-                      value={form.bio} 
-                      onChange={handleChange} 
+                    <textarea
+                      name="bio"
+                      value={form.bio}
+                      onChange={handleChange}
                       disabled={!editMode}
                       className="form-control"
                       rows="4"
@@ -588,8 +589,8 @@ const Profile = () => {
                 {/* Action Buttons */}
                 {editMode && (
                   <div className="d-flex gap-2 mt-3">
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       className="btn btn-primary flex-grow-1"
                       disabled={loading}
                       style={{
@@ -613,8 +614,8 @@ const Profile = () => {
                         </>
                       )}
                     </button>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={handleCancel}
                       className="btn btn-light"
                       disabled={loading}
