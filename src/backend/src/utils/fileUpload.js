@@ -41,26 +41,69 @@ async function uploadToDrive(file, folderType = 'documents') {
 
     const folder = `${baseFolder}/${datePath}`;
 
-    // Sanitize file name
+    // Sanitize file name - giữ extension cho raw files
+    const fileExtension = file.originalname.split('.').pop();
     const safeName = file.originalname
       .replace(/[^a-zA-Z0-9.\-_]/g, "_")
       .split('.')[0];
 
-    // Upload
-    const result = await cloudinary.uploader.upload(file.path, {
+    // Upload options
+    const uploadOptions = {
       folder,
       resource_type: resourceType,
       public_id: `${Date.now()}-${safeName}`,
-      access_mode: 'public',
-    });
+      type: 'upload',  // Explicitly set type to 'upload' (public by default)
+    };
+
+    // Đối với raw files (PDF, docs...), thêm format để giữ extension
+    if (resourceType === 'raw') {
+      uploadOptions.format = fileExtension;
+      // Không dùng access_mode cho raw vì có thể gây 401
+      // Thay vào đó dùng type: 'upload' (default public)
+    }
+
+    const result = await cloudinary.uploader.upload(file.path, uploadOptions);
 
     console.log(`✅ Uploaded to Cloudinary [${folder}]`);
+    console.log(`📄 File URL: ${result.secure_url}`);
+
+    // Tạo URL phù hợp cho PDF và documents
+    let viewUrl = result.secure_url;
+    let downloadUrl = result.secure_url;
+    
+    // Với PDF và raw files, tạo signed URL nếu cần
+    if (resourceType === 'raw') {
+      // Tạo signed URL để tránh 401 error
+      const signedUrl = cloudinary.utils.private_download_url(
+        result.public_id,
+        result.format || fileExtension,
+        {
+          resource_type: 'raw',
+          type: 'upload'
+        }
+      );
+      
+      // URL tải xuống với attachment flag
+      downloadUrl = cloudinary.url(result.public_id, {
+        resource_type: 'raw',
+        type: 'upload',
+        flags: 'attachment',
+        secure: true,
+        sign_url: true  // Signed URL để tránh 401
+      });
+      
+      // Nếu secure_url bị 401, dùng signed URL
+      viewUrl = signedUrl || result.secure_url;
+    }
 
     return {
       fileId: result.public_id,
-      link: result.secure_url,
+      link: viewUrl,  // URL xem (hoặc tải cho raw)
+      downloadUrl: downloadUrl,  // URL tải xuống
       resourceType,
-      uploadDate: `${year}-${month}-${day}`
+      uploadDate: `${year}-${month}-${day}`,
+      filename: file.originalname,
+      mimetype: file.mimetype
     };
 
   } catch (error) {

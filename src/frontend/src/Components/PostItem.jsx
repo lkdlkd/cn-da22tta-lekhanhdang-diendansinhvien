@@ -4,6 +4,7 @@ import CommentItem from "./CommentItem";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
+import '../assets/css/PostItemStyles.css';
 
 const PostItem = ({
   post,
@@ -156,78 +157,51 @@ const PostItem = ({
 
   return (
     <>
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
-      <div style={{ backgroundColor: "white", borderRadius: "8px", boxShadow: "0 1px 2px rgba(0,0,0,0.1)", marginBottom: "16px", overflow: "hidden" }}>
+      <div className="post-item-card">
         {/* Header */}
-        <div style={{ padding: "12px 16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <Link to={`/user/${post.authorId?.username}`}>
+        <div className="post-item-header">
+          <div className="post-item-header-content">
+            <Link to={`/user/${post.authorId?.username}`} className="post-item-avatar-link">
               <img
                 src={post.authorId?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
                 alt="Avatar"
-                style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover", cursor: "pointer" }}
+                className="post-item-avatar"
               />
             </Link>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <div className="post-item-user-info">
+              <div className="post-item-user-name-wrapper">
                 <Link
                   to={`/user/${post.authorId?.username}`}
-                  style={{ fontWeight: "600", fontSize: "15px", color: "#050505", textDecoration: "none" }}
-                  onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
-                  onMouseLeave={(e) => e.target.style.textDecoration = "none"}
+                  className="post-item-user-name"
                 >
                   {post.authorId?.displayName || post.authorId?.username || "Ẩn danh"}
                 </Link>
                 {post.pinned && (
-                  <span style={{ backgroundColor: "#fff3cd", color: "#856404", padding: "2px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "600" }}>📌 Ghim</span>
+                  <span className="post-item-badge post-item-badge-pinned">
+                    <i className="bi bi-pin-angle-fill me-1"></i>Ghim
+                  </span>
                 )}
                 {post.locked && (
-                  <span style={{ backgroundColor: "#e7e9eb", color: "#65676b", padding: "2px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "600" }}>🔒 Đã khóa</span>
+                  <span className="post-item-badge post-item-badge-locked">
+                    <i className="bi bi-lock-fill me-1"></i>Đã khóa
+                  </span>
                 )}
               </div>
-              <div style={{ fontSize: "13px", color: "#65676b" }}>
+              <div className="post-item-meta">
                 <span
                   onClick={() => navigate(`/post/${post.slug}`, { state: { post } })}
-                  style={{
-                    cursor: "pointer",
-                    transition: "text-decoration 0.2s"
-                  }}
-                  onMouseOver={e => e.currentTarget.style.textDecoration = "underline"}
-                  onMouseOut={e => e.currentTarget.style.textDecoration = "none"}
+                  className="post-item-time"
                 >
                   {formatTime(post.createdAt)}
-                </span> · <span style={{ backgroundColor: "#e7f3ff", color: "#1877f2", padding: "2px 6px", borderRadius: "4px", fontSize: "12px", fontWeight: "500" }}>{post.categoryId?.title || "Chung"}</span>
+                </span> · <span className="post-item-category">{post.categoryId?.title || "Chung"}</span>
               </div>
             </div>
 
             {/* Options Menu Button */}
-            <div style={{ position: "relative" }}>
+            <div className="post-item-options-wrapper">
               <button
                 onClick={() => setShowOptionsMenu(!showOptionsMenu)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: "20px",
-                  color: "#65676b",
-                  cursor: "pointer",
-                  padding: "4px 8px",
-                  borderRadius: "50%",
-                  width: "36px",
-                  height: "36px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "background-color 0.2s"
-                }}
-                onMouseOver={e => e.currentTarget.style.backgroundColor = "#f2f3f5"}
-                onMouseOut={e => e.currentTarget.style.backgroundColor = "transparent"}
+                className="post-item-options-btn"
               >
                 ⋯
               </button>
@@ -238,29 +212,11 @@ const PostItem = ({
                   {/* Backdrop to close menu */}
                   <div
                     onClick={() => setShowOptionsMenu(false)}
-                    style={{
-                      position: "fixed",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: "100%",
-                      zIndex: 998
-                    }}
+                    className="post-item-options-backdrop"
                   />
 
                   {/* Menu */}
-                  <div style={{
-                    position: "absolute",
-                    top: "100%",
-                    right: 0,
-                    backgroundColor: "white",
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
-                    minWidth: "200px",
-                    zIndex: 999,
-                    overflow: "hidden",
-                    marginTop: "4px"
-                  }}>
+                  <div className="post-item-options-menu">
                     {isAuthor && (
                       <>
                         <button
@@ -268,24 +224,9 @@ const PostItem = ({
                             setShowOptionsMenu(false);
                             handleEditPost(post._id);
                           }}
-                          style={{
-                            width: "100%",
-                            padding: "12px 16px",
-                            border: "none",
-                            background: "none",
-                            textAlign: "left",
-                            cursor: "pointer",
-                            fontSize: "15px",
-                            color: "#050505",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "12px",
-                            transition: "background-color 0.2s"
-                          }}
-                          onMouseOver={e => e.currentTarget.style.backgroundColor = "#f2f3f5"}
-                          onMouseOut={e => e.currentTarget.style.backgroundColor = "transparent"}
+                          className="post-item-options-menu-item"
                         >
-                          <span style={{ fontSize: "18px" }}>✏️</span>
+                          <i className="bi bi-pencil post-item-options-menu-item-icon"></i>
                           <span>Chỉnh sửa bài viết</span>
                         </button>
 
@@ -294,32 +235,13 @@ const PostItem = ({
                             setShowOptionsMenu(false);
                             handleDeletePost(post._id);
                           }}
-                          style={{
-                            width: "100%",
-                            padding: "12px 16px",
-                            border: "none",
-                            background: "none",
-                            textAlign: "left",
-                            cursor: "pointer",
-                            fontSize: "15px",
-                            color: "#e41e3f",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "12px",
-                            transition: "background-color 0.2s"
-                          }}
-                          onMouseOver={e => e.currentTarget.style.backgroundColor = "#fee"}
-                          onMouseOut={e => e.currentTarget.style.backgroundColor = "transparent"}
+                          className="post-item-options-menu-item danger"
                         >
-                          <span style={{ fontSize: "18px" }}>🗑️</span>
-                          <span style={{ fontWeight: "600" }}>Xóa bài viết</span>
+                          <i className="bi bi-trash post-item-options-menu-item-icon"></i>
+                          <span>Xóa bài viết</span>
                         </button>
 
-                        <div style={{
-                          height: "1px",
-                          backgroundColor: "#e4e6eb",
-                          margin: "4px 0"
-                        }} />
+                        <div className="post-item-options-divider" />
                       </>
                     )}
 
@@ -329,29 +251,15 @@ const PostItem = ({
                         navigator.clipboard.writeText(window.location.origin + `/post/${post.slug}`);
                         toast.info("Đã sao chép link bài viết!");
                       }}
-                      style={{
-                        width: "100%",
-                        padding: "12px 16px",
-                        border: "none",
-                        background: "none",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        fontSize: "15px",
-                        color: "#050505",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                        transition: "background-color 0.2s"
-                      }}
-                      onMouseOver={e => e.currentTarget.style.backgroundColor = "#f2f3f5"}
-                      onMouseOut={e => e.currentTarget.style.backgroundColor = "transparent"}
+                      className="post-item-options-menu-item"
                     >
-                      <span style={{ fontSize: "18px" }}>🔗</span>
+                      <i className="bi bi-link-45deg post-item-options-menu-item-icon"></i>
                       <span>Sao chép liên kết</span>
                     </button>
 
                     {!isAuthor && (
                       <button
+                        className="post-item-options-menu-item"
                         onClick={async () => {
                           setShowOptionsMenu(false);
 
@@ -462,24 +370,8 @@ const PostItem = ({
                             }
                           }
                         }}
-                        style={{
-                          width: "100%",
-                          padding: "12px 16px",
-                          border: "none",
-                          background: "none",
-                          textAlign: "left",
-                          cursor: "pointer",
-                          fontSize: "15px",
-                          color: "#050505",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                          transition: "background-color 0.2s"
-                        }}
-                        onMouseOver={e => e.currentTarget.style.backgroundColor = "#f2f3f5"}
-                        onMouseOut={e => e.currentTarget.style.backgroundColor = "transparent"}
                       >
-                        <span style={{ fontSize: "18px" }}>⚠️</span>
+                        <i className="bi bi-exclamation-triangle post-item-options-menu-item-icon"></i>
                         <span>Báo cáo bài viết</span>
                       </button>
                     )}
@@ -492,33 +384,15 @@ const PostItem = ({
 
         {/* Moderation Status Badge */}
         {post.moderationStatus && post.moderationStatus !== 'approved' && post.authorId._id === currentUserId && (
-          <div style={{
-            margin: '0 16px 12px 16px',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            backgroundColor: post.moderationStatus === 'pending' ? '#fff3cd' : '#f8d7da',
-            border: `1px solid ${post.moderationStatus === 'pending' ? '#ffc107' : '#dc3545'}`,
-            display: 'flex',
-            alignItems: 'start',
-            gap: '12px'
-          }}>
-            <span style={{ fontSize: '20px' }}>
-              {post.moderationStatus === 'pending' ? '⏳' : '❌'}
-            </span>
-            <div style={{ flex: 1 }}>
-              <div style={{
-                fontWeight: '600',
-                color: post.moderationStatus === 'pending' ? '#856404' : '#721c24',
-                marginBottom: '4px'
-              }}>
+          <div className={`post-item-moderation ${post.moderationStatus === 'pending' ? 'pending' : 'rejected'}`}>
+            <i className={`bi ${post.moderationStatus === 'pending' ? 'bi-hourglass-split' : 'bi-x-circle'} post-item-moderation-icon`}></i>
+            <div className="post-item-moderation-content">
+              <div className="post-item-moderation-title">
                 {post.moderationStatus === 'pending'
                   ? 'Bài viết đang chờ duyệt'
                   : 'Bài viết đã bị từ chối'}
               </div>
-              <div style={{
-                fontSize: '14px',
-                color: post.moderationStatus === 'pending' ? '#856404' : '#721c24'
-              }}>
+              <div className="post-item-moderation-text">
                 {post.moderationStatus === 'pending'
                   ? 'Bài viết của bạn đang được kiểm duyệt bởi quản trị viên. Vui lòng chờ.'
                   : `Lý do: ${post.rejectionReason || 'Không có lý do cụ thể'}`}
@@ -528,23 +402,16 @@ const PostItem = ({
         )}
 
         {/* Content */}
-        <div style={{ padding: "0 16px 12px" }}>
-          <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#050505", marginBottom: "8px", lineHeight: "1.4" }}>
+        <div className="post-item-content">
+          <h3 className="post-item-title">
             <span
               onClick={() => onPostClick ? onPostClick(post) : navigate(`/post/${post.slug}`, { state: { post } })}
-              style={{
-                color: "#050505",
-                textDecoration: "none",
-                cursor: "pointer",
-                transition: "color 0.2s"
-              }}
-              onMouseOver={e => e.currentTarget.style.color = "#1877f2"}
-              onMouseOut={e => e.currentTarget.style.color = "#050505"}
+              className="post-item-title-link"
             >
               {post.title}
             </span>
           </h3>
-          <div style={{ fontSize: "15px", color: "#050505", lineHeight: "1.5", marginBottom: "8px", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+          <div className="post-item-text">
             {post.excerpt ? (
               post.excerpt
             ) : (
@@ -558,27 +425,15 @@ const PostItem = ({
           {!post.excerpt && post.content && post.content.length > contentLimit && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#65676b",
-                fontSize: "15px",
-                fontWeight: "600",
-                cursor: "pointer",
-                padding: "0",
-                marginBottom: "8px",
-                transition: "color 0.2s"
-              }}
-              onMouseOver={(e) => e.currentTarget.style.color = "#050505"}
-              onMouseOut={(e) => e.currentTarget.style.color = "#65676b"}
+              className="post-item-expand-btn"
             >
               {isExpanded ? "Ẩn bớt" : "Xem thêm"}
             </button>
           )}
           {post.tags && post.tags.length > 0 && (
-            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "12px" }}>
+            <div className="post-item-tags">
               {post.tags.map((tag, idx) => (
-                <span key={idx} style={{ color: "#1877f2", fontSize: "14px", fontWeight: "500", cursor: "pointer" }}>#{tag}</span>
+                <span key={idx} className="post-item-tag">#{tag}</span>
               ))}
             </div>
           )}
@@ -589,14 +444,14 @@ const PostItem = ({
           <>
             {/* Image attachments */}
             {imageAttachments.length > 0 && (
-              <div style={{ display: "grid", gridTemplateColumns: imageAttachments.length === 1 ? "1fr" : "repeat(2, 1fr)", gap: "2px" }}>
+              <div className={`post-item-images ${imageAttachments.length === 1 ? 'single' : 'multiple'}`}>
                 {imageAttachments.map((file, idx) => (
                   <img
                     key={idx}
                     src={file.storageUrl || file}
                     alt="attachment"
                     onClick={() => openLightbox(file.storageUrl || file, idx)}
-                    style={{ width: "100%", height: imageAttachments.length === 1 ? "400px" : "200px", objectFit: "cover", cursor: "pointer" }}
+                    className={`post-item-image ${imageAttachments.length === 1 ? 'single' : 'multiple'}`}
                   />
                 ))}
               </div>
@@ -609,41 +464,20 @@ const PostItem = ({
                 to={file.storageUrl || file}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "12px 16px",
-                  backgroundColor: "#f0f2f5",
-                  borderRadius: "8px",
-                  textDecoration: "none",
-                  margin: "8px 16px",
-                  transition: "background-color 0.2s"
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#e4e6eb"}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#f0f2f5"}
+                className="post-item-file"
               >
-                <div style={{
-                  width: "40px",
-                  height: "40px",
-                  backgroundColor: "#fff",
-                  borderRadius: "8px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginRight: "12px",
-                  fontSize: "20px"
-                }}>
+                <div className="post-item-file-icon">
                   �
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: "#050505", fontWeight: "500", fontSize: "14px", marginBottom: "2px" }}>
+                <div className="post-item-file-info">
+                  <div className="post-item-file-name">
                     {file.filename || "Tài liệu"}
                   </div>
-                  <div style={{ color: "#65676b", fontSize: "12px" }}>
+                  <div className="post-item-file-size">
                     {formatFileSize(file.size || 0)}
                   </div>
                 </div>
-                <div style={{ color: "#1877f2", fontSize: "14px", fontWeight: "600" }}>
+                <div className="post-item-file-download">
                   Tải xuống
                 </div>
               </Link>
@@ -652,134 +486,63 @@ const PostItem = ({
         )}
 
         {/* Stats */}
-        <div style={{ padding: "12px 16px", borderTop: "1px solid #e4e6eb", borderBottom: "1px solid #e4e6eb", display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#65676b" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+        <div className="post-item-stats">
+          <div className="post-item-stats-likes">
             {(post.likesCount > 0 || isLiked) && (
               <>
-                <span style={{
-                  background: "#1877f2",
-                  color: "white",
-                  borderRadius: "50%",
-                  width: "18px",
-                  height: "18px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "10px"
-                }}>👍</span>
+                <span className="post-item-like-icon">👍</span>
                 <span
                   onClick={() => setShowLikesModal(true)}
-                  style={{
-                    cursor: "pointer",
-                    transition: "text-decoration 0.2s"
-                  }}
-                  onMouseOver={e => e.currentTarget.style.textDecoration = "underline"}
-                  onMouseOut={e => e.currentTarget.style.textDecoration = "none"}
+                  className="post-item-like-count"
                 >
                   {post.likesCount || post.likes?.length || 0}
                 </span>
               </>
             )}
           </div>
-          <div style={{ display: "flex", gap: "12px" }}>
-            <span style={{ cursor: "pointer", transition: "color 0.2s" }}
-              onMouseOver={e => e.currentTarget.style.color = "#050505"}
-              onMouseOut={e => e.currentTarget.style.color = "#65676b"}
-            >
+          <div className="post-item-stats-right">
+            <span>
               {post.commentsCount || 0} bình luận
             </span>
-            <span style={{ cursor: "pointer", transition: "color 0.2s" }}
-              onMouseOver={e => e.currentTarget.style.color = "#050505"}
-              onMouseOut={e => e.currentTarget.style.color = "#65676b"}
-            >
+            <span>
               {post.views || 0} lượt xem
             </span>
           </div>
         </div>
 
         {/* Actions */}
-        <div style={{ padding: "4px 8px", display: "flex", justifyContent: "space-around" }}>
+        <div className="post-item-actions">
           <button
             onClick={() => handleLike(post._id)}
-            style={{
-              flex: 1,
-              background: "none",
-              border: "none",
-              padding: "8px",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "15px",
-              fontWeight: "600",
-              color: isLiked ? "#1877f2" : "#65676b",
-              transition: "background-color 0.2s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px"
-            }}
-            onMouseOver={e => e.currentTarget.style.backgroundColor = "#f2f3f5"}
-            onMouseOut={e => e.currentTarget.style.backgroundColor = "transparent"}
+            className={`post-item-action-btn ${isLiked ? 'active' : ''}`}
           >
-            <span style={{ fontSize: "18px" }}>{isLiked ? "👍" : "👍🏻"}</span>
-            <span style={{ color: isLiked ? "#1877f2" : "#65676b" }}>Thích</span>
+            <i className={`bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'} post-item-action-icon`}></i>
+            <span>Thích</span>
           </button>
           <button
             onClick={() => toggleComments(post._id)}
-            style={{
-              flex: 1,
-              background: "none",
-              border: "none",
-              padding: "8px",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "15px",
-              fontWeight: "600",
-              color: isCommentsExpanded ? "#1877f2" : "#65676b",
-              transition: "background-color 0.2s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px"
-            }}
-            onMouseOver={e => e.currentTarget.style.backgroundColor = "#f2f3f5"}
-            onMouseOut={e => e.currentTarget.style.backgroundColor = "transparent"}
+            className={`post-item-action-btn ${isCommentsExpanded ? 'active' : ''}`}
           >
-            💬 Bình luận
+            <i className="bi bi-chat me-2"></i>Bình luận
           </button>
-          <button style={{
-            flex: 1,
-            background: "none",
-            border: "none",
-            padding: "8px",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "15px",
-            fontWeight: "600",
-            color: "#65676b",
-            transition: "background-color 0.2s",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "6px"
-          }}
-            onMouseOver={e => e.currentTarget.style.backgroundColor = "#f2f3f5"}
-            onMouseOut={e => e.currentTarget.style.backgroundColor = "transparent"}
+          <button
+            className="post-item-action-btn"
             onClick={() => {
               setShowOptionsMenu(false);
               navigator.clipboard.writeText(window.location.origin + `/post/${post.slug}`);
               toast.info("Chia sẻ bài viết thành công!");
             }}
           >
-            ↗️ Chia sẻ
+            <i className="bi bi-share me-2"></i>Chia sẻ
           </button>
         </div>
 
         {/* Comments Section */}
         {isCommentsExpanded && (
-          <div style={{ borderTop: "1px solid #e4e6eb", padding: "12px 16px", backgroundColor: "#f7f8fa" }}>
+          <div className="post-item-comments">
             {/* Existing Comments */}
             {hasComments ? (
-              <div style={{ marginBottom: "16px" }}>
+              <div className="post-item-comments-list">
                 {organizedComments.map(cmt => (
                   <CommentItem
                     key={cmt._id}
@@ -804,67 +567,34 @@ const PostItem = ({
                 ))}
               </div>
             ) : (
-              <div style={{ textAlign: "center", padding: "20px", color: "#65676b", fontSize: "14px" }}>
-                <div style={{ fontSize: "32px", marginBottom: "8px" }}>💬</div>
-                <div style={{ fontWeight: "500" }}>Chưa có bình luận nào</div>
-                <div style={{ fontSize: "13px", marginTop: "4px" }}>Hãy là người đầu tiên bình luận!</div>
+              <div className="post-item-comments-empty">
+                <i className="bi bi-chat post-item-comments-empty-icon"></i>
+                <div className="post-item-comments-empty-title">Chưa có bình luận nào</div>
+                <div className="post-item-comments-empty-subtitle">Hãy là người đầu tiên bình luận!</div>
               </div>
             )}
             {/* Comment Input - Facebook Style */}
-            <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+            <div className="post-item-comment-input-wrapper">
               <img
                 src={user?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
                 alt="Your avatar"
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                  flexShrink: 0
-                }}
+                className="post-item-comment-avatar"
               />
-              <div style={{ flex: 1 }}>
-                <div style={{ position: "relative" }}>
+              <div className="post-item-comment-input-container">
+                <div className="post-item-comment-textarea-wrapper">
                   <textarea
                     value={commentTexts[post._id] || ''}
                     onChange={e => handleCommentChange(post._id, e.target.value)}
                     placeholder="Viết bình luận..."
-                    style={{
-                      width: "100%",
-                      backgroundColor: "#f0f2f5",
-                      border: "none",
-                      borderRadius: "18px",
-                      padding: "8px 40px 8px 12px",
-                      fontSize: "13px",
-                      resize: "none",
-                      minHeight: "36px",
-                      outline: "none",
-                      fontFamily: "inherit",
-                      transition: "background-color 0.2s"
-                    }}
+                    className="post-item-comment-textarea"
                     rows={1}
                     onInput={e => {
                       e.target.style.height = 'auto';
                       e.target.style.height = e.target.scrollHeight + 'px';
                     }}
-                    onFocus={e => e.currentTarget.style.backgroundColor = "#e4e6eb"}
-                    onBlur={e => e.currentTarget.style.backgroundColor = "#f0f2f5"}
                   />
-                  <label
-                    style={{
-                      position: "absolute",
-                      right: "8px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      cursor: "pointer",
-                      fontSize: "18px",
-                      color: "#65676b",
-                      transition: "transform 0.2s"
-                    }}
-                    onMouseOver={e => e.currentTarget.style.transform = "translateY(-50%) scale(1.1)"}
-                    onMouseOut={e => e.currentTarget.style.transform = "translateY(-50%) scale(1)"}
-                  >
-                    📎
+                  <label className="post-item-comment-attach-btn">
+                    <i className="bi bi-paperclip"></i>
                     <input
                       type="file"
                       multiple
@@ -877,74 +607,24 @@ const PostItem = ({
 
                 {/* Attachment Previews */}
                 {commentAttachments[post._id] && commentAttachments[post._id].length > 0 && (
-                  <div style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
-                    gap: "6px",
-                    marginTop: "8px"
-                  }}>
+                  <div className="post-item-comment-previews">
                     {commentAttachments[post._id].map((item, idx) => (
-                      <div key={idx} style={{
-                        position: "relative",
-                        backgroundColor: "#f0f2f5",
-                        borderRadius: "8px",
-                        overflow: "hidden"
-                      }}>
+                      <div key={idx} className="post-item-comment-preview">
                         {item.preview ? (
                           <img
                             src={item.preview}
                             alt="preview"
-                            style={{
-                              width: "100%",
-                              height: "80px",
-                              objectFit: "cover"
-                            }}
+                            className="post-item-comment-preview-image"
                           />
                         ) : (
-                          <div style={{
-                            height: "80px",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            padding: "6px"
-                          }}>
-                            <span style={{ fontSize: "20px", marginBottom: "4px" }}>📎</span>
-                            <span style={{
-                              fontSize: "9px",
-                              color: "#65676b",
-                              textAlign: "center",
-                              wordBreak: "break-word",
-                              overflow: "hidden",
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical"
-                            }}>{item.name}</span>
+                          <div className="post-item-comment-preview-file">
+                            <i className="bi bi-paperclip post-item-comment-preview-file-icon"></i>
+                            <span className="post-item-comment-preview-file-name">{item.name}</span>
                           </div>
                         )}
                         <button
                           onClick={() => removeAttachment(post._id, idx)}
-                          style={{
-                            position: "absolute",
-                            top: "4px",
-                            right: "4px",
-                            width: "18px",
-                            height: "18px",
-                            borderRadius: "50%",
-                            backgroundColor: "rgba(0,0,0,0.6)",
-                            color: "white",
-                            border: "none",
-                            cursor: "pointer",
-                            fontSize: "12px",
-                            fontWeight: "bold",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            lineHeight: 1,
-                            transition: "background-color 0.2s"
-                          }}
-                          onMouseOver={e => e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.8)"}
-                          onMouseOut={e => e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.6)"}
+                          className="post-item-comment-preview-remove"
                         >×</button>
                       </div>
                     ))}
@@ -957,41 +637,10 @@ const PostItem = ({
                     <button
                       onClick={() => handleSubmitComment(post._id)}
                       disabled={isSubmittingComment}
-                      style={{
-                        marginTop: "8px",
-                        backgroundColor: isSubmittingComment ? "#e4e6eb" : "#1877f2",
-                        color: isSubmittingComment ? "#bcc0c4" : "white",
-                        border: "none",
-                        borderRadius: "6px",
-                        padding: "6px 14px",
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        cursor: isSubmittingComment ? "not-allowed" : "pointer",
-                        transition: "background-color 0.2s",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px"
-                      }}
-                      onMouseOver={e => {
-                        if (!isSubmittingComment) {
-                          e.currentTarget.style.backgroundColor = "#166fe5";
-                        }
-                      }}
-                      onMouseOut={e => {
-                        if (!isSubmittingComment) {
-                          e.currentTarget.style.backgroundColor = "#1877f2";
-                        }
-                      }}
+                      className="post-item-comment-send-btn"
                     >
                       {isSubmittingComment && (
-                        <div style={{
-                          width: "12px",
-                          height: "12px",
-                          border: "2px solid #bcc0c4",
-                          borderTopColor: "transparent",
-                          borderRadius: "50%",
-                          animation: "spin 0.8s linear infinite"
-                        }} />
+                        <div className="post-item-comment-spinner" />
                       )}
                       {isSubmittingComment ? "Đang gửi..." : "Gửi"}
                     </button>
@@ -1005,41 +654,12 @@ const PostItem = ({
         {lightboxImage && (
           <div
             onClick={closeLightbox}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              backgroundColor: "rgba(0, 0, 0, 0.95)",
-              zIndex: 9999,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
+            className="post-item-lightbox"
           >
             {/* Close button */}
             <button
               onClick={closeLightbox}
-              style={{
-                position: "absolute",
-                top: "20px",
-                right: "20px",
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-                border: "none",
-                color: "white",
-                fontSize: "24px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "background-color 0.2s"
-              }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.2)"}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)"}
+              className="post-item-lightbox-close"
             >
               ×
             </button>
@@ -1048,24 +668,7 @@ const PostItem = ({
             {imageAttachments.length > 1 && lightboxIndex > 0 && (
               <button
                 onClick={(e) => { e.stopPropagation(); prevImage(); }}
-                style={{
-                  position: "absolute",
-                  left: "20px",
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  backgroundColor: "rgba(255, 255, 255, 0.1)",
-                  border: "none",
-                  color: "white",
-                  fontSize: "24px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "background-color 0.2s"
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.2)"}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)"}
+                className="post-item-lightbox-nav post-item-lightbox-prev"
               >
                 ‹
               </button>
@@ -1075,24 +678,7 @@ const PostItem = ({
             {imageAttachments.length > 1 && lightboxIndex < imageAttachments.length - 1 && (
               <button
                 onClick={(e) => { e.stopPropagation(); nextImage(); }}
-                style={{
-                  position: "absolute",
-                  right: "20px",
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  backgroundColor: "rgba(255, 255, 255, 0.1)",
-                  border: "none",
-                  color: "white",
-                  fontSize: "24px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "background-color 0.2s"
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.2)"}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)"}
+                className="post-item-lightbox-nav post-item-lightbox-next"
               >
                 ›
               </button>
@@ -1100,17 +686,7 @@ const PostItem = ({
 
             {/* Image counter */}
             {imageAttachments.length > 1 && (
-              <div style={{
-                position: "absolute",
-                top: "20px",
-                left: "50%",
-                transform: "translateX(-50%)",
-                color: "white",
-                fontSize: "14px",
-                backgroundColor: "rgba(0, 0, 0, 0.6)",
-                padding: "6px 12px",
-                borderRadius: "12px"
-              }}>
+              <div className="post-item-lightbox-counter">
                 {lightboxIndex + 1} / {imageAttachments.length}
               </div>
             )}
@@ -1120,12 +696,7 @@ const PostItem = ({
               src={lightboxImage}
               alt="lightbox"
               onClick={(e) => e.stopPropagation()}
-              style={{
-                maxWidth: "90%",
-                maxHeight: "90%",
-                objectFit: "contain",
-                borderRadius: "8px"
-              }}
+              className="post-item-lightbox-image"
             />
           </div>
         )}
@@ -1136,138 +707,52 @@ const PostItem = ({
             {/* Backdrop */}
             <div
               onClick={() => setShowLikesModal(false)}
-              style={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: "rgba(244, 244, 244, 0.8)",
-                zIndex: 1050,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
+              className="post-item-likes-modal-backdrop"
             >
               {/* Modal */}
               <div
                 onClick={(e) => e.stopPropagation()}
-                style={{
-                  backgroundColor: "white",
-                  borderRadius: "8px",
-                  boxShadow: "0 12px 28px rgba(0,0,0,0.15)",
-                  width: "90%",
-                  maxWidth: "500px",
-                  maxHeight: "600px",
-                  display: "flex",
-                  flexDirection: "column"
-                }}
+                className="post-item-likes-modal"
               >
                 {/* Header */}
-                <div style={{
-                  padding: "16px 20px",
-                  borderBottom: "1px solid #e4e6eb",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between"
-                }}>
-                  <h3 style={{ margin: 0, fontSize: "20px", fontWeight: "700", color: "#050505" }}>
+                <div className="post-item-likes-modal-header">
+                  <h3 className="post-item-likes-modal-title">
                     Người đã thích
                   </h3>
                   <button
                     onClick={() => setShowLikesModal(false)}
-                    style={{
-                      background: "#f0f2f5",
-                      border: "none",
-                      borderRadius: "50%",
-                      width: "36px",
-                      height: "36px",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "20px",
-                      color: "#65676b",
-                      transition: "background-color 0.2s"
-                    }}
-                    onMouseOver={e => e.currentTarget.style.backgroundColor = "#e4e6eb"}
-                    onMouseOut={e => e.currentTarget.style.backgroundColor = "#f0f2f5"}
+                    className="post-item-likes-modal-close"
                   >
                     ✕
                   </button>
                 </div>
 
                 {/* Likes List */}
-                <div style={{
-                  flex: 1,
-                  overflowY: "auto",
-                  padding: "8px 0"
-                }}>
+                <div className="post-item-likes-modal-list">
                   {post.likes && post.likes.length > 0 ? (
                     post.likes.map((like, index) => (
-                      <Link to={`/user/${like.userId?.username}`} key={like._id || index}>
-                        <div
-                          key={like._id || index}
-                          style={{
-                            padding: "8px 16px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "12px",
-                            cursor: "pointer",
-                            transition: "background-color 0.2s"
-                          }}
-                          onMouseOver={e => e.currentTarget.style.backgroundColor = "#f2f3f5"}
-                          onMouseOut={e => e.currentTarget.style.backgroundColor = "transparent"}
-                        >
-                          <img
-                            src={like.userId?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
-                            alt="Avatar"
-                            style={{
-                              width: "40px",
-                              height: "40px",
-                              borderRadius: "50%",
-                              objectFit: "cover"
-                            }}
-                          />
-                          <div style={{ flex: 1 }}>
-                            <div style={{
-                              fontWeight: "600",
-                              fontSize: "15px",
-                              color: "#050505"
-                            }}>
-                              {like.userId?.displayName || like.userId?.username || "Người dùng"}
-                            </div>
-                            {like.userId?.faculty && (
-                              <div style={{
-                                fontSize: "13px",
-                                color: "#65676b"
-                              }}>
-                                {like.userId.faculty}
-                                {like.userId.class && ` - ${like.userId.class}`}
-                              </div>
-                            )}
+                      <Link to={`/user/${like.userId?.username}`} key={like._id || index} className="post-item-likes-modal-item">
+                        <img
+                          src={like.userId?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
+                          alt="Avatar"
+                          className="post-item-likes-modal-avatar"
+                        />
+                        <div className="post-item-likes-modal-user-info">
+                          <div className="post-item-likes-modal-user-name">
+                            {like.userId?.displayName || like.userId?.username || "Người dùng"}
                           </div>
-                          <span style={{
-                            background: "#1877f2",
-                            color: "white",
-                            borderRadius: "50%",
-                            width: "24px",
-                            height: "24px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "12px"
-                          }}>👍</span>
+                          {like.userId?.faculty && (
+                            <div className="post-item-likes-modal-user-meta">
+                              {like.userId.faculty}
+                              {like.userId.class && ` - ${like.userId.class}`}
+                            </div>
+                          )}
                         </div>
+                        <span className="post-item-likes-modal-icon">👍</span>
                       </Link>
                     ))
                   ) : (
-                    <div style={{
-                      padding: "40px 20px",
-                      textAlign: "center",
-                      color: "#65676b",
-                      fontSize: "15px"
-                    }}>
+                    <div className="post-item-likes-modal-empty">
                       Chưa có ai thích bài viết này
                     </div>
                   )}

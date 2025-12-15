@@ -10,6 +10,7 @@ import LoadingPost from "./LoadingPost";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import EditPostModal from "./EditPostModal";
+import '../assets/css/PostDetailStyles.css';
 const { socket } = require('../Utils/socket');
 
 export default function PostDetail({ post: initialPost, show, onClose }) {
@@ -616,70 +617,6 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
   if (isDesktop) {
     return (
       <>
-        <style>{`
-          @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-          }
-          .shimmer-wrapper {
-            position: relative;
-            overflow: hidden;
-            background: #f0f2f5;
-          }
-          .shimmer-wrapper::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
-            animation: shimmer 1.5s infinite;
-          }
-          
-          /* Custom Modal Styles */
-          .post-detail-modal .modal-dialog {
-            max-width: 700px;
-            margin: 1.75rem auto;
-          }
-          
-          .post-detail-modal .modal-content {
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 12px 28px rgba(0,0,0,0.15);
-          }
-          
-          .post-detail-modal .modal-body {
-            padding: 0;
-            max-height: 85vh;
-            overflow-y: auto;
-          }
-          
-          .post-detail-modal .modal-backdrop {
-            backdrop-filter: blur(5px);
-            background-color: rgba(255, 255, 255, 0.9);
-          }
-          
-          .post-detail-modal .btn-close {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0.7) url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat;
-            opacity: 1;
-            z-index: 1060;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-          }
-          
-          .post-detail-modal .btn-close:hover {
-            background-color: rgba(0, 0, 0, 0.9);
-            transform: scale(1.1);
-          }
-        `}</style>
-
         <Modal
           show={showModal}
           onHide={handleCloseModal}
@@ -690,59 +627,30 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
           keyboard={true}
           enforceFocus={false}
         >
-          <Modal.Header style={{
-            borderBottom: '1px solid #e4e6eb',
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
+          <Modal.Header className="post-detail-modal-header">
             <button
               onClick={handleCloseModal}
-              style={{
-                background: 'none',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                fontSize: '15px',
-                fontWeight: 600,
-                color: '#050505',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                transition: 'background-color 0.2s'
-              }}
-              onMouseOver={e => e.currentTarget.style.backgroundColor = '#f2f3f5'}
-              onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}
+              className="post-detail-back-btn"
             >
-              <span style={{ fontSize: '20px' }}>←</span>
+              <i className="bi bi-arrow-left post-detail-back-icon"></i>
               <span>Trở về</span>
             </button>
           </Modal.Header>
           <Modal.Body>
             {loading ? (
-              <div style={{ padding: '20px' }}>
+              <div className="post-detail-loading">
                 <LoadingPost />
               </div>
             ) : error ? (
-              <div style={{ padding: '40px', textAlign: 'center' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>😞</div>
-                <h3 style={{ fontSize: '20px', marginBottom: '8px', color: '#050505' }}>
+              <div className="post-detail-error">
+                <i className="bi bi-emoji-frown post-detail-error-icon"></i>
+                <h3 className="post-detail-error-title">
                   Không tìm thấy bài viết
                 </h3>
-                <p style={{ color: '#65676b', marginBottom: '20px' }}>{error}</p>
+                <p className="post-detail-error-message">{error}</p>
                 <button
                   onClick={handleCloseModal}
-                  className="btn btn-primary"
-                  style={{
-                    backgroundColor: '#1877f2',
-                    border: 'none',
-                    padding: '10px 24px',
-                    borderRadius: '6px',
-                    fontSize: '15px',
-                    fontWeight: 600
-                  }}
+                  className="btn btn-primary post-detail-error-btn"
                 >
                   Quay lại
                 </button>
@@ -784,9 +692,9 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
                 isSubmittingReply={isSubmittingReply}
               />
             ) : (
-              <div style={{ padding: '40px', textAlign: 'center' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
-                <p style={{ color: '#65676b' }}>Không có dữ liệu bài viết.</p>
+              <div className="post-detail-empty">
+                <i className="bi bi-file-text post-detail-empty-icon"></i>
+                <p className="post-detail-empty-message">Không có dữ liệu bài viết.</p>
               </div>
             )}
           </Modal.Body>
@@ -808,36 +716,12 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
   return (
     <div className="container mt-4">
       {/* Header with back button */}
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        padding: '12px 16px',
-        marginBottom: '16px',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px'
-      }}>
+      <div className="post-detail-mobile-header">
         <button
           onClick={() => navigate(-1)}
-          style={{
-            background: 'none',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: 600,
-            color: '#050505',
-            padding: '6px 12px',
-            borderRadius: '6px',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseOver={e => e.currentTarget.style.backgroundColor = '#f2f3f5'}
-          onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}
+          className="post-detail-back-btn"
         >
-          <span style={{ fontSize: '20px' }}>←</span>
+          <i className="bi bi-arrow-left post-detail-back-icon"></i>
           <span>Trở về</span>
         </button>
       </div>
@@ -845,23 +729,15 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
       {loading ? (
         <LoadingPost />
       ) : error ? (
-        <div style={{ padding: '40px', textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>😞</div>
-          <h3 style={{ fontSize: '20px', marginBottom: '8px', color: '#050505' }}>
+        <div className="post-detail-error">
+          <i className="bi bi-emoji-frown post-detail-error-icon"></i>
+          <h3 className="post-detail-error-title">
             Không tìm thấy bài viết
           </h3>
-          <p style={{ color: '#65676b', marginBottom: '20px' }}>{error}</p>
+          <p className="post-detail-error-message">{error}</p>
           <button
             onClick={handleCloseModal}
-            className="btn btn-primary"
-            style={{
-              backgroundColor: '#1877f2',
-              border: 'none',
-              padding: '10px 24px',
-              borderRadius: '6px',
-              fontSize: '15px',
-              fontWeight: 600
-            }}
+            className="btn btn-primary post-detail-error-btn"
           >
             Quay lại
           </button>

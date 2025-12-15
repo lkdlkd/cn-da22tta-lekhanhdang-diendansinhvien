@@ -6,6 +6,7 @@ import { useOutletContext } from "react-router-dom";
 import * as api from "../Utils/api";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
+import '../assets/css/PostListStyles.css';
 const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasMoreProp, onLoadMore, isLoadingMore }) => {
     const { auth } = useContext(AuthContext);
     const token = auth.token || localStorage.getItem('token');
@@ -401,56 +402,18 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
         return (
             <div>
                 {[...Array(3)].map((_, idx) => (
-                    <div key={idx} style={{
-                        backgroundColor: "white",
-                        borderRadius: "8px",
-                        boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                        marginBottom: "16px",
-                        padding: "12px 16px"
-                    }}>
-                        <div style={{ display: "flex", gap: "12px", marginBottom: "12px" }}>
-                            <div style={{
-                                width: "40px",
-                                height: "40px",
-                                borderRadius: "50%",
-                                backgroundColor: "#e4e6eb"
-                            }}></div>
-                            <div style={{ flex: 1 }}>
-                                <div style={{
-                                    width: "150px",
-                                    height: "16px",
-                                    backgroundColor: "#e4e6eb",
-                                    borderRadius: "4px",
-                                    marginBottom: "8px"
-                                }}></div>
-                                <div style={{
-                                    width: "100px",
-                                    height: "14px",
-                                    backgroundColor: "#e4e6eb",
-                                    borderRadius: "4px"
-                                }}></div>
+                    <div key={idx} className="post-list-skeleton">
+                        <div className="skeleton-header">
+                            <div className="skeleton-avatar"></div>
+                            <div className="skeleton-header-content">
+                                <div className="skeleton-title"></div>
+                                <div className="skeleton-subtitle"></div>
                             </div>
                         </div>
-                        <div style={{
-                            width: "100%",
-                            height: "60px",
-                            backgroundColor: "#e4e6eb",
-                            borderRadius: "4px",
-                            marginBottom: "12px"
-                        }}></div>
-                        <div style={{
-                            display: "flex",
-                            gap: "8px",
-                            paddingTop: "12px",
-                            borderTop: "1px solid #e4e6eb"
-                        }}>
+                        <div className="skeleton-body"></div>
+                        <div className="skeleton-actions">
                             {[1, 2, 3].map(i => (
-                                <div key={i} style={{
-                                    width: "80px",
-                                    height: "32px",
-                                    backgroundColor: "#e4e6eb",
-                                    borderRadius: "4px"
-                                }}></div>
+                                <div key={i} className="skeleton-button"></div>
                             ))}
                         </div>
                     </div>
@@ -462,15 +425,9 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
     // Empty state
     if (!posts || posts.length === 0) {
         return (
-            <div style={{
-                backgroundColor: "white",
-                borderRadius: "8px",
-                padding: "40px",
-                textAlign: "center",
-                color: "#65676b"
-            }}>
-                <div style={{ fontSize: "48px", marginBottom: "16px" }}>📝</div>
-                <h3 style={{ fontSize: "20px", marginBottom: "8px", color: "#050505" }}>
+            <div className="post-list-empty">
+                <div className="post-list-empty-icon">📝</div>
+                <h3 className="post-list-empty-title">
                     Chưa có bài viết nào
                 </h3>
                 <p>Hãy là người đầu tiên chia sẻ điều gì đó!</p>
@@ -522,44 +479,13 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
 
             {/* Load More Button */}
             {hasMore && (
-                <div 
-                    style={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        padding: '20px',
-                        marginTop: '16px'
-                    }}
-                >
+                <div className="load-more-container">
                     <button
                         onClick={handleLoadMore}
                         disabled={serverPaginated && isLoadingMore}
-                        style={{
-                            backgroundColor: 'white',
-                            border: '2px solid #e4e6eb',
-                            borderRadius: '8px',
-                            padding: '12px 32px',
-                            fontSize: '15px',
-                            fontWeight: 600,
-                            color: '#050505',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#f0f2f5';
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'white';
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-                        }}
+                        className="load-more-button"
                     >
-                        <i className="ph ph-arrow-down" style={{ fontSize: '18px' }}></i>
+                        <i className="bi bi-arrow-down load-more-icon"></i>
                         {serverPaginated
                           ? (isLoadingMore ? 'Đang tải...' : 'Xem thêm')
                           : `Xem thêm ${Math.min(POSTS_PER_PAGE, posts.length - visibleCount)} bài viết`}
@@ -569,15 +495,8 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
 
             {/* Show total count (client-side paging only) */}
             {!serverPaginated && !hasMore && posts.length > POSTS_PER_PAGE && (
-                <div 
-                    style={{
-                        textAlign: 'center',
-                        padding: '20px',
-                        color: '#65676b',
-                        fontSize: '14px'
-                    }}
-                >
-                    <i className="ph ph-check-circle" style={{ fontSize: '18px', marginRight: '8px' }}></i>
+                <div className="total-count-container">
+                    <i className="bi bi-check-circle total-count-icon"></i>
                     Đã hiển thị tất cả {posts.length} bài viết
                 </div>
             )}

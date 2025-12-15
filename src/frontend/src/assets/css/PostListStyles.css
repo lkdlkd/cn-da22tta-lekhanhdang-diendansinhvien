@@ -1,0 +1,136 @@
+/* Post List Styles */
+
+/* Loading skeleton */
+.post-list-skeleton {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
+  padding: 12px 16px;
+}
+
+.skeleton-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #e4e6eb;
+}
+
+.skeleton-header-content {
+  flex: 1;
+}
+
+.skeleton-title {
+  width: 150px;
+  height: 16px;
+  background-color: #e4e6eb;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-subtitle {
+  width: 100px;
+  height: 14px;
+  background-color: #e4e6eb;
+  border-radius: 4px;
+}
+
+.skeleton-body {
+  width: 100%;
+  height: 60px;
+  background-color: #e4e6eb;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.skeleton-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #e4e6eb;
+}
+
+.skeleton-button {
+  width: 80px;
+  height: 32px;
+  background-color: #e4e6eb;
+  border-radius: 4px;
+}
+
+/* Empty state */
+.post-list-empty {
+  background-color: white;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  color: #65676b;
+}
+
+.post-list-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.post-list-empty-title {
+  font-size: 20px;
+  margin-bottom: 8px;
+  color: #050505;
+}
+
+/* Load more section */
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.load-more-button {
+  background-color: white;
+  border: 2px solid #e4e6eb;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #050505;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.load-more-button:hover:not(:disabled) {
+  background-color: #f0f2f5;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.load-more-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.load-more-icon {
+  font-size: 18px;
+}
+
+/* Total count section */
+.total-count-container {
+  text-align: center;
+  padding: 20px;
+  color: #65676b;
+  font-size: 14px;
+}
+
+.total-count-icon {
+  font-size: 18px;
+  margin-right: 8px;
+}

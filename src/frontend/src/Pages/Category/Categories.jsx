@@ -40,7 +40,7 @@ export default function Categories() {
       }}>
         <div className="card-body" style={{ padding: '24px' }}>
           <h4 className="mb-2 d-flex align-items-center" style={{ fontWeight: 700 }}>
-            <i className="ph-duotone ph-folders me-2" style={{ fontSize: '32px' }}></i>
+            <i className="bi bi-folder2-open me-2" style={{ fontSize: '32px' }}></i>
             Tất cả chuyên mục
           </h4>
           <p className="mb-0" style={{ opacity: 0.95, fontSize: '14px' }}>
@@ -88,7 +88,7 @@ export default function Categories() {
                       backdropFilter: 'blur(10px)'
                     }}
                   >
-                    <i className="ph-duotone ph-folder-notch-open" style={{ 
+                    <i className="bi bi-folder2-open" style={{ 
                       fontSize: '24px',
                       color: 'white'
                     }}></i>
@@ -129,7 +129,7 @@ export default function Categories() {
                 <div className="d-flex justify-content-between align-items-center">
                   <div className="d-flex gap-3">
                     <div className="d-flex align-items-center">
-                      <i className="ph ph-file-text text-primary me-1" style={{ fontSize: '16px' }}></i>
+                      <i className="bi bi-file-text text-primary me-1" style={{ fontSize: '16px' }}></i>
                       <small className="text-muted" style={{ fontSize: '12px' }}>
                         <strong>{category.postCount || 0}</strong> bài viết
                       </small>
@@ -145,7 +145,7 @@ export default function Categories() {
                       padding: '4px 12px'
                     }}
                   >
-                    Xem <i className="ph ph-arrow-right ms-1"></i>
+                    Xem <i className="bi bi-arrow-right ms-1"></i>
                   </button>
                 </div>
               </div>
@@ -157,7 +157,7 @@ export default function Categories() {
       {categories.length === 0 && (
         <div className="card border-0 shadow-sm" style={{ borderRadius: '12px' }}>
           <div className="card-body text-center py-5">
-            <i className="ph-duotone ph-folders" style={{ 
+            <i className="bi bi-folder2-open" style={{ 
               fontSize: '64px', 
               color: '#ccc',
               marginBottom: '16px'
