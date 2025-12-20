@@ -21,6 +21,7 @@ import LoadingPost from '../../Components/LoadingPost';
 import { toast } from 'react-toastify';
 import EditPostModal from '../../Components/EditPostModal';
 import { useNavigate } from 'react-router-dom';
+import '../../assets/css/UserProfile.css';
 
 const { socket } = require('../../Utils/socket');
 const UserProfile = () => {
@@ -669,21 +670,20 @@ const UserProfile = () => {
       {/* Profile Header */}
       <div className="card mb-4">
         <div className="card-body">
-          {/* Cover Photo (optional - có thể thêm sau) */}
-          <div className="position-relative mb-4" style={{ height: '200px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '8px' }}>
+          {/* Cover Photo */}
+          <div className="user-profile-cover">
             {/* Avatar positioned at bottom of cover */}
-            <div className="position-absolute" style={{ bottom: '-50px', left: '30px' }}>
+            <div className="user-profile-avatar-container">
               <img
                 src={users.avatarUrl || users.avatar || 'https://ui-avatars.com/api/?background=random&name=user'}
                 alt={users.displayName || users.username}
-                className="rounded-circle border border-4 border-white"
-                style={{ width: '120px', height: '120px', objectFit: 'cover' }}
+                className="user-profile-avatar"
               />
             </div>
           </div>
 
           {/* User Info */}
-          <div className="mt-5 pt-3">
+          <div className="user-profile-info">
             <div className="d-flex justify-content-between align-items-start">
               <div>
                 <h2 className="mb-1">{users.displayName || users.username}</h2>
@@ -721,18 +721,18 @@ const UserProfile = () => {
                 </div>
 
                 {/* Stats */}
-                <div className="d-flex gap-4">
-                  <div>
+                <div className="user-profile-stats">
+                  <div className="user-profile-stat-item">
                     <strong>{users.stats?.postsCount || 0}</strong>
-                    <span className="text-muted ms-1">bài viết</span>
+                    <span className="text-muted">bài viết</span>
                   </div>
-                  <div>
+                  <div className="user-profile-stat-item">
                     <strong>{users.stats?.commentsCount || 0}</strong>
-                    <span className="text-muted ms-1">bình luận</span>
+                    <span className="text-muted">bình luận</span>
                   </div>
-                  <div>
+                  <div className="user-profile-stat-item">
                     <strong>{users.stats?.likesReceived || 0}</strong>
-                    <span className="text-muted ms-1">lượt thích</span>
+                    <span className="text-muted">lượt thích</span>
                   </div>
                 </div>
               </div>
@@ -745,7 +745,7 @@ const UserProfile = () => {
                     Chỉnh sửa trang cá nhân
                   </Link>
                 ) : (
-                  <div className="d-flex gap-2">
+                  <div className="user-profile-actions">
                     <Link to={`/message/${users.username}`} className="btn btn-primary">
                       <i className="ph ph-chat-circle me-2"></i>
                       Nhắn tin
@@ -761,22 +761,6 @@ const UserProfile = () => {
           </div>
         </div>
       </div>
-
-      {/* Tabs */}
-      <ul className="nav nav-tabs mb-4">
-        <li className="nav-item">
-          <Link className="nav-link active" to="#posts">
-            <i className="ph ph-newspaper me-2"></i>
-            Bài viết ({users.stats?.postsCount || 0})
-          </Link>
-        </li>
-        <li className="nav-item">
-          <Link className="nav-link disabled" to="#about">
-            <i className="ph ph-info me-2"></i>
-            Giới thiệu
-          </Link>
-        </li>
-      </ul>
 
       {/* Posts Section */}
       <div>
@@ -855,8 +839,8 @@ const UserProfile = () => {
           </>
         ) : (
           <div className="card">
-            <div className="card-body text-center py-5">
-              <i className="ph ph-newspaper" style={{ fontSize: '64px', opacity: 0.3 }}></i>
+            <div className="card-body user-profile-empty-card">
+              <i className="ph ph-newspaper user-profile-empty-icon"></i>
               <h5 className="mt-3 mb-2">Chưa có bài viết nào</h5>
               <p className="text-muted">
                 {isOwnProfile

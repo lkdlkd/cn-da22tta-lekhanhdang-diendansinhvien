@@ -11,6 +11,7 @@ import PostCreate from '../Components/PostCreate';
 import PostDetail from '../Components/PostDetail';
 import { useOutletContext } from "react-router-dom";
 import { Link } from 'react-router-dom';
+import '../assets/css/Home.css';
 const { socket } = require('../Utils/socket');
 const Home = () => {
   const { user, categories, featuredPosts, activeUsers, documents } = useOutletContext();
@@ -304,14 +305,14 @@ const Home = () => {
 
   const getDocIconClass = (cat) => {
     switch (cat) {
-      case 'pdf': return 'ph ph-file-pdf text-danger';
-      case 'word': return 'ph ph-file-doc text-primary';
-      case 'excel': return 'ph ph-file-xls text-success';
-      case 'ppt': return 'ph ph-file-ppt text-warning';
-      case 'text': return 'ph ph-file-text text-secondary';
-      case 'image': return 'ph ph-image text-info';
-      case 'archive': return 'ph ph-file-zip text-muted';
-      default: return 'ph ph-file text-secondary';
+      case 'pdf': return 'ph-duotone ph-file-pdf text-danger';
+      case 'word': return 'ph-duotone ph-file-doc text-primary';
+      case 'excel': return 'ph-duotone ph-file-xls text-success';
+      case 'ppt': return 'ph-duotone ph-file-ppt text-warning';
+      case 'text': return 'ph-duotone ph-file-text text-secondary';
+      case 'image': return 'ph-duotone ph-image text-info';
+      case 'archive': return 'ph-duotone ph-file-zip text-muted';
+      default: return 'ph-duotone ph-file text-secondary';
     }
   };
 
@@ -321,22 +322,12 @@ const Home = () => {
       <div className="mt-4">
         {/* Welcome message */}
         {user && (
-          <div
-            className="alert mb-4"
-            style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              border: 'none',
-              borderRadius: '12px',
-              color: 'white',
-              padding: '16px 20px',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.2)'
-            }}
-          >
+          <div className="alert mb-4 home-welcome-alert">
             <div className="d-flex align-items-center">
-              <i className="ph-duotone ph-hand-waving" style={{ fontSize: '28px', marginRight: '12px' }}></i>
+              <i className="ph-duotone ph-hand-waving home-welcome-icon"></i>
               <div>
-                <h6 className="mb-0" style={{ fontWeight: 600 }}>Xin chào, {user.displayName}!</h6>
-                <small style={{ opacity: 0.9 }}>Chào mừng bạn trở lại</small>
+                <h6 className="home-welcome-title">Xin chào, {user.displayName}!</h6>
+                <small className="home-welcome-subtitle">Chào mừng bạn trở lại</small>
               </div>
             </div>
           </div>
@@ -345,35 +336,11 @@ const Home = () => {
         <div>
           {/* Facebook-style update bar */}
           {showUpdateBtn && (
-            <div style={{
-              position: 'sticky',
-              top: '70px',
-              zIndex: 100,
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              background: 'linear-gradient(135deg, #fff9e6 0%, #ffe8cc 100%)',
-              border: '1px solid #ffd699',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-              padding: '12px 20px',
-              marginBottom: 16,
-              borderRadius: 12,
-              fontWeight: 500,
-              color: '#856404',
-              gap: 12,
-              animation: 'slideDown 0.3s ease-out'
-            }}>
-              <i className="ph-duotone ph-bell-ringing" style={{ fontSize: '20px' }}></i>
+            <div className="home-update-bar">
+              <i className="ph-duotone ph-bell-ringing home-update-bar-icon"></i>
               <span>Có nội dung mới! Bấm để cập nhật</span>
               <button
-                className="btn btn-sm btn-warning"
-                style={{
-                  fontWeight: 600,
-                  borderRadius: '8px',
-                  padding: '6px 20px',
-                  boxShadow: '0 2px 8px rgba(255,193,7,0.3)'
-                }}
+                className="btn btn-sm btn-warning home-update-bar-btn"
                 onClick={getPosts}
               >
                 <i className="ph-duotone ph-arrow-clockwise me-1"></i>
@@ -388,14 +355,10 @@ const Home = () => {
         <div className="row">
           <div className="col-lg-8 mb-4">
             {/* Main content - Posts */}
-            <div className="card border-0 shadow-sm" style={{ borderRadius: '12px' }}>
-              <div className="card-header bg-white d-flex justify-content-between align-items-center" style={{
-                borderBottom: '2px solid #f0f2f5',
-                padding: '16px 20px',
-                borderRadius: '12px 12px 0 0'
-              }}>
-                <h5 className="mb-0 d-flex align-items-center" style={{ fontWeight: 700, fontSize: '18px' }}>
-                  <i className="ph-duotone ph-fire text-danger me-2" style={{ fontSize: '22px' }}></i>
+            <div className="card border-0 shadow-sm home-card">
+              <div className="card-header bg-white d-flex justify-content-between align-items-center home-card-header">
+                <h5 className="d-flex align-items-center home-card-title">
+                  <i className="ph-duotone ph-fire text-danger me-2 home-card-title-icon"></i>
                   Bài viết mới nhất
                 </h5>
                 {/* <Link
@@ -415,21 +378,19 @@ const Home = () => {
               </div>
               <div className="card-body p-0">
                 {/* Search bar */}
-                <div className="p-3" style={{ borderBottom: '1px solid #f0f2f5' }}>
+                <div className="home-search-container">
                   <div className="input-group">
                     <input
                       type="text"
-                      className="form-control"
+                      className="form-control home-search-input"
                       placeholder="Tìm kiếm bài viết..."
                       value={searchText}
                       onChange={(e) => setSearchText(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') getPosts(); }}
-                      style={{ borderRadius: '8px 0 0 8px' }}
                     />
                     <button
-                      className="btn btn-primary"
+                      className="btn btn-primary home-search-btn"
                       onClick={getPosts}
-                      style={{ borderRadius: '0 8px 8px 0' }}
                     >
                       <i className="ph ph-magnifying-glass">Tìm</i>
                     </button>
@@ -449,10 +410,10 @@ const Home = () => {
 
           <div className="col-lg-4">
             {/* Categories widget */}
-            <div className="card mb-3 border-0 shadow-sm" style={{ borderRadius: '12px' }}>
-              <div className="card-body" style={{ padding: '16px' }}>
-                <h6 className="fw-bold mb-3 d-flex align-items-center" style={{ fontSize: '15px' }}>
-                  <i className="ph-duotone ph-squares-four text-primary me-2" style={{ fontSize: '18px' }}></i>
+            <div className="card mb-3 border-0 shadow-sm home-card">
+              <div className="card-body home-card-body">
+                <h6 className="fw-bold mb-3 d-flex align-items-center home-widget-title">
+                  <i className="ph-duotone ph-squares-four text-primary home-widget-icon"></i>
                   Chuyên mục
                 </h6>
                 <div className="list-group list-group-flush">
@@ -460,31 +421,13 @@ const Home = () => {
                     <Link
                       key={cat.slug}
                       to={`/category/${cat.slug}`}
-                      className="list-group-item list-group-item-action d-flex justify-content-between align-items-center border-0"
-                      style={{
-                        padding: '12px 0',
-                        borderRadius: '8px',
-                        transition: 'all 0.2s',
-                        marginBottom: '4px',
-                        textDecoration: 'none'
-                      }}
-                      onMouseOver={(e) => {
-                        e.currentTarget.style.backgroundColor = '#f8f9fa';
-                        e.currentTarget.style.paddingLeft = '8px';
-                      }}
-                      onMouseOut={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.paddingLeft = '0';
-                      }}
+                      className="list-group-item list-group-item-action d-flex justify-content-between align-items-center border-0 home-category-item"
                     >
-                      <span style={{ fontSize: '13px' }}>
+                      <span className="home-category-text">
                         <i className="ph ph-folder-notch-open me-2 text-primary"></i>
                         {cat.title}
                       </span>
-                      <span className="badge rounded-pill" style={{
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        fontSize: '10px'
-                      }}>
+                      <span className="badge rounded-pill home-category-badge">
                         {cat.postCount || 0}
                       </span>
                     </Link>
@@ -493,8 +436,7 @@ const Home = () => {
                 {categories && categories.length > 6 && (
                   <Link
                     to="/category"
-                    className="btn btn-sm btn-outline-primary w-100 mt-2"
-                    style={{ borderRadius: '8px', fontWeight: 600, fontSize: '13px' }}
+                    className="btn btn-sm btn-outline-primary w-100 home-category-btn"
                   >
                     Xem tất cả
                   </Link>
@@ -503,35 +445,25 @@ const Home = () => {
             </div>
 
             {/* Active users widget */}
-            <div className="card mb-3 border-0 shadow-sm" style={{ borderRadius: '12px' }}>
-              <div className="card-body" style={{ padding: '16px' }}>
-                <h6 className="fw-bold mb-3 d-flex align-items-center" style={{ fontSize: '15px' }}>
-                  <i className="ph-duotone ph-users-three text-success me-2" style={{ fontSize: '18px' }}></i>
+            <div className="card mb-3 border-0 shadow-sm home-card">
+              <div className="card-body home-card-body">
+                <h6 className="fw-bold mb-3 d-flex align-items-center home-widget-title">
+                  <i className="ph-duotone ph-users-three text-success home-widget-icon"></i>
                   Thành viên tích cực
                 </h6>
                 {activeUsers && activeUsers.slice(0, 5).map((u, idx) => (
                   <Link key={u._id || idx} to={`/user/${u.username}`}>
-                    <div
-                      key={u._id || idx}
-                      className="d-flex align-items-center mb-2 p-2"
-                      style={{
-                        borderRadius: '8px',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
+                    <div className="d-flex align-items-center home-user-item">
                       <img
                         src={u.avatarUrl || `https://ui-avatars.com/api/?background=random&name=${u.displayName || u.username}`}
-                        className="rounded-circle me-2"
+                        className="rounded-circle home-user-avatar"
                         alt="Avatar"
-                        style={{ width: '36px', height: '36px', objectFit: 'cover' }}
                       />
                       <div className="flex-grow-1">
-                        <div style={{ fontSize: '13px', fontWeight: 600 }}>{u.displayName || u.username}</div>
-                        <small className="text-muted" style={{ fontSize: '11px' }}>{u.postsCount || 0} bài viết</small>
+                        <div className="home-user-name">{u.displayName || u.username}</div>
+                        <small className="text-muted home-user-posts">{u.postsCount || 0} bài viết</small>
                       </div>
-                      <span className={`badge ${u.isOnline ? 'bg-success' : 'bg-secondary'}`} style={{ borderRadius: '20px', fontSize: '10px' }}>
+                      <span className={`badge ${u.isOnline ? 'bg-success' : 'bg-secondary'} home-user-status`}>
                         <i className={`ph ${u.isOnline ? 'ph-check-circle' : 'ph-clock'} me-1`}></i>
                         {u.isOnline ? 'Online' : 'Offline'}
                       </span>
@@ -542,10 +474,10 @@ const Home = () => {
             </div>
 
             {/* Documents widget */}
-            <div className="card mb-3 border-0 shadow-sm" style={{ borderRadius: '12px' }}>
-              <div className="card-body" style={{ padding: '16px' }}>
-                <h6 className="fw-bold mb-3 d-flex align-items-center" style={{ fontSize: '15px' }}>
-                  <i className="ph-duotone ph-file-text text-warning me-2" style={{ fontSize: '18px' }}></i>
+            <div className="card mb-3 border-0 shadow-sm home-card">
+              <div className="card-body home-card-body">
+                <h6 className="fw-bold mb-3 d-flex align-items-center home-widget-title">
+                  <i className="ph-duotone ph-file-text text-warning home-widget-icon"></i>
                   Tài liệu mới
                 </h6>
                 <div className="list-group list-group-flush">
@@ -558,67 +490,43 @@ const Home = () => {
                           to={doc.storageUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="list-group-item list-group-item-action border-0 d-flex align-items-center"
-                          style={{
-                            padding: '10px 0',
-                            borderRadius: '8px',
-                            transition: 'all 0.2s',
-                            marginBottom: '4px',
-                            textDecoration: 'none'
-                          }}
-                          onMouseOver={(e) => {
-                            e.currentTarget.style.backgroundColor = '#f8f9fa';
-                            e.currentTarget.style.paddingLeft = '8px';
-                          }}
-                          onMouseOut={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.paddingLeft = '0';
-                          }}
+                          className="list-group-item list-group-item-action border-0 d-flex align-items-center home-doc-item"
                         >
-                          <i className={`${getDocIconClass(cat)} me-2`} style={{ fontSize: '18px' }}></i>
-                          <span className="text-truncate" style={{ fontSize: '13px', maxWidth: '240px' }}>{doc.filename}</span>
+                          <i className={`${getDocIconClass(cat)} home-doc-icon`}></i>
+                          <span className="text-truncate home-doc-name">{doc.filename}</span>
                           {/* <small className="text-muted" style={{ fontSize: '12px' }}>{formatBytes(doc.size)}</small> */}
                           <div className="d-flex align-items-center ms-auto gap-2">
-                            <img src={doc.ownerId.avatarUrl} alt="" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
-                            <span className="text-muted" style={{ fontSize: '12px' }}>{doc.ownerId.displayName || doc.ownerId.username}</span>
+                            <img src={doc.ownerId.avatarUrl} alt="" className="home-doc-owner-avatar" />
+                            <span className="text-muted home-doc-owner-name">{doc.ownerId.displayName || doc.ownerId.username}</span>
                           </div>
                         </Link>
                       );
                     })
                   ) : (
-                    <div className="text-muted" style={{ fontSize: '12px' }}>Chưa có tài liệu</div>
+                    <div className="text-muted home-doc-empty">Chưa có tài liệu</div>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Quick actions widget */}
-            <div className="card mb-3 border-0 shadow-sm" style={{ borderRadius: '12px' }}>
-              <div className="card-body" style={{ padding: '16px' }}>
-                <h6 className="fw-bold mb-3 d-flex align-items-center" style={{ fontSize: '15px' }}>
-                  <i className="ph-duotone ph-lightning text-warning me-2" style={{ fontSize: '18px' }}></i>
+            <div className="card mb-3 border-0 shadow-sm home-card">
+              <div className="card-body home-card-body">
+                <h6 className="fw-bold mb-3 d-flex align-items-center home-widget-title">
+                  <i className="ph-duotone ph-lightning text-warning home-widget-icon"></i>
                   Thao tác nhanh
                 </h6>
-                <div className="d-grid gap-2">
+                <div className="d-grid gap-2 home-quick-actions">
                   <button
-                    className="btn btn-primary d-flex align-items-center justify-content-center"
+                    className="btn btn-primary d-flex align-items-center justify-content-center home-quick-action-btn home-quick-action-primary"
                     onClick={handleCreatePost}
-                    style={{
-                      borderRadius: '8px',
-                      padding: '10px',
-                      fontWeight: 600,
-                      fontSize: '13px',
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      border: 'none'
-                    }}
                   >
                     <i className="ph-duotone ph-plus-circle me-2"></i>
                     Tạo bài viết
                   </button>
                   <Link
                     to="/documents"
-                    className="btn btn-outline-primary d-flex align-items-center justify-content-center"
-                    style={{ borderRadius: '8px', padding: '10px', fontWeight: 600, fontSize: '13px' }}
+                    className="btn btn-outline-primary d-flex align-items-center justify-content-center home-quick-action-btn home-quick-action-outline"
                   >
                     <i className="ph ph-upload-simple me-2"></i>
                     Tải tài liệu

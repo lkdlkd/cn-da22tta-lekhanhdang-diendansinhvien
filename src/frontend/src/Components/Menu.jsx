@@ -26,9 +26,9 @@ function Menu({ user, categories }) {
         <nav className="pc-sidebar">
             <div className="navbar-wrapper">
                 <div className="m-header">
-                    <Link to="/" className="b-brand text-primary">
-                        <i className="ph-duotone ph-graduation-cap me-2" style={{ fontSize: '24px' }}></i>
-                        <span className="fw-bold">Diễn đàn TVU</span>
+                    <Link to="/" className="b-brand text-primary" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+                        <i className="ph-duotone ph-graduation-cap me-2" style={{ fontSize: '32px', color: '#1877f2' }}></i>
+                        <span className="fw-bold" style={{ fontSize: '18px', color: '#1c1e21' }}>Diễn đàn TVU</span>
                     </Link>
                 </div>
 
@@ -58,13 +58,20 @@ function Menu({ user, categories }) {
 
                         {/* DANH MỤC */}
                         <li className="pc-item pc-hasmenu">
-                            <Link onClick={() => toggleMenu("categories")} className="pc-link d-flex justify-content-between align-items-center" style={{ cursor: "pointer" }}>
+                            <button 
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    toggleMenu("categories");
+                                }} 
+                                className="pc-link d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start" 
+                                style={{ cursor: "pointer" }}
+                            >
                                 <div className="d-flex align-items-center">
                                     <span className="pc-micon"><i className="ph-duotone ph-folders"></i></span>
                                     <span className="pc-mtext">Danh mục bài viết</span>
                                 </div>
                                 {activeMenu === "categories" ? <SlArrowDown /> : <SlArrowRight />}
-                            </Link>
+                            </button>
 
                             {activeMenu === "categories" && categories?.length > 0 && (
                                 <ul className="pc-submenu">
@@ -135,13 +142,20 @@ function Menu({ user, categories }) {
                                 {/* ADMIN MENU */}
                                 {user.role === "admin" && (
                                     <li className="pc-item pc-hasmenu">
-                                        <Link onClick={() => toggleMenu("admin")} className="pc-link d-flex justify-content-between align-items-center" style={{ cursor: "pointer" }}>
+                                        <button 
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                toggleMenu("admin");
+                                            }} 
+                                            className="pc-link d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start" 
+                                            style={{ cursor: "pointer" }}
+                                        >
                                             <div className="d-flex align-items-center">
                                                 <span className="pc-micon"><i className="ph-duotone ph-shield-check text-danger"></i></span>
                                                 <span className="pc-mtext text-danger fw-bold">Quản trị</span>
                                             </div>
                                             {activeMenu === "admin" ? <SlArrowDown /> : <SlArrowRight />}
-                                        </Link>
+                                        </button>
                                         {activeMenu === "admin" && (
                                             <ul className="pc-submenu">
                                                 <li className="pc-item"><Link to="/admin/users" className="pc-link" onClick={handleNavigation}>Quản lý thành viên</Link></li>

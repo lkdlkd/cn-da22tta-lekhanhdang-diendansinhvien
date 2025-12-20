@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getForumStats } from '../Utils/api';
+import '../assets/css/HeroSection.css';
 
 export default function HeroSection() {
   const [stats, setStats] = useState({
@@ -26,128 +27,88 @@ export default function HeroSection() {
   const handleCreatePost = () => {
     document.querySelector('[data-create-post-trigger]')?.click();
   };
-  return (
-    <section
-      className="hero-section text-white"
-      style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}
-    >
-      {/* Decorative circles */}
-      <div style={{
-        position: 'absolute',
-        top: '-50px',
-        right: '-50px',
-        width: '300px',
-        height: '300px',
-        borderRadius: '50%',
-        background: 'rgba(255,255,255,0.1)',
-        zIndex: 0
-      }} />
-      <div style={{
-        position: 'absolute',
-        bottom: '-100px',
-        left: '-100px',
-        width: '400px',
-        height: '400px',
-        borderRadius: '50%',
-        background: 'rgba(255,255,255,0.05)',
-        zIndex: 0
-      }} />
 
-      <div className="container" style={{ position: 'relative', zIndex: 1 }}>
-        <div className="row align-items-center p-3">
+  return (
+    <section className="hero-section">
+      {/* Decorative circles */}
+      <div className="hero-decorative-circle-1" />
+      <div className="hero-decorative-circle-2" />
+
+      <div className="container hero-content">
+        <div className="row align-items-center py-4">
           <div className="col-lg-8">
-            <h1 className="display-4 fw-bold mb-3" style={{
-              fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-              textShadow: '0 2px 10px rgba(0,0,0,0.2)'
-            }}>
-              <div>Chào mừng đến với</div>
-              <span>Diễn đàn Sinh viên TVU</span>
+            <h1 className="hero-title mb-3">
+              <span className="hero-title-line1 d-block text-uppercase  mb-2">
+                Chào mừng đến với
+              </span>
+              <span className="hero-title-main d-block text-primary fw-bold">
+                Diễn đàn Sinh viên TVU
+              </span>
             </h1>
-            <p className="lead mb-4" style={{
-              fontSize: 'clamp(1rem, 2vw, 1.25rem)',
-              opacity: 0.95
-            }}>
+            
+            <p className="hero-subtitle text-muted mb-4">
               Nơi chia sẻ kiến thức, kết nối bạn bè và phát triển bản thân trong môi trường học tập năng động.
             </p>
-            <div className="d-flex flex-wrap gap-3">
+            
+            <div className="hero-actions d-flex flex-wrap gap-2 mb-4">
               <button
-                className="btn btn-light btn-lg fw-bold "
+                className="btn btn-primary hero-btn hero-btn-primary px-4 py-2"
                 onClick={handleCreatePost}
-                style={{
-                  borderRadius: '12px',
-                  padding: '12px 32px',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-                  transition: 'all 0.3s ease'
-                }}
               >
-                <i className="ph-duotone ph-plus-circle me-2"></i>
+                <i className="bi bi-plus-circle-fill me-2"></i>
                 Tạo bài viết
               </button>
               <Link
-                to="/forum"
-                className="btn btn-outline-light btn-lg"
-                style={{
-                  borderRadius: '12px',
-                  padding: '12px 32px',
-                  borderWidth: '2px',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
+                to="/messages"
+                className="btn btn-outline-primary hero-btn hero-btn-secondary px-4 py-2"
               >
-                <i className="bi bi-compass me-2"></i>
+                <i className="bi bi-chat-dots-fill me-2"></i>
                 Phòng Chat
               </Link>
             </div>
 
             {/* Stats */}
-            <div className="row mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+            <div className="hero-stats row g-3 mt-4 pt-4 border-top">
               <div className="col-4">
-                <div className="text-center">
-                  <h3 className="fw-bold mb-0">{stats.totalUsers?.toLocaleString() || 0}+</h3>
-                  <small style={{ opacity: 0.8 }}>Thành viên</small>
+                <div className="hero-stat-item text-center p-3 bg-light border rounded">
+                  <span className="hero-stat-number d-block fs-3 fw-bold text-primary mb-1">
+                    {stats.totalUsers?.toLocaleString() || 0}+
+                  </span>
+                  <span className="hero-stat-label d-block small text-muted text-uppercase fw-semibold">
+                    Thành viên
+                  </span>
                 </div>
               </div>
               <div className="col-4">
-                <div className="text-center">
-                  <h3 className="fw-bold mb-0">{stats.totalPosts?.toLocaleString() || 0}+</h3>
-                  <small style={{ opacity: 0.8 }}>Bài viết</small>
+                <div className="hero-stat-item text-center p-3 bg-light border rounded">
+                  <span className="hero-stat-number d-block fs-3 fw-bold text-primary mb-1">
+                    {stats.totalPosts?.toLocaleString() || 0}+
+                  </span>
+                  <span className="hero-stat-label d-block small text-muted text-uppercase fw-semibold">
+                    Bài viết
+                  </span>
                 </div>
               </div>
               <div className="col-4">
-                <div className="text-center">
-                  <h3 className="fw-bold mb-0">{stats.totalCategories?.toLocaleString() || 0}+</h3>
-                  <small style={{ opacity: 0.8 }}>Chuyên mục</small>
+                <div className="hero-stat-item text-center p-3 bg-light border rounded">
+                  <span className="hero-stat-number d-block fs-3 fw-bold text-primary mb-1">
+                    {stats.totalCategories?.toLocaleString() || 0}+
+                  </span>
+                  <span className="hero-stat-label d-block small text-muted text-uppercase fw-semibold">
+                    Chuyên mục
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="col-lg-4 d-none d-lg-block">
-            <div style={{
-              background: 'rgba(255,255,255,0.1)',
-              borderRadius: '20px',
-              padding: '30px',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.2)'
-            }}>
-              <div className="text-center">
-                <i className="ph-duotone ph-student" style={{ fontSize: '120px', opacity: 0.9 }}></i>
-                <h5 className="mt-3 mb-2 fw-bold">Cộng đồng sinh viên TVU</h5>
-                <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>
-                  Nơi kết nối và chia sẻ kiến thức
-                </p>
-              </div>
+            <div className="hero-side-card bg-light border rounded-4 p-4 text-center">
+              <i className="bi bi-mortarboard-fill hero-side-icon text-primary d-block mb-3"></i>
+              <h5 className="hero-side-title fw-bold mb-2">Cộng đồng sinh viên TVU</h5>
+              <p className="hero-side-description text-muted mb-0 small">
+                Nơi kết nối và chia sẻ kiến thức
+              </p>
             </div>
           </div>
         </div>
