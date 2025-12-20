@@ -652,7 +652,7 @@ const UserAdmin = () => {
 										</td>
 									
 										<td>
-											<span className={`badge ${user.role === 'admin' ? 'bg-danger' : user.role === 'moderator' ? 'bg-warning' : 'bg-secondary'}`}>
+										<span className={`badge ${user.role === 'admin' ? 'bg-danger' : user.role === 'mod' ? 'bg-warning' : 'bg-secondary'}`}>
 												{user.role}
 											</span>
 										</td>
@@ -699,7 +699,7 @@ const UserAdmin = () => {
 									className="mb-3"
 								/>
 								<h5>{selectedUser.displayName || selectedUser.username}</h5>
-								<span className={`badge ${selectedUser.role === 'admin' ? 'bg-danger' : selectedUser.role === 'moderator' ? 'bg-warning' : 'bg-secondary'}`}>
+								<span className={`badge ${selectedUser.role === 'admin' ? 'bg-danger' : selectedUser.role === 'mod' ? 'bg-warning' : 'bg-secondary'}`}>
 									{selectedUser.role}
 								</span>
 								<span className="d-block mt-2">
