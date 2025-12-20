@@ -70,35 +70,37 @@ async function uploadToDrive(file, folderType = 'documents') {
     // Tạo URL phù hợp cho PDF và documents
     let viewUrl = result.secure_url;
     let downloadUrl = result.secure_url;
-    
-    // Với PDF và raw files, tạo signed URL nếu cần
+
+    // Với PDF và raw files, tạo signed URL với thời gian hết hạn dài (10 năm)
     if (resourceType === 'raw') {
-      // Tạo signed URL để tránh 401 error
+      const expirationTime = Math.floor(Date.now() / 1000) + (10 * 365 * 24 * 60 * 60); // 10 năm
+
+      // Tạo signed URL với expiration dài để xem mãi mãi
       const signedUrl = cloudinary.utils.private_download_url(
         result.public_id,
         result.format || fileExtension,
         {
           resource_type: 'raw',
-          type: 'upload'
+          type: 'upload',
+          expires_at: expirationTime
         }
       );
-      
-      // URL tải xuống với attachment flag
+
+      // URL tải xuống với attachment flag và signed
       downloadUrl = cloudinary.url(result.public_id, {
         resource_type: 'raw',
         type: 'upload',
         flags: 'attachment',
         secure: true,
-        sign_url: true  // Signed URL để tránh 401
+        sign_url: true,
+        expires_at: expirationTime
       });
-      
-      // Nếu secure_url bị 401, dùng signed URL
-      viewUrl = signedUrl || result.secure_url;
+      viewUrl = signedUrl;
     }
 
     return {
       fileId: result.public_id,
-      link: viewUrl,  // URL xem (hoặc tải cho raw)
+      link: viewUrl,  // URL xem (signed, hết hạn sau 10 năm)
       downloadUrl: downloadUrl,  // URL tải xuống
       resourceType,
       uploadDate: `${year}-${month}-${day}`,

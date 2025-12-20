@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { forwardRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../Context/AuthContext';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../Utils/api';
 import LoadingPost from './LoadingPost';
 const { socket } = require('../Utils/socket');
@@ -71,11 +72,12 @@ export default function Header({ user }) {
   const userMenuRef = useRef(null);
   const notificationRef = useRef(null);
   const navigate = useNavigate();
+  const { auth } = useContext(AuthContext);
+  const token = auth.token;
 
   // Fetch notifications on mount
   useEffect(() => {
     const fetchNotifications = async () => {
-      const token = localStorage.getItem('token');
       if (!token) return;
 
       setLoadingNotifications(true);
@@ -92,11 +94,12 @@ export default function Header({ user }) {
       }
     };
 
-    fetchNotifications();
+    if (token) {
+      fetchNotifications();
+    }
 
     // Setup socket listener for new notifications
     const handleNewNotification = ({ userId, notification }) => {
-      const token = localStorage.getItem('token');
       if (!token) return;
 
       // Decode token to get current user ID
@@ -192,7 +195,6 @@ export default function Header({ user }) {
 
   // Handle notification click
   const handleNotificationClick = async (notification) => {
-    const token = localStorage.getItem('token');
     if (!token) return;
 
     try {
@@ -219,7 +221,6 @@ export default function Header({ user }) {
 
   // Mark all as read
   const handleMarkAllAsRead = async () => {
-    const token = localStorage.getItem('token');
     if (!token) return;
 
     try {

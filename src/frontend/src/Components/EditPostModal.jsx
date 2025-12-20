@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import Modal from "react-bootstrap/Modal";
 import * as api from "../Utils/api";
 import { toast } from "react-toastify";
 import { useOutletContext } from "react-router-dom";
+import { AuthContext } from "../Context/AuthContext";
 
 const EditPostModal = ({ post, onClose, onUpdate }) => {
     const [title, setTitle] = useState(post?.title || "");
@@ -17,6 +18,8 @@ const EditPostModal = ({ post, onClose, onUpdate }) => {
     const [selectedEmoji, setSelectedEmoji] = useState("");
 
     const { categories, user } = useOutletContext();
+    const { auth } = useContext(AuthContext);
+    const token = auth.token;
 
     // Danh sách emoji phổ biến
     const emojis = [
@@ -78,7 +81,6 @@ const EditPostModal = ({ post, onClose, onUpdate }) => {
         setIsSubmitting(true);
 
         try {
-            const token = localStorage.getItem('token');
             const formData = new FormData();
 
             formData.append('title', title);

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { AuthContext } from '../../Context/AuthContext';
 import {
   getUserByUsername,
   getUserPosts,
@@ -33,7 +34,8 @@ const UserProfile = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const { user } = useOutletContext();
-  const token = localStorage.getItem('token');
+  const { auth } = useContext(AuthContext);
+  const token = auth.token;
   const currentUser = user;
   // Resolve current user id from context first, then localStorage as fallback
   const currentUserId = currentUser && (currentUser._id || currentUser.id);

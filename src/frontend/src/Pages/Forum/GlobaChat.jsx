@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
+import { useOutletContext } from "react-router-dom";
 import { AuthContext } from "../../Context/AuthContext";
 import { getGlobalChatHistory, getOnlineUsersCount, uploadChatFiles } from "../../Utils/api";
 import {
@@ -18,6 +19,7 @@ import { Link } from "react-router-dom";
 
 const GlobalChat = () => {
   const { auth } = useContext(AuthContext);
+  const { user } = useOutletContext();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -490,7 +492,7 @@ const GlobalChat = () => {
           <>
             {messages.map((msg, index) => {
               const sender = msg.senderId;
-              const isMe = String(sender?._id) === String(auth.user?.id || auth.user?._id);
+              const isMe = String(sender?._id) === String(user?.id || user?._id);
               const prevMsg = index > 0 ? messages[index - 1] : null;
               const showSenderInfo = shouldShowSenderInfo(msg, prevMsg);
               const hasAttachments = msg.attachments && msg.attachments.length > 0;

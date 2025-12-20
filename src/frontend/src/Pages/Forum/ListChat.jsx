@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef, useCallback, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useOutletContext } from "react-router-dom";
 import { AuthContext } from "../../Context/AuthContext";
 import { getMyConversations, getUserByUsername, getOnlineUsers } from "../../Utils/api";
 import {
@@ -14,6 +14,7 @@ import LoadingPost from "@/Components/LoadingPost";
 
 const ListChat = () => {
   const { auth } = useContext(AuthContext);
+  const { user } = useOutletContext();
   const { username } = useParams();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -253,7 +254,7 @@ const ListChat = () => {
   const handlePrivateNotify = useCallback((data) => {
     const { fromUserId, message } = data;
     const fromUserIdStr = String(fromUserId);
-    const myIdStr = String(auth.user?.id || auth.user?._id);
+    const myIdStr = String(user?.id || user?._id);
 
     // Create unique message ID using _id when available + normalized timestamp
     const attachmentSignature = Array.isArray(message.attachments)
@@ -332,7 +333,7 @@ const ListChat = () => {
     } else {
       // console.log("📬 [ListChat] New conversation from:", fromUserIdStr);
     }
-  }, [auth.user, incrementUnread, playNotificationSound]);
+  }, [user, incrementUnread, playNotificationSound]);
 
   // Store handler in ref
   useEffect(() => {

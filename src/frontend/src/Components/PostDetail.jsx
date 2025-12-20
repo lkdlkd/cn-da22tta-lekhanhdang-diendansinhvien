@@ -23,7 +23,7 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
   const [showModal, setShowModal] = useState(show !== undefined ? show : true);
   const { user } = useOutletContext();
   const { auth } = useContext(AuthContext);
-  const token = auth.token || localStorage.getItem('token');
+  const token = auth.token;
 
   // Decode token để lấy user ID
   let currentUserId = null;
@@ -392,7 +392,6 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
     // Reload post data after successful update
     if (post && post.slug) {
       try {
-        const token = localStorage.getItem('token');
         const res = await getPostBySlug(post.slug);
         if (res.success) {
           setPost(res.data);
@@ -460,7 +459,6 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
     setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));
 
     try {
-      const token = localStorage.getItem('token');
       let formData;
       if (attachments.length > 0) {
         formData = new FormData();
@@ -529,7 +527,6 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
     setIsSubmittingReply(prev => ({ ...prev, [parentId]: true }));
 
     try {
-      const token = localStorage.getItem('token');
       let formData;
       if (attachments.length > 0) {
         formData = new FormData();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef, useCallback } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useOutletContext } from "react-router-dom";
 import { AuthContext } from "../../Context/AuthContext";
 import { toast } from "react-toastify";
 import { getUserByUsername, getPrivateChatHistory, uploadChatFiles } from "../../Utils/api";
@@ -25,6 +25,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
   const { username: urlUsername } = useParams();
   const username = usernameOverride || urlUsername;
   const { auth } = useContext(AuthContext);
+  const { user } = useOutletContext();
   const navigate = useNavigate();
 
   const [peer, setPeer] = useState(null);
@@ -55,7 +56,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
   const emojiPickerRef = useRef(null);
   const messageInputRef = useRef(null);
 
-  const me = auth.user;
+  const me = user;
 
   // Danh sách emoji phổ biến
   const emojis = [
@@ -162,13 +163,13 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
       fileInputRef.current.value = "";
     }
 
-    const roomId = [String(me.id), String(peerId)].sort().join("_");
+    const roomId = [String(me._id), String(peerId)].sort().join("_");
     joinPrivateRoom(roomId);
 
     const handleNewMessage = (data) => {
       const fromUserIdStr = String(data.fromUserId);
       const toUserIdStr = String(data.toUserId);
-      const meIdStr = String(me.id);
+      const meIdStr = String(me._id);
       const peerIdStr = String(peerId);
 
       // Chỉ thêm tin nhắn nếu nó liên quan đến cuộc trò chuyện hiện tại
@@ -182,7 +183,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
         const enrichedMessage = {
           ...data.message,
           senderId: fromUserIdStr === meIdStr
-            ? { _id: me.id, id: me.id, username: me.username, ...me }
+            ? { _id: me._id, id: me._id, username: me.username, ...me }
             : (fromUserIdStr === peerIdStr ? peer : data.message.senderId)
         };
 
@@ -232,7 +233,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && socket.connected && peerId && me) {
-        const roomId = [String(me.id), String(peerId)].sort().join("_");
+        const roomId = [String(me._id), String(peerId)].sort().join("_");
         console.log('👀 [PrivateChat] Tab visible, ensuring joined to room:', roomId);
         joinPrivateRoom(roomId);
       }
@@ -597,7 +598,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
           ) : (
             messages.map((msg, idx) => {
               // So sánh senderId với me.id
-              const myIdStr = String(me.id);
+              const myIdStr = String(me._id);
               const msgSenderIdStr = String(msg.senderId?._id || msg.senderId?.id || msg.senderId);
               const isMine = msgSenderIdStr === myIdStr;
 

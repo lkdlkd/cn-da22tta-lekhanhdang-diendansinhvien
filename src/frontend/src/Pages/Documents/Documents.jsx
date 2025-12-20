@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import Pagination from 'react-bootstrap/Pagination';
+import { AuthContext } from '../../Context/AuthContext';
 import { getDocumentCategories, getDocuments, getPostCategoriesWithDocs } from '../../Utils/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -30,7 +31,8 @@ const Documents = () => {
   const [appliedFilters, setAppliedFilters] = useState({ keyword: '', category: '', postCategory: '' });
   const [sortBy, setSortBy] = useState('newest'); // newest | oldest | name | size
 
-  const token = localStorage.getItem('token');
+  const { auth } = useContext(AuthContext);
+  const token = auth.token;
   const navigate = useNavigate();
 
   useEffect(() => {

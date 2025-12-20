@@ -9,7 +9,7 @@ import Swal from "sweetalert2";
 import '../assets/css/PostListStyles.css';
 const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasMoreProp, onLoadMore, isLoadingMore }) => {
     const { auth } = useContext(AuthContext);
-    const token = auth.token || localStorage.getItem('token');
+    const token = auth.token;
     const { user } = useOutletContext();
     // Decode token để lấy user ID
     let currentUserId = null;
@@ -86,7 +86,6 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
         setIsSubmittingReply(prev => ({ ...prev, [parentId]: true }));
         
         try {
-            const token = localStorage.getItem('token');
             let formData;
             if (attachments.length > 0) {
                 formData = new FormData();
@@ -322,7 +321,6 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
         setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));
 
         try {
-            const token = localStorage.getItem('token');
             let formData;
 
             if (attachments.length > 0) {

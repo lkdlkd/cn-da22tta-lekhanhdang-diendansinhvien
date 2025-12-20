@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../Context/AuthContext";
 import CommentItem from "./CommentItem";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
@@ -54,6 +55,9 @@ const PostItem = ({
 
   // State for liked comments (local to this post)
   const [likedComments, setLikedComments] = useState(new Set());
+  
+  const { auth } = useContext(AuthContext);
+  const token = auth.token;
 
   // Sync liked comments from post data on mount/update
   React.useEffect(() => {
@@ -87,7 +91,6 @@ const PostItem = ({
 
   // Handle like/unlike comment
   const handleLikeComment = async (commentId) => {
-    const token = localStorage.getItem('token');
     if (!token) {
       toast.info("Vui lòng đăng nhập để thích bình luận");
       return;
@@ -346,7 +349,6 @@ const PostItem = ({
                           if (reason) {
                             try {
                               const { createReport } = await import("../Utils/api");
-                              const token = localStorage.getItem('token');
 
                               if (!token) {
                                 toast.error("Vui lòng đăng nhập để báo cáo");

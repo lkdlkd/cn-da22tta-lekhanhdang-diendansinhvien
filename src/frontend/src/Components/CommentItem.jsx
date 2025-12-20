@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useContext } from "react";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import { deleteComment } from "@/Utils/api";
 import { useOutletContext } from "react-router-dom";
+import { AuthContext } from "../Context/AuthContext";
 import { Link } from "react-router-dom";
 const CommentItem = ({
   comment,
@@ -38,6 +39,8 @@ const CommentItem = ({
   const [editAttachments, setEditAttachments] = React.useState([]);
   const [attachmentsToRemove, setAttachmentsToRemove] = React.useState([]);
   const { user } = useOutletContext();
+  const { auth } = useContext(AuthContext);
+  const token = auth.token;
   // Check if current user is comment author
   const isAuthor = currentUserId && comment.authorId &&
     (String(currentUserId) === String(comment.authorId._id || comment.authorId));
@@ -80,7 +83,6 @@ const CommentItem = ({
 
   const handleSubmitEdit = async () => {
     try {
-      const token = localStorage.getItem('token');
       const { updateComment } = await import("../Utils/api");
 
       const formData = new FormData();
@@ -130,7 +132,6 @@ const CommentItem = ({
 
     if (result.isConfirmed) {
       try {
-        const token = localStorage.getItem('token');
         const { deleteComment } = await import("../Utils/api");
 
         const response = await deleteComment(token, comment._id);
@@ -722,7 +723,6 @@ const CommentItem = ({
                               if (reason) {
                                 try {
                                   const { createReport } = await import("../Utils/api");
-                                  const token = localStorage.getItem('token');
 
                                   if (!token) {
                                     toast.error("Vui lòng đăng nhập để báo cáo");

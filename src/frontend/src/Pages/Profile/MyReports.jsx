@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../../Context/AuthContext';
 import { getMyReports, cancelReport } from '../../Utils/api';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
@@ -15,7 +16,8 @@ const MyReports = () => {
   });
   const [filterStatus, setFilterStatus] = useState('');
 
-  const token = localStorage.getItem('token');
+  const { auth } = useContext(AuthContext);
+  const token = auth.token;
 
   useEffect(() => {
     fetchReports();
