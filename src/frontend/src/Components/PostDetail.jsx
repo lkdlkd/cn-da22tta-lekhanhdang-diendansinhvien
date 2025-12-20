@@ -455,7 +455,10 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
 
     // Prevent double submission
     if (isSubmittingComment[postId]) return;
-
+    if (!token) {
+      toast.info("Vui lòng đăng nhập để bình luận!");
+      return;
+    }
     setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));
 
     try {
@@ -523,7 +526,10 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
 
     // Prevent double submission
     if (isSubmittingReply[parentId]) return;
-
+    if (!token) {
+      toast.info("Vui lòng đăng nhập để bình luận!");
+      return;
+    }
     setIsSubmittingReply(prev => ({ ...prev, [parentId]: true }));
 
     try {

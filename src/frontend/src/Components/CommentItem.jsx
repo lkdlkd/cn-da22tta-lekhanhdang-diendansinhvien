@@ -5,6 +5,8 @@ import { deleteComment } from "@/Utils/api";
 import { useOutletContext } from "react-router-dom";
 import { AuthContext } from "../Context/AuthContext";
 import { Link } from "react-router-dom";
+import './CommentItem.css';
+
 const CommentItem = ({
   comment,
   postId,
@@ -182,143 +184,62 @@ const CommentItem = ({
 
   return (
     <>
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
-      <div style={{
-        marginBottom: "8px",
-        marginLeft: getMarginLeft(),
-        position: "relative"
-      }}>
-      <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
-        <Link to={`/user/${comment.authorId?.username}`}>
-          <img
-            src={comment.authorId?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
-            alt="Avatar"
-            style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "50%",
-              objectFit: "cover",
-              flexShrink: 0
-            }}
-          />
-        </Link>
-        <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
-          {/* Comment Bubble */}
-          <div style={{ position: "relative", display: "inline-block", maxWidth: "100%" }}>
-            <div style={{
-              backgroundColor: "#f0f2f5",
-              borderRadius: "18px",
-              padding: "10px 14px",
-              display: "inline-block",
-              maxWidth: "100%",
-              transition: "background-color 0.2s ease",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-            }}>
-              <div style={{
-                fontWeight: "600",
-                fontSize: "13px",
-                color: "#050505",
-                marginBottom: comment.content ? "4px" : "0"
-              }}>
-                <Link to={`/user/${comment.authorId?.username}`}>
-                  {comment.authorId?.displayName || comment.authorId?.username || "Ẩn danh"}
-                </Link>
-              </div>
+      <div className={`comment-item depth-${Math.min(depth, 3)}`}>
+        <div className="comment-content-wrapper">
+          <Link to={`/user/${comment.authorId?.username}`}>
+            <img
+              src={comment.authorId?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
+              alt="Avatar"
+              className="comment-avatar"
+            />
+          </Link>
+          <div className="comment-body">
+            {/* Comment Bubble */}
+            <div className="comment-bubble-wrapper">
+              <div className="comment-bubble">
+                <div className={`comment-author-name ${!comment.content ? 'empty' : ''}`}>
+                  <Link to={`/user/${comment.authorId?.username}`}>
+                    {comment.authorId?.displayName || comment.authorId?.username || "Ẩn danh"}
+                  </Link>
+                </div>
 
-              {/* Edit Mode */}
-              {isEditing ? (
-                <div style={{ padding: "8px 0" }}>
-                  <textarea
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    style={{
-                      width: "100%",
-                      minHeight: "80px",
-                      padding: "8px",
-                      fontSize: "15px",
-                      border: "1px solid #ccc",
-                      borderRadius: "8px",
-                      resize: "vertical",
-                      fontFamily: "inherit",
-                      outline: "none"
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = "#1877f2"}
-                    onBlur={(e) => e.target.style.borderColor = "#ccc"}
-                  />
+                {/* Edit Mode */}
+                {isEditing ? (
+                  <div className="comment-edit-container">
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className="comment-edit-textarea"
+                    />
 
                   {/* Existing attachments */}
                   {comment.attachments && comment.attachments.length > 0 && (
-                    <div style={{ marginTop: "8px" }}>
-                      <div style={{ fontSize: "12px", fontWeight: "600", marginBottom: "4px", color: "#65676b" }}>
+                    <div className="comment-attachments-section">
+                      <div className="comment-attachments-label">
                         File đính kèm hiện tại:
                       </div>
-                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      <div className="comment-attachments-grid">
                         {comment.attachments
                           .filter(att => !attachmentsToRemove.includes(att._id))
                           .map((att, idx) => (
-                            <div key={idx} style={{
-                              position: "relative",
-                              backgroundColor: "#f0f2f5",
-                              borderRadius: "8px",
-                              padding: "4px",
-                              maxWidth: "100px"
-                            }}>
+                            <div key={idx} className="comment-attachment-item">
                               {att.mime && att.mime.startsWith('image') ? (
                                 <img
                                   src={att.storageUrl}
                                   alt="attachment"
-                                  style={{
-                                    width: "90px",
-                                    height: "90px",
-                                    objectFit: "cover",
-                                    borderRadius: "6px"
-                                  }}
+                                  className="comment-attachment-image"
                                 />
                               ) : (
-                                <div style={{
-                                  width: "90px",
-                                  height: "90px",
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  alignItems: "center",
-                                  justifyContent: "center"
-                                }}>
-                                  <span style={{ fontSize: "24px" }}>📎</span>
-                                  <span style={{
-                                    fontSize: "10px",
-                                    color: "#65676b",
-                                    textAlign: "center",
-                                    marginTop: "4px"
-                                  }}>
+                                <div className="comment-attachment-file">
+                                  <span className="comment-attachment-icon">📎</span>
+                                  <span className="comment-attachment-filename">
                                     {att.filename}
                                   </span>
                                 </div>
                               )}
                               <button
                                 onClick={() => removeExistingAttachment(att._id)}
-                                style={{
-                                  position: "absolute",
-                                  top: "2px",
-                                  right: "2px",
-                                  width: "20px",
-                                  height: "20px",
-                                  borderRadius: "50%",
-                                  backgroundColor: "rgba(0,0,0,0.7)",
-                                  color: "white",
-                                  border: "none",
-                                  cursor: "pointer",
-                                  fontSize: "14px",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center"
-                                }}
+                                className="comment-attachment-remove-btn"
                               >×</button>
                             </div>
                           ))}
@@ -328,68 +249,30 @@ const CommentItem = ({
 
                   {/* New attachments preview */}
                   {editAttachments.length > 0 && (
-                    <div style={{ marginTop: "8px" }}>
-                      <div style={{ fontSize: "12px", fontWeight: "600", marginBottom: "4px", color: "#65676b" }}>
+                    <div className="comment-attachments-section">
+                      <div className="comment-attachments-label">
                         File mới:
                       </div>
-                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      <div className="comment-attachments-grid">
                         {editAttachments.map((item, idx) => (
-                          <div key={idx} style={{
-                            position: "relative",
-                            backgroundColor: "#f0f2f5",
-                            borderRadius: "8px",
-                            padding: "4px",
-                            maxWidth: "100px"
-                          }}>
+                          <div key={idx} className="comment-attachment-item">
                             {item.preview ? (
                               <img
                                 src={item.preview}
                                 alt="preview"
-                                style={{
-                                  width: "90px",
-                                  height: "90px",
-                                  objectFit: "cover",
-                                  borderRadius: "6px"
-                                }}
+                                className="comment-attachment-image"
                               />
                             ) : (
-                              <div style={{
-                                width: "90px",
-                                height: "90px",
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "center",
-                                justifyContent: "center"
-                              }}>
-                                <span style={{ fontSize: "24px" }}>📎</span>
-                                <span style={{
-                                  fontSize: "10px",
-                                  color: "#65676b",
-                                  textAlign: "center",
-                                  marginTop: "4px"
-                                }}>
+                              <div className="comment-attachment-file">
+                                <span className="comment-attachment-icon">📎</span>
+                                <span className="comment-attachment-filename">
                                   {item.name}
                                 </span>
                               </div>
                             )}
                             <button
                               onClick={() => removeEditAttachment(idx)}
-                              style={{
-                                position: "absolute",
-                                top: "2px",
-                                right: "2px",
-                                width: "20px",
-                                height: "20px",
-                                borderRadius: "50%",
-                                backgroundColor: "rgba(0,0,0,0.7)",
-                                color: "white",
-                                border: "none",
-                                cursor: "pointer",
-                                fontSize: "14px",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center"
-                              }}
+                              className="comment-attachment-remove-btn"
                             >×</button>
                           </div>
                         ))}
@@ -398,66 +281,27 @@ const CommentItem = ({
                   )}
 
                   {/* Add attachment button */}
-                  <label style={{
-                    display: "inline-block",
-                    marginTop: "8px",
-                    padding: "6px 12px",
-                    backgroundColor: "#f0f2f5",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    fontWeight: "500",
-                    color: "#65676b",
-                    transition: "background-color 0.2s"
-                  }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#e4e6eb"}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#f0f2f5"}
-                  >
+                  <label className="comment-add-attachment-btn">
                     📎 Thêm file
                     <input
                       type="file"
                       multiple
                       accept="image/*,video/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar"
                       onChange={(e) => handleEditAttachmentChange(e.target.files)}
-                      style={{ display: "none" }}
                     />
                   </label>
 
                   {/* Action buttons */}
-                  <div style={{ marginTop: "12px", display: "flex", gap: "8px" }}>
+                  <div className="comment-edit-actions">
                     <button
                       onClick={handleSubmitEdit}
-                      style={{
-                        padding: "6px 16px",
-                        backgroundColor: "#1877f2",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "6px",
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                        transition: "background-color 0.2s"
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#166fe5"}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#1877f2"}
+                      className="comment-edit-save-btn"
                     >
                       Lưu
                     </button>
                     <button
                       onClick={handleCancelEdit}
-                      style={{
-                        padding: "6px 16px",
-                        backgroundColor: "#e4e6eb",
-                        color: "#050505",
-                        border: "none",
-                        borderRadius: "6px",
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                        transition: "background-color 0.2s"
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#d8dadf"}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#e4e6eb"}
+                      className="comment-edit-cancel-btn"
                     >
                       Hủy
                     </button>
@@ -466,55 +310,19 @@ const CommentItem = ({
               ) : (
                 // Normal view mode
                 comment.content && (
-                  <div style={{
-                    fontSize: "15px",
-                    color: "#050505",
-                    lineHeight: "1.4",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    position: "relative"
-                  }}>
+                  <div className="comment-text">
                     {comment.parentAuthorName && (
-                      <span style={{
-                        fontWeight: 600,
-                        color: "#385898",
-                        marginRight: "4px",
-                        cursor: "pointer"
-                      }}>
+                      <span className="comment-parent-mention">
                         {comment.parentAuthorName}
                       </span>
                     )}
-                    <span style={{
-                      display: shouldTruncate ? "-webkit-box" : "block",
-                      WebkitLineClamp: shouldTruncate ? "10" : "unset",
-                      WebkitBoxOrient: shouldTruncate ? "vertical" : "unset",
-                      overflow: shouldTruncate ? "hidden" : "visible"
-                    }}>
+                    <span className={`comment-text-content ${shouldTruncate ? 'truncated' : ''}`}>
                       {comment.content}
                     </span>
                     {(isLongComment || hasMoreThan300Chars) && (
                       <button
                         onClick={() => setIsExpanded(!isExpanded)}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "#65676b",
-                          cursor: "pointer",
-                          padding: "4px 0 0 0",
-                          fontWeight: "600",
-                          fontSize: "13px",
-                          display: "block",
-                          marginTop: "4px",
-                          transition: "color 0.2s ease"
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.textDecoration = "underline";
-                          e.currentTarget.style.color = "#1877f2";
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.textDecoration = "none";
-                          e.currentTarget.style.color = "#65676b";
-                        }}
+                        className="comment-expand-btn"
                       >
                         {isExpanded ? "Ẩn bớt" : "Xem thêm"}
                       </button>
@@ -526,33 +334,10 @@ const CommentItem = ({
 
             {/* Options Menu Button */}
             {(isAuthor || user) && (
-              <div style={{
-                position: "absolute",
-                top: "20px",
-                right: "-30px",
-                zIndex: 10
-              }}>
+              <div className="comment-options-wrapper">
                 <button
                   onClick={() => setShowOptionsMenu(!showOptionsMenu)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "4px 8px",
-                    borderRadius: "50%",
-                    color: "#65676b",
-                    fontSize: "16px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    transition: "background-color 0.2s"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#f0f2f5";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }}
+                  className="comment-options-btn"
                 >
                   ⋯
                 </button>
@@ -562,74 +347,22 @@ const CommentItem = ({
                     {/* Backdrop */}
                     <div
                       onClick={() => setShowOptionsMenu(false)}
-                      style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        zIndex: 998
-                      }}
+                      className="comment-options-backdrop"
                     />
 
                     {/* Dropdown Menu */}
-                    <div style={{
-                      position: "absolute",
-                      top: "100%",
-                      right: 0,
-                      marginTop: "4px",
-                      backgroundColor: "white",
-                      borderRadius: "8px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                      minWidth: "150px",
-                      zIndex: 999,
-                      overflow: "hidden"
-                    }}>
+                    <div className="comment-options-dropdown">
                       {isAuthor ? (
                         <>
                           <button
                             onClick={handleEditClick}
-                            style={{
-                              width: "100%",
-                              padding: "12px 16px",
-                              border: "none",
-                              background: "none",
-                              cursor: "pointer",
-                              textAlign: "left",
-                              fontSize: "14px",
-                              color: "#050505",
-                              fontWeight: "500",
-                              transition: "background-color 0.2s"
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = "#f0f2f5";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = "transparent";
-                            }}
+                            className="comment-option-item"
                           >
                             ✏️ Chỉnh sửa
                           </button>
                           <button
                             onClick={handleDeleteComment}
-                            style={{
-                              width: "100%",
-                              padding: "12px 16px",
-                              border: "none",
-                              background: "none",
-                              cursor: "pointer",
-                              textAlign: "left",
-                              fontSize: "14px",
-                              color: "#d33",
-                              fontWeight: "500",
-                              transition: "background-color 0.2s"
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = "#f0f2f5";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = "transparent";
-                            }}
+                            className="comment-option-item delete"
                           >
                             🗑️ Xóa bình luận
                           </button>
@@ -639,8 +372,6 @@ const CommentItem = ({
                           <button
                             onClick={async () => {
                               setShowOptionsMenu(false);
-
-                              // Hiển thị dialog chọn lý do báo cáo
                               const { value: reason } = await Swal.fire({
                                 title: 'Báo cáo bình luận',
                                 html: `
@@ -746,27 +477,7 @@ const CommentItem = ({
                                 }
                               }
                             }}
-                            style={{
-                              width: "100%",
-                              padding: "12px 16px",
-                              border: "none",
-                              background: "none",
-                              cursor: "pointer",
-                              textAlign: "left",
-                              fontSize: "14px",
-                              color: "#050505",
-                              fontWeight: "500",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                              transition: "background-color 0.2s"
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = "#f0f2f5";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = "transparent";
-                            }}
+                            className="comment-option-item"
                           >
                             <span>⚠️</span>
                             <span>Báo cáo bình luận</span>
@@ -782,27 +493,14 @@ const CommentItem = ({
 
           {/* Comment Attachments */}
           {comment.attachments && comment.attachments.length > 0 && (
-            <div style={{
-              marginTop: "4px",
-              display: "grid",
-              gridTemplateColumns: comment.attachments.length === 1 ? "1fr" : "repeat(auto-fit, minmax(120px, 1fr))",
-              gap: "4px",
-              marginLeft: "12px",
-              maxWidth: "360px"
-            }}>
+            <div className={`comment-attachments-display ${comment.attachments.length === 1 ? 'single' : 'multiple'}`}>
               {comment.attachments.map((file, fidx) => (
                 (file.mime && file.mime.startsWith("image")) ? (
                   <img
                     key={fidx}
                     src={file.storageUrl || file}
                     alt="attachment"
-                    style={{
-                      width: "100%",
-                      maxHeight: "200px",
-                      objectFit: "cover",
-                      borderRadius: "8px",
-                      cursor: "pointer"
-                    }}
+                    className="comment-attachment-image-display"
                     onClick={() => window.open(file.storageUrl || file, '_blank')}
                   />
                 ) : (
@@ -811,31 +509,15 @@ const CommentItem = ({
                     to={file.storageUrl || file}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      padding: "6px 10px",
-                      backgroundColor: "#f0f2f5",
-                      border: "1px solid #dddfe2",
-                      borderRadius: "8px",
-                      textDecoration: "none",
-                      gap: "6px"
-                    }}
+                    className="comment-attachment-link"
                   >
-                    <span style={{ fontSize: "18px" }}>📎</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        color: "#385898",
-                        fontSize: "12px",
-                        fontWeight: "500",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap"
-                      }}>
+                    <span className="comment-attachment-link-icon">📎</span>
+                    <div className="comment-attachment-link-content">
+                      <div className="comment-attachment-link-name">
                         {file.filename || "Tài liệu"}
                       </div>
                       {file.size && (
-                        <div style={{ color: "#65676b", fontSize: "10px" }}>
+                        <div className="comment-attachment-link-size">
                           {formatFileSize(file.size)}
                         </div>
                       )}

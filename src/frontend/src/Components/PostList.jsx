@@ -82,7 +82,10 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
         
         // Prevent double submission
         if (isSubmittingReply[parentId]) return;
-        
+        if (!token) {
+            toast.info("Vui lòng đăng nhập để bình luận!");
+            return;
+        }
         setIsSubmittingReply(prev => ({ ...prev, [parentId]: true }));
         
         try {
@@ -105,10 +108,10 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
                 setReplyAttachments(prev => ({ ...prev, [parentId]: [] }));
                 setReplyTo(prev => ({ ...prev, [parentId]: false }));
             } else {
-                console.error(res.error || 'Lỗi gửi trả lời');
+                toast.error(res.error || 'Lỗi gửi trả lời');
             }
         } catch (err) {
-            console.error(err.message || 'Lỗi gửi trả lời');
+            toast.error(err.message || 'Lỗi gửi trả lời');
         } finally {
             setIsSubmittingReply(prev => ({ ...prev, [parentId]: false }));
         }
@@ -317,7 +320,10 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
         
         // Prevent double submission
         if (isSubmittingComment[postId]) return;
-        
+        if (!token) {
+            toast.info("Vui lòng đăng nhập để bình luận!");
+            return;
+        }
         setIsSubmittingComment(prev => ({ ...prev, [postId]: true }));
 
         try {
@@ -342,7 +348,6 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
                 });
                 setCommentTexts(prev => ({ ...prev, [postId]: '' }));
                 setCommentAttachments(prev => ({ ...prev, [postId]: [] }));
-                console.log('Comment submitted successfully');
             } else {
                 console.error(res.error || 'Lỗi gửi bình luận');
             }
