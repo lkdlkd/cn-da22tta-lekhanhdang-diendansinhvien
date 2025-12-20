@@ -32,13 +32,39 @@ function processTags(tags) {
 
 // HÀM TẠO SLUG DUY NHẤT
 async function generateUniqueSlug(title) {
+	const MAX_SLUG_LENGTH = 60; // Giới hạn độ dài slug
+	
+	// Tạo slug cơ bản
 	let slugBase = slugify(title, { lower: true, strict: true });
+	
+	// Nếu slug quá dài, cắt ngắn lại
+	if (slugBase.length > MAX_SLUG_LENGTH) {
+		// Cắt tại vị trí MAX_SLUG_LENGTH
+		let truncated = slugBase.substring(0, MAX_SLUG_LENGTH);
+		// Tìm dấu gạch ngang cuối cùng để cắt ở ranh giới từ
+		const lastDashIndex = truncated.lastIndexOf('-');
+		if (lastDashIndex > MAX_SLUG_LENGTH * 0.7) {
+			// Nếu có dấu gạch ngang gần cuối, cắt tại đó
+			truncated = truncated.substring(0, lastDashIndex);
+		}
+		slugBase = truncated;
+	}
+	
+	// Kiểm tra trùng lặp và thêm số đếm nếu cần
 	let slug = slugBase;
 	let counter = 1;
-
+	
 	while (await Post.findOne({ slug })) {
-		slug = `${slugBase}-${counter++}`;
+		// Tạo suffix với số đếm
+		const suffix = `-${counter++}`;
+		// Đảm bảo slug + suffix không vượt quá MAX_SLUG_LENGTH
+		const maxBaseLength = MAX_SLUG_LENGTH - suffix.length;
+		const base = slugBase.length > maxBaseLength 
+			? slugBase.substring(0, maxBaseLength)
+			: slugBase;
+		slug = `${base}${suffix}`;
 	}
+	
 	return slug;
 }
 

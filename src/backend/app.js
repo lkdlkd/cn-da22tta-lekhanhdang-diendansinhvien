@@ -7,9 +7,50 @@ connectDB();
 
 const app = express();
 app.use(express.json());
-app.use(cors());
 
-// 🔥 Serve file uploads
+// 🔒 CORS configuration - Only allow frontend URL
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+app.use(cors({
+  origin: FRONTEND_URL,
+  credentials: true, // Cho phép gửi cookies và headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Client-Domain', 
+    'Cache-Control',
+    'Accept',
+    'Origin',
+    'X-Requested-With'
+  ],
+  exposedHeaders: ['Content-Length', 'X-Total-Count'],
+  optionsSuccessStatus: 200, // Một số browsers cũ cần status 200 cho OPTIONS
+  preflightContinue: false,
+  maxAge: 86400 // Cache preflight request for 24 hours
+}));
+
+console.log(`🔒 CORS enabled for: ${FRONTEND_URL}`);
+
+// �️ Middleware kiểm tra Origin/Referer (Tùy chọn - Bật nếu muốn bảo vệ API)
+app.use('/api', (req, res, next) => {
+  const origin = req.get('Origin');
+  const referer = req.get('Referer');
+  
+  // Cho phép request từ FRONTEND_URL hoặc có token hợp lệ
+  if (origin === FRONTEND_URL || 
+      (referer && referer.startsWith(FRONTEND_URL)) ||
+      req.get('Authorization')) {
+    return next();
+  }
+  
+  // Chặn truy cập trực tiếp từ trình duyệt
+  return res.status(403).json({ 
+    success: false, 
+    error: 'Direct access not allowed. Please use the official website.' 
+  });
+});
+
+// �🔥 Serve file uploads
 // app.use('/uploads', express.static('src/uploads'));
 // app.use('/uploads/user', express.static('src/uploads/user'));
 // app.use('/uploads/chat', express.static('src/uploads/chat'));
@@ -40,9 +81,13 @@ const { Server } = require("socket.io");
 const jwt = require('jsonwebtoken');
 const io = new Server(server, {
   cors: {
-    origin: "*", // Nếu muốn bảo mật: đổi * thành domain frontend
+    origin: FRONTEND_URL,
+    credentials: true,
+    methods: ["GET", "POST"]
   }
 });
+
+console.log(`🔒 Socket.IO CORS enabled for: ${FRONTEND_URL}`);
 
 // ✅ Lưu io vào app để controller có thể emit (req.app.get('io'))
 app.set('io', io);
