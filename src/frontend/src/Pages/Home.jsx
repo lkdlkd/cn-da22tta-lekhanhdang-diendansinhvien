@@ -30,13 +30,15 @@ const Home = () => {
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   // State for PostDetail modal
   const [selectedPost, setSelectedPost] = useState(null);
   const [showPostDetailModal, setShowPostDetailModal] = useState(false);
   const getPosts = () => {
     setLoadingpost(true);
-    const params = { page: 1, limit };
+    const params = { page: 1, limit, sortBy, order: sortOrder };
     if (searchText.trim()) params.keyword = searchText.trim();
     getAllPosts(params).then(data => {
       setPosts(Array.isArray(data) ? data : []);
@@ -51,7 +53,7 @@ const Home = () => {
     if (isLoadingMore || !hasMore) return;
     setIsLoadingMore(true);
     const nextPage = page + 1;
-    const params = { page: nextPage, limit };
+    const params = { page: nextPage, limit, sortBy, order: sortOrder };
     if (searchText.trim()) params.keyword = searchText.trim();
     getAllPosts(params).then(data => {
       const newItems = Array.isArray(data) ? data : [];
@@ -69,10 +71,16 @@ const Home = () => {
       setPage(nextPage);
       setHasMore(newItems.length === limit);
     }).finally(() => setIsLoadingMore(false));
-  }, [page, limit, isLoadingMore, hasMore, searchText]);
+  }, [page, limit, isLoadingMore, hasMore, searchText, sortBy, sortOrder]);
 
 
   const [showUpdateBtn, setShowUpdateBtn] = React.useState(false);
+  
+  // Reload posts when sort changes
+  React.useEffect(() => {
+    getPosts();
+  }, [sortBy, sortOrder]);
+
   React.useEffect(() => {
     getPosts();
 
@@ -377,23 +385,60 @@ const Home = () => {
                 </Link> */}
               </div>
               <div className="card-body p-0">
-                {/* Search bar */}
+                {/* Search and Sort bar */}
                 <div className="home-search-container">
-                  <div className="input-group">
-                    <input
-                      type="text"
-                      className="form-control home-search-input"
-                      placeholder="Tìm kiếm bài viết..."
-                      value={searchText}
-                      onChange={(e) => setSearchText(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') getPosts(); }}
-                    />
-                    <button
-                      className="btn btn-primary home-search-btn"
-                      onClick={getPosts}
-                    >
-                      <i className="ph ph-magnifying-glass">Tìm</i>
-                    </button>
+                  <div className="row g-2">
+                    <div className="col-md-8">
+                      <div className="input-group">
+                        <input
+                          type="text"
+                          className="form-control home-search-input"
+                          placeholder="Tìm kiếm bài viết..."
+                          value={searchText}
+                          onChange={(e) => setSearchText(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') getPosts(); }}
+                        />
+                        <button
+                          className="btn btn-primary home-search-btn"
+                          onClick={getPosts}
+                        >
+                          <i className="ph ph-magnifying-glass">Tìm</i>
+                        </button>
+                      </div>
+                    </div>
+                    <div className="col-md-4">
+                      <select
+                        className="form-select"
+                        value={`${sortBy}-${sortOrder}`}
+                        onChange={(e) => {
+                          const [newSortBy, newOrder] = e.target.value.split('-');
+                          setSortBy(newSortBy);
+                          setSortOrder(newOrder);
+                        }}
+                        style={{
+                          borderRadius: '8px',
+                          border: '1px solid #e4e6eb',
+                          fontSize: '14px',
+                          fontWeight: '500'
+                        }}
+                      >
+                        <option value="createdAt-desc">
+                          🔥 Mới nhất
+                        </option>
+                        <option value="createdAt-asc">
+                          📅 Cũ nhất
+                        </option>
+                        <option value="views-desc">
+                          👁️ Xem nhiều nhất
+                        </option>
+                        <option value="likesCount-desc">
+                          ❤️ Nhiều like nhất
+                        </option>
+                        <option value="commentsCount-desc">
+                          💬 Nhiều bình luận nhất
+                        </option>
+                      </select>
+                    </div>
                   </div>
                 </div>
                 <PostList

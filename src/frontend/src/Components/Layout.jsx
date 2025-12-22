@@ -56,6 +56,12 @@ export default function Layout({ children }) {
                     }
                 }
             } catch (error) {
+                if (error.message === "Unauthorized" || error.status === 401) {
+                    // Token không hợp lệ hoặc hết hạn
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    setUser(null);
+                }
                 if (!mounted) return;
                 setLoading(false);
             }

@@ -12,7 +12,14 @@ const withNoStore = (headers = {}) => ({
 
 // Helper để xử lý response
 const handleResponse = async (response) => {
+  if (!response.ok) {
+    const errorData = await response.json();
+    const error = new Error(errorData.error || "Lỗi từ server");
+    error.status = response.status;
+    throw error;
+  }
   return response.json();
+
 };
 
 // ============================================

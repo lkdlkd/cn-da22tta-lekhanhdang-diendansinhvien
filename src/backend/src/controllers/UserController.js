@@ -127,7 +127,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET || process.env.secretKey || 'your-secret-key-here',
-      { expiresIn: '7d' }
+      { expiresIn: '30d' }
     );
     // Trả về thông tin user (không bao gồm password)
     return res.status(200).json({

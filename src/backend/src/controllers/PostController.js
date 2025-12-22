@@ -76,6 +76,17 @@ exports.getAllPosts = async (req, res) => {
 		const limit = Math.max(parseInt(req.query.limit) || 20, 1);
 		const skip = (page - 1) * limit;
 
+		// Đọc tham số sắp xếp
+		const sortBy = req.query.sortBy || 'createdAt';
+		const order = req.query.order === 'asc' ? 1 : -1;
+		
+		// Danh sách các trường được phép sắp xếp
+		const allowedSortFields = ['createdAt', 'views', 'likesCount', 'commentsCount', 'updatedAt'];
+		const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+		
+		// Tạo object sort động
+		const sortObject = { [sortField]: order };
+
 		// Lọc theo từ khóa nếu có
 			const keyword = (req.query.keyword || '').toString().trim();
 			// Chỉ hiển thị bài viết chưa xóa và đã xuất bản
@@ -103,7 +114,7 @@ exports.getAllPosts = async (req, res) => {
 			.populate('authorId', 'username displayName avatarUrl faculty class bio stats')
 			.populate('categoryId', 'title slug description')
 			.populate('attachments')
-			.sort({ createdAt: -1 })
+			.sort(sortObject)
 			.skip(skip)
 			.limit(limit)
 			.lean();

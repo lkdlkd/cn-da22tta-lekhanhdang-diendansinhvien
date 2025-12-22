@@ -196,7 +196,7 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
                 onPostUpdate();
             }
         } catch (error) {
-            console.error("Error liking/unliking post:", error);
+            toast.error(error.message || "Lỗi khi thích/bỏ thích bài viết");
             // Nếu API chưa implement, vẫn cho phép toggle UI
             setLikedPosts(prev => {
                 const newSet = new Set(prev);
