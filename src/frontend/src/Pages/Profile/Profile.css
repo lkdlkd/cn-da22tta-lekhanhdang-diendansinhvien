@@ -166,6 +166,59 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
+/* Tabs Header */
+.profile-tabs-header {
+  border-bottom: 1px solid #e4e6eb;
+  padding: 1.5rem 2rem;
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.profile-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.profile-tab {
+  padding: 12px 24px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  color: #65676b;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.profile-tab i {
+  font-size: 20px;
+  transition: transform 0.3s ease;
+}
+
+.profile-tab:hover {
+  background: #f0f2f5;
+  color: #1c1e21;
+}
+
+.profile-tab.active {
+  background: linear-gradient(135deg, #1877f2 0%, #0d5dbf 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3);
+}
+
+.profile-tab.active i {
+  transform: scale(1.1);
+}
+
 .profile-form-header {
   border-bottom: 1px solid #e4e6eb;
   padding: 1.5rem 2rem;
@@ -300,6 +353,114 @@
   font-size: 20px;
 }
 
+/* Password Change Section */
+.password-change-container {
+  max-width: 650px;
+  margin: 0 auto;
+}
+
+.password-change-header {
+  text-align: center;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #e4e6eb;
+}
+
+.password-change-title {
+  font-weight: 700;
+  font-size: 22px;
+  color: #1c1e21;
+  margin-bottom: 0.5rem;
+}
+
+.password-change-title i {
+  font-size: 28px;
+  color: #1877f2;
+  vertical-align: middle;
+}
+
+.password-change-subtitle {
+  color: #65676b;
+  font-size: 14px;
+  margin-bottom: 0;
+}
+
+/* Password Input Wrapper */
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-input-wrapper input {
+  padding-right: 50px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 48px;
+  border: none;
+  background: transparent;
+  color: #65676b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border-radius: 0 12px 12px 0;
+}
+
+.password-toggle-btn:hover {
+  background: rgba(24, 119, 242, 0.08);
+  color: #1877f2;
+}
+
+.password-toggle-btn i {
+  font-size: 20px;
+}
+
+/* Password Requirements */
+.password-requirements {
+  background: linear-gradient(135deg, rgba(24, 119, 242, 0.05) 0%, rgba(13, 93, 191, 0.08) 100%);
+  border-left: 4px solid #1877f2;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+.requirements-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.requirements-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 13px;
+  color: #65676b;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.requirements-list li i {
+  font-size: 18px;
+  color: #bcc0c4;
+  transition: all 0.3s ease;
+}
+
+.requirements-list li.valid {
+  color: #31a24c;
+}
+
+.requirements-list li.valid i {
+  color: #31a24c;
+  transform: scale(1.1);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .profile-container {
@@ -399,6 +560,29 @@
     padding: 8px 18px;
     font-size: 13px;
   }
+
+  .profile-tabs {
+    width: 100%;
+  }
+
+  .profile-tab {
+    flex: 1;
+    padding: 10px 16px;
+    font-size: 14px;
+    justify-content: center;
+  }
+
+  .profile-tab i {
+    font-size: 18px;
+  }
+
+  .password-change-title {
+    font-size: 20px;
+  }
+
+  .password-change-title i {
+    font-size: 24px;
+  }
 }
 
 @media (max-width: 576px) {
@@ -412,5 +596,30 @@
 
   .profile-cancel-btn {
     padding: 12px 16px;
+  }
+
+  .profile-tab {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .profile-tab i {
+    display: none;
+  }
+
+  .password-change-header {
+    padding-bottom: 1rem;
+  }
+
+  .password-change-title {
+    font-size: 18px;
+  }
+
+  .password-change-subtitle {
+    font-size: 13px;
+  }
+
+  .password-requirements {
+    padding: 0.75rem 1rem;
   }
 }

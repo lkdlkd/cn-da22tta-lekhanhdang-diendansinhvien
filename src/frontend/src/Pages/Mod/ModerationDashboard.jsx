@@ -120,7 +120,7 @@ const ModerationDashboard = () => {
 		if (token && auth && (auth.role === 'mod' || auth.role === 'admin')) {
 			loadPendingPosts();
 		}
-	}, [token, auth, currentPage, postsPerPage, categoryFilter, searchTerm, sortBy, sortOrder]);
+	}, [token, auth, currentPage, postsPerPage, categoryFilter, searchTerm, sortBy, sortOrder, dateFilter]);
 
 	// Note: Category counts may not be accurate with server-side pagination
 	const availableCategories = useMemo(() => {
@@ -142,17 +142,20 @@ const ModerationDashboard = () => {
 		// Client-side date filter only (backend doesn't support date filtering)
 		if (dateFilter !== 'all') {
 			const now = new Date();
-			const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+			const today = new Date(now.setHours(0, 0, 0, 0));
 			let startDate;
 
 			switch (dateFilter) {
 				case 'today':
+					// Từ đầu ngày hôm nay
 					startDate = today;
 					break;
 				case 'week':
+					// 7 ngày qua
 					startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 					break;
 				case 'month':
+					// 30 ngày qua
 					startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 					break;
 				default:
@@ -160,7 +163,10 @@ const ModerationDashboard = () => {
 			}
 
 			if (startDate) {
-				result = result.filter(post => new Date(post.createdAt) >= startDate);
+				result = result.filter(post => {
+					const postDate = new Date(post.createdAt);
+					return postDate >= startDate;
+				});
 			}
 		}
 
@@ -538,15 +544,15 @@ const ModerationDashboard = () => {
 			</div>
 			
 			{/* Main Content */}
-			<div className="row g-4">
+			<div className="row g-3 g-md-4">
 				
-				<div className="col-lg-8">
+				<div className="col-12 col-lg-8">
 					<div className="card border-0 shadow-sm h-100">
-						<div className="card-header bg-white border-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+						<div className="card-header bg-white border-0 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 p-3 p-md-4">
 							<div>
 								<h2 className="h5 mb-1">Bài viết chờ duyệt</h2>
-								<p className="text-muted mb-0" style={{ fontSize: '0.9rem' }}>
-									{filteredCount} / {totalPending} bài phù hợp bộ lọc hiện tại
+								<p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>
+									{filteredCount} / {totalPending} bài phù hợp bộ lọc
 								</p>
 							</div>
 							<span className="badge bg-primary text-white fw-semibold px-3 py-2">Chờ duyệt</span>
@@ -640,123 +646,140 @@ const ModerationDashboard = () => {
 									</p>
 								</div>
 							) : (
-								<div className="d-flex flex-column ">
+								<div className="d-flex flex-column gap-3">
 									{paginatedPosts.map((post) => (
-										<div key={post._id} className="card border shadow-sm">
-											<div className="card-body">
+										<div key={post._id} className="card border-0 shadow-sm" style={{ overflow: 'hidden' }}>
+											<div className="card-body p-3 p-md-4">
 												{/* Header: Author & Category */}
-												<div className="d-flex justify-content-between align-items-start mb-3">
-													<div className="d-flex align-items-center gap-2">
+												<div className="d-flex flex-column flex-md-row justify-content-between align-items-start mb-3 gap-2">
+													<div className="d-flex align-items-center gap-2 gap-md-3 flex-grow-1">
 														<img
 															src={post.authorId?.avatarUrl || '/default-avatar.png'}
 															alt={post.authorId?.displayName || 'Tác giả'}
 															className="rounded-circle"
-															style={{ width: '48px', height: '48px', objectFit: 'cover' }}
+															style={{ width: '40px', height: '40px', objectFit: 'cover', flexShrink: 0 }}
 														/>
-														<div>
-															<h5 className="mb-0 fw-semibold">{post.authorId?.displayName || 'Người dùng'}</h5>
-															<div className="d-flex flex-wrap align-items-center gap-2" style={{ fontSize: '0.85rem' }}>
+														<div className="flex-grow-1 min-width-0">
+															<h6 className="mb-1 fw-semibold text-truncate">{post.authorId?.displayName || 'Người dùng'}</h6>
+															<div className="d-flex flex-wrap align-items-center gap-1 gap-md-2" style={{ fontSize: '0.8rem' }}>
 																<span className="text-muted">{formatDateTime(post.createdAt)}</span>
 																{post.authorId?.email && (
 																	<>
-																		<span className="text-muted">•</span>
-																		<span className="text-muted">{post.authorId.email}</span>
+																		<span className="text-muted d-none d-md-inline">•</span>
+																		<span className="text-muted d-none d-md-inline text-truncate" style={{ maxWidth: '200px' }}>
+																			{post.authorId.email}
+																		</span>
 																	</>
 																)}
 															</div>
 														</div>
 													</div>
-													<span className="badge bg-secondary">{post.categoryId?.title || 'Không có danh mục'}</span>
+													<span className="badge bg-primary align-self-start" style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}>
+														{post.categoryId?.title || 'Không có danh mục'}
+													</span>
 												</div>
 
 												{/* Slug Section */}
-												<div className="d-flex flex-wrap align-items-center gap-2 text-muted mb-3" style={{ fontSize: '0.9rem' }}>
-													<span>Slug:</span>
-													<code className="bg-light px-2 py-1 rounded">{post.slug || '—'}</code>
-													{post.slug && (
-														<>
-															<button
-																className="btn btn-link btn-sm p-0 text-decoration-none"
-																onClick={() => handleCopyPostLink(post.slug)}
-															>
-																<i className="bi-copy-simple me-1"></i>Sao chép
-															</button>
-															<button
-																className="btn btn-link btn-sm p-0 text-decoration-none"
-																onClick={() => handleOpenPublicPost(post.slug)}
-															>
-																<i className="bi-arrow-square-out me-1"></i>Mở tab
-															</button>
-														</>
-													)}
+												<div className="bg-light rounded p-2 mb-3">
+													<div className="d-flex flex-wrap align-items-center gap-2 text-muted" style={{ fontSize: '0.85rem' }}>
+														<span className="fw-medium">Slug:</span>
+														<code className="bg-white px-2 py-1 rounded border" style={{ fontSize: '0.8rem' }}>{post.slug || '—'}</code>
+														{post.slug && (
+															<div className="d-flex gap-1 ms-auto">
+																<button
+																	className="btn btn-sm btn-light border d-flex align-items-center gap-1"
+																	onClick={() => handleCopyPostLink(post.slug)}
+																	style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
+																>
+																	<i className="bi-copy"></i>
+																	<span className="d-none d-md-inline">Sao chép</span>
+																</button>
+																<button
+																	className="btn btn-sm btn-light border d-flex align-items-center gap-1"
+																	onClick={() => handleOpenPublicPost(post.slug)}
+																	style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
+																>
+																	<i className="bi-arrow-square-out"></i>
+																	<span className="d-none d-md-inline">Mở tab</span>
+																</button>
+															</div>
+														)}
+													</div>
 												</div>
 
 												{/* Title & Content */}
-												<h4 className="mb-2">{post.title}</h4>
-												<div className="text-muted mb-3" style={{ lineHeight: 1.6 }}>
+												<h5 className="mb-2 fw-semibold">{post.title}</h5>
+												<div className="text-muted mb-3" style={{ lineHeight: 1.6, fontSize: '0.9rem' }}>
 													{getContentPreview(post.content)}
 												</div>
 
 												{/* Tags */}
 												{post.tags && post.tags.length > 0 && (
-													<div className="d-flex flex-wrap gap-2 mb-3">
-														{post.tags.map((tag, idx) => (
-															<span key={idx} className="badge bg-light text-dark border" style={{ fontSize: '0.85rem' }}>
-																<i className="bi-hash me-1"></i>{tag}
+													<div className="d-flex flex-wrap gap-1 gap-md-2 mb-3">
+														{post.tags.slice(0, 5).map((tag, idx) => (
+															<span key={idx} className="badge bg-light text-dark border" style={{ fontSize: '0.75rem', fontWeight: 'normal' }}>
+																<i className="bi-hash"></i>{tag}
 															</span>
 														))}
+														{post.tags.length > 5 && (
+															<span className="badge bg-light text-muted border" style={{ fontSize: '0.75rem' }}>+{post.tags.length - 5}</span>
+														)}
 													</div>
 												)}
 
 												{/* Attachments */}
 												{post.attachments && post.attachments.length > 0 && (
 													<div className="mb-3">
-														<div className="d-flex align-items-center gap-2 mb-2" style={{ fontSize: '0.9rem' }}>
-															<i className="bi-paperclip text-muted"></i>
-															<span className="text-muted">{post.attachments.length} tệp đính kèm</span>
+														<div className="d-flex align-items-center gap-2 text-muted" style={{ fontSize: '0.85rem' }}>
+															<i className="bi-paperclip"></i>
+															<span>{post.attachments.length} tệp đính kèm</span>
 														</div>
 													</div>
 												)}
 
 												{/* Stats */}
-												<div className="d-flex flex-wrap gap-3 text-muted mb-3" style={{ fontSize: '0.9rem' }}>
-													<span><i className="bi-eye me-1"></i>{post.views || 0} lượt xem</span>
-													<span><i className="bi-heart me-1"></i>{post.likesCount || 0} lượt thích</span>
-													<span><i className="bi-chat me-1"></i>{post.commentsCount || 0} bình luận</span>
+												<div className="d-flex flex-wrap gap-2 gap-md-3 text-muted mb-3" style={{ fontSize: '0.85rem' }}>
+													<span><i className="bi-eye me-1"></i>{post.views || 0}</span>
+													<span><i className="bi-heart me-1"></i>{post.likesCount || 0}</span>
+													<span><i className="bi-chat me-1"></i>{post.commentsCount || 0}</span>
 												</div>
 
 												{/* Actions */}
 												<div className="d-flex flex-wrap gap-2">
 													<button
-														className="btn btn-success btn-sm d-flex align-items-center gap-2"
+														className="btn btn-success btn-sm d-flex align-items-center gap-1"
 														onClick={() => handleApprove(post._id)}
 														disabled={isProcessing}
+														style={{ fontSize: '0.85rem' }}
 													>
-														<i className="bi-check"></i>
-														Duyệt
+														<i className="bi-check-lg"></i>
+														<span className="d-none d-sm-inline">Duyệt</span>
 													</button>
 													<button
-														className="btn btn-danger btn-sm d-flex align-items-center gap-2"
+														className="btn btn-danger btn-sm d-flex align-items-center gap-1"
 														onClick={() => openRejectModal(post)}
 														disabled={isProcessing}
+														style={{ fontSize: '0.85rem' }}
 													>
-														<i className="bi-x"></i>
-														Từ chối
+														<i className="bi-x-lg"></i>
+														<span className="d-none d-sm-inline">Từ chối</span>
 													</button>
 													<button
-														className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2"
+														className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
 														onClick={() => openDetailsModal(post)}
+														style={{ fontSize: '0.85rem' }}
 													>
-														<i className="bi-list"></i>
-														Chi tiết
+														<i className="bi-card-list"></i>
+														<span className="d-none d-sm-inline">Chi tiết</span>
 													</button>
 													<button
-														className="btn btn-light btn-sm d-flex align-items-center gap-2"
+														className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
 														onClick={() => navigate(`/post/${post.slug}`)}
 														disabled={!post.slug}
+														style={{ fontSize: '0.85rem' }}
 													>
 														<i className="bi-eye"></i>
-														Xem nhanh
+														<span className="d-none d-sm-inline">Xem nhanh</span>
 													</button>
 												</div>
 											</div>
@@ -771,14 +794,16 @@ const ModerationDashboard = () => {
 				</div>
 
 				{/* Sidebar */}
-				<div className="col-lg-4">
-					<div className="card border-0 shadow-sm mb-4">
-						<div className="card-header bg-white border-0">
-							<h6 className="mb-0 text-uppercase text-muted fw-semibold" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>Lịch sử duyệt gần đây</h6>
+				<div className="col-12 col-lg-4">
+					<div className="card border-0 shadow-sm mb-3 mb-md-4">
+						<div className="card-header bg-white border-0 p-3 p-md-4">
+							<h6 className="mb-0 text-uppercase text-muted fw-semibold" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+								<i className="bi-clock-history me-1"></i>Lịch sử duyệt gần đây
+							</h6>
 						</div>
-						<div className="card-body">
+						<div className="card-body p-3 p-md-4">
 							{recentActions.length === 0 ? (
-								<p className="text-muted mb-0" style={{ fontSize: '0.9rem' }}>Chưa có hoạt động duyệt bài gần đây.</p>
+								<p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>Chưa có hoạt động duyệt bài gần đây.</p>
 							) : (
 								<div className="list-group list-group-flush">
 									{recentActions.map((action) => (
@@ -787,25 +812,26 @@ const ModerationDashboard = () => {
 											className="list-group-item px-0 border-0 pb-3 mb-3"
 											style={{ borderBottom: '1px dashed #e5e7eb' }}
 										>
-											<div className="d-flex justify-content-between align-items-center gap-2 mb-2">
-												<span className={`badge ${action.moderationStatus === 'approved' ? 'bg-success' : 'bg-danger'}`}>
+											<div className="d-flex flex-column flex-sm-row justify-content-between align-items-start gap-2 mb-2">
+												<span className={`badge ${action.moderationStatus === 'approved' ? 'bg-success' : 'bg-danger'}`} style={{ fontSize: '0.7rem' }}>
 													{action.moderationStatus === 'approved' ? 'Đã duyệt' : 'Đã từ chối'}
 												</span>
-												<span className="text-muted" style={{ fontSize: '0.85rem' }}>{formatDateTime(action.moderatedAt)}</span>
+												<span className="text-muted" style={{ fontSize: '0.75rem' }}>{formatDateTime(action.moderatedAt)}</span>
 											</div>
-											<p className="fw-semibold mb-1">{action.title}</p>
-											<p className="text-muted mb-1" style={{ fontSize: '0.9rem' }}>
+											<p className="fw-semibold mb-1" style={{ fontSize: '0.9rem' }}>{action.title}</p>
+											<p className="text-muted mb-1" style={{ fontSize: '0.8rem' }}>
 												Bởi {action.moderatedBy?.displayName || 'Ẩn danh'} • Tác giả: {action.authorId?.displayName || 'Không rõ'}
 											</p>
 											{action.moderationStatus === 'rejected' && action.rejectionReason && (
-												<p className="text-danger mb-1" style={{ fontSize: '0.9rem' }}>Lý do: {action.rejectionReason}</p>
+												<p className="text-danger mb-1" style={{ fontSize: '0.8rem' }}>Lý do: {action.rejectionReason}</p>
 											)}
 											<button
-												className="btn btn-link btn-sm px-0 text-decoration-none"
+												className="btn btn-link btn-sm px-0 text-decoration-none d-flex align-items-center gap-1"
 												onClick={() => handleOpenPublicPost(action.slug)}
 												disabled={!action.slug}
+												style={{ fontSize: '0.8rem' }}
 											>
-												<i className="bi-arrow-square-out me-1"></i>Mở bài viết
+												<i className="bi-arrow-square-out"></i>Mở bài viết
 											</button>
 										</div>
 									))}
@@ -814,24 +840,26 @@ const ModerationDashboard = () => {
 						</div>
 					</div>
 
-					<div className="card border shadow-sm">
-						<div className="card-body">
-							<h6 className="text-uppercase text-muted fw-semibold mb-3" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>Gợi ý thao tác</h6>
-							<ul className="list-unstyled mb-0" style={{ fontSize: '0.9rem' }}>
+					<div className="card border-0 shadow-sm">
+						<div className="card-body p-3 p-md-4">
+							<h6 className="text-uppercase text-muted fw-semibold mb-3" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+								<i className="bi-lightbulb me-1"></i>Gợi ý thao tác
+							</h6>
+							<ul className="list-unstyled mb-0" style={{ fontSize: '0.85rem' }}>
 								<li className="d-flex gap-2 mb-2">
-									<i className="bi-lightning text-warning mt-1"></i>
+									<i className="bi-lightning text-warning mt-1" style={{ fontSize: '1rem' }}></i>
 									<span>Ưu tiên kiểm duyệt theo thời gian tạo và danh mục quan trọng.</span>
 								</li>
 								<li className="d-flex gap-2 mb-2">
-									<i className="bi-note-pencil text-primary mt-1"></i>
+									<i className="bi-note-pencil text-primary mt-1" style={{ fontSize: '1rem' }}></i>
 									<span>Ghi rõ lý do khi từ chối để tác giả cải thiện nội dung.</span>
 								</li>
 								<li className="d-flex gap-2 mb-2">
-									<i className="bi-eye text-success mt-1"></i>
+									<i className="bi-eye text-success mt-1" style={{ fontSize: '1rem' }}></i>
 									<span>Xem nhanh nội dung trước khi duyệt để tránh bỏ sót lỗi.</span>
 								</li>
 								<li className="d-flex gap-2">
-									<i className="bi-users-three text-info mt-1"></i>
+									<i className="bi-people text-info mt-1" style={{ fontSize: '1rem' }}></i>
 									<span>Trao đổi với Admin khi phát hiện nội dung nhạy cảm.</span>
 								</li>
 							</ul>

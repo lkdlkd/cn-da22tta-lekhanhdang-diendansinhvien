@@ -311,6 +311,45 @@ export default function Header({ user }) {
         .list-group-item:active {
           transform: scale(0.98);
         }
+
+        /* User Menu Dropdown Styles */
+        .dropdown-item {
+          transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+          background-color: #f0f2f5 !important;
+          transform: translateX(2px);
+        }
+
+        .dropdown-item:active {
+          transform: scale(0.98);
+        }
+
+        .dropdown-user-profile {
+          min-width: 280px;
+          border-radius: 12px;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+          border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .dropdown-divider {
+          margin: 8px 0;
+          opacity: 0.1;
+        }
+
+        /* Header Icons */
+        .pc-head-link {
+          transition: all 0.2s ease;
+        }
+
+        .pc-head-link:hover {
+          transform: scale(1.05);
+        }
+
+        .pc-head-link:active {
+          transform: scale(0.95);
+        }
       `}</style>
       <div className="header-wrapper">
         {/* [Mobile Media Block] */}
@@ -717,129 +756,98 @@ export default function Header({ user }) {
                   {/* <div className="dropdown-header d-flex align-items-center justify-content-between">
                     <h5 className="m-0">Thông tin</h5>
                   </div> */}
-                  <div className="dropdown-body">
+                  <div className="dropdown-body p-2">
                     <div
                       className="profile-notification-scroll position-relative"
                       style={{ maxHeight: "calc(100vh - 225px)" }}
                     >
-                      <div className="d-flex mb-1">
-                        <div className="flex-shrink-0">
-                          <img
-                            src={user && user.avatarUrl || `https://ui-avatars.com/api/?background=random&name=user`}
-
-                            alt="user-avatar"
-                            className="user-avtar wid-35"
-                            width={40}
-                            height={40}
-                          />
-                        </div>
-                        <div>
-                          <h6 className="ms-3 mb-0 mt-2" style={{ fontSize: '16px' }}>
+                      {/* User Info Header */}
+                      <div className="d-flex align-items-center p-2 mb-2 rounded" style={{ backgroundColor: '#f8f9fa' }}>
+                        <img
+                          src={user && user.avatarUrl || `https://ui-avatars.com/api/?background=random&name=user`}
+                          alt="user-avatar"
+                          className="rounded-circle"
+                          style={{ 
+                            width: '48px', 
+                            height: '48px',
+                            objectFit: 'cover',
+                            border: '2px solid #fff',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                          }}
+                        />
+                        <div className="ms-3 flex-grow-1 min-width-0">
+                          <h6 className="mb-0 fw-bold text-truncate" style={{ fontSize: '15px' }}>
                             {user?.displayName || "Vui Lòng Đăng Nhập"}
                           </h6>
+                          {user?.username && (
+                            <small className="text-muted text-truncate d-block" style={{ fontSize: '12px' }}>
+                              @{user.username}
+                            </small>
+                          )}
                         </div>
                       </div>
 
-                      <hr className="border-secondary border-opacity-50" />
-                      {/* <div className="d-flex mb-1">
-                        <div className="flex-shrink-0">
+                      <div className="dropdown-divider my-2"></div>
+                      
+                      {/* Menu Items */}
+                      <Link 
+                        to={`/user/${user?.username}`} 
+                        className="dropdown-item d-flex align-items-center py-2 px-3 rounded"
+                        style={{ transition: 'all 0.2s ease' }}
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#e3f2fd', borderRadius: '10px' }}>
+                          <i className="ph-duotone ph-user-circle" style={{ fontSize: '20px', color: '#1976d2' }}></i>
+                        </div>
+                        <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#1c1c1c' }}>Trang cá nhân</span>
+                      </Link>
 
+                      <Link 
+                        to="/profile" 
+                        className="dropdown-item d-flex align-items-center py-2 px-3 rounded mt-1"
+                        style={{ transition: 'all 0.2s ease' }}
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#e8f5e9', borderRadius: '10px' }}>
+                          <i className="ph-duotone ph-gear" style={{ fontSize: '20px', color: '#388e3c' }}></i>
                         </div>
-                        <div>
-                          <h6 className="ms-3 mb-0 mt-2" style={{ fontSize: '16px' }}>
-                            <Link to={`/user/${user?.username}`} className="dropdown-item">
-                              <i className="ph ph-user-circle me-2" style={{ fontSize: '20px' }}></i>
-                              Trang cá nhân
-                            </Link>
-                          </h6>
-                        </div>
-                      </div> */}
-                      <div className="d-flex mb-1">
-                        <div className="flex-shrink-0">
-
-                        </div>
-                        <div>
-                          <h6 className="ms-3 mb-0 mt-2" style={{ fontSize: '16px' }}>
-                            <Link to="/profile" className="dropdown-item">
-                              <FilterSettingsIcon
-                                width={20}
-                                height={20}
-                                fill="#5ee491ff"
-                              /> Cài đặt tài khoản
-                            </Link>
-                          </h6>
-                        </div>
-                      </div>
+                        <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#1c1c1c' }}>Cài đặt tài khoản</span>
+                      </Link>
+                      
                       {/* Link MOD Dashboard cho MOD và ADMIN */}
                       {(user?.role === 'mod' || user?.role === 'admin') && (
-                        <div className="d-flex mb-1">
-                          <div className="flex-shrink-0"></div>
-                          <div>
-                            <h6 className="ms-3 mb-0 mt-2" style={{ fontSize: '16px' }}>
-                              <Link to="/mod/dashboard" className="dropdown-item">
-                                <i className="ph ph-shield-check me-2" style={{ fontSize: '20px', color: '#8b5cf6' }}></i>
-                                Quản lý duyệt bài
-                              </Link>
-                            </h6>
-                          </div>
-                        </div>
+                        <>
+                          <div className="dropdown-divider my-2"></div>
+                          <Link 
+                            to="/mod/dashboard" 
+                            className="dropdown-item d-flex align-items-center py-2 px-3 rounded"
+                            style={{ transition: 'all 0.2s ease' }}
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#f3e5f5', borderRadius: '10px' }}>
+                              <i className="ph-duotone ph-shield-check" style={{ fontSize: '20px', color: '#8b5cf6' }}></i>
+                            </div>
+                            <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#1c1c1c' }}>Quản lý duyệt bài</span>
+                          </Link>
+                        </>
                       )}
-                      <div className="d-flex mb-1">
-                        <div className="flex-shrink-0">
+                      
+                      <div className="dropdown-divider my-2"></div>
+                      
+                      <Link 
+                        to="/login" 
+                        className="dropdown-item d-flex align-items-center py-2 px-3 rounded"
+                        style={{ transition: 'all 0.2s ease' }}
+                        onClick={() => {
+                          localStorage.removeItem("token");
+                          window.location.reload();
+                        }}
+                      >
+                        <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#ffebee', borderRadius: '10px' }}>
+                          <i className="ph-duotone ph-sign-out" style={{ fontSize: '20px', color: '#d32f2f' }}></i>
                         </div>
-                        <div>
-                          <h6 className="ms-3 mb-0 mt-2" style={{ fontSize: '16px' }}>
-                            <Link onClick={
-                              () => {
-                                localStorage.removeItem("token");
-                                window.location.reload();
-                              }
-                            } to="/profile" className="dropdown-item">
-                              <ArrowMenuIcon
-                                width={20}
-                                height={20}
-                                fill="#5ee491ff"
-                              />
-                              Đăng xuất
-                            </Link>
-                          </h6>
-                        </div>
-                      </div>
-                      {/* <div className="d-flex mb-1">
-                        <div className="flex-shrink-0">
-                        </div>
-                        <div>
-                              />
-                              Đăng xuất
-                            </Link>
-                          </h6>
-                        </div>
-                      </div>
-                      {/* <div className="d-flex mb-1">
-                        <div className="flex-shrink-0">
-                        </div>
-                        <div>
-                          <h6 className="ms-3 mb-0 mt-2" style={{ fontSize: '16px' }}>
-                            <Link to="/profile" className="dropdown-item">
-                              <i className="ti ti-user me-2 text-muted"></i> Thông
-                              tin tài khoản
-                            </Link>
-                          </h6>
-                        </div>
-                      </div>
-                      <div className="d-flex mb-1">
-                        <div className="flex-shrink-0">
-                        </div>
-                        <div>
-                          <h6 className="ms-3 mb-0 mt-2" style={{ fontSize: '16px' }}>
-                            <Link to="/profile" className="dropdown-item">
-                              <i className="ti ti-user me-2 text-muted"></i> Thông
-                              tin tài khoản
-                            </Link>
-                          </h6>
-                        </div>
-                      </div> */}
-                      <hr className="border-secondary border-opacity-50" />
+                        <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#d32f2f' }}>Đăng xuất</span>
+                      </Link>
 
                     </div>
                   </div>

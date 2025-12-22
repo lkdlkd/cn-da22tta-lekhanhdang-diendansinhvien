@@ -933,10 +933,9 @@ exports.getAllPostsAdmin = async (req, res) => {
 			limit = 20,
 			keyword,
 			categoryId,
-			authorId,
+			username,
 			pinned,
 			locked,
-			isDraft,
 			isDeleted,
 			moderationStatus,
 			sortBy = 'createdAt',
@@ -964,14 +963,26 @@ exports.getAllPostsAdmin = async (req, res) => {
 			}
 		}
 
-		// Lọc theo category và author
+		// Lọc theo category
 		if (categoryId) query.categoryId = categoryId;
-		if (authorId) query.authorId = authorId;
+		
+		// Lọc theo username
+		if (username) {
+			const uname = String(username).trim();
+			if (uname) {
+				const users = await User.find({ username: { $regex: uname, $options: 'i' } }).distinct('_id');
+				if (users.length > 0) {
+					query.authorId = { $in: users };
+				} else {
+					// Nếu không tìm thấy user nào, trả về query không thể match
+					query.authorId = null;
+				}
+			}
+		}
 
 		// Lọc theo trạng thái
 		if (pinned !== undefined && pinned !== '') query.pinned = String(pinned) === 'true';
 		if (locked !== undefined && locked !== '') query.locked = String(locked) === 'true';
-		if (isDraft !== undefined && isDraft !== '') query.isDraft = String(isDraft) === 'true';
 		if (isDeleted !== undefined && isDeleted !== '') query.isDeleted = String(isDeleted) === 'true';
 		if (moderationStatus && ['pending', 'approved', 'rejected'].includes(String(moderationStatus))) {
 			query.moderationStatus = moderationStatus;

@@ -71,6 +71,7 @@ router.post('/auth/reset-password', userRoutes.resetPassword);// Đặt lại m�
 
 router.get('/user', authenticateUser, userRoutes.getProfile);// Lấy thông tin người dùng
 router.put('/user', authenticateUser, uploadAvatar.single('avatar'), userRoutes.updateProfile);// Cập nhật thông tin người dùng
+router.post('/users/change-password', authenticateUser, userRoutes.changePassword);// Đổi mật khẩu
 router.get('/users/online', userRoutes.getOnlineUsers);// Lấy danh sách user đang online
 router.get('/users/active', userRoutes.getActiveUsers);// Lấy danh sách thành viên tích cực
 router.get('/users/:username', userRoutes.getUserByUsername);// Lấy thông tin user theo username (public profile)

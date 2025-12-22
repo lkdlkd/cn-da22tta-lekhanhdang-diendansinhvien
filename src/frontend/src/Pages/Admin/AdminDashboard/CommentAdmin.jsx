@@ -74,6 +74,30 @@ const CommentAdmin = () => {
 		// eslint-disable-next-line
 	}, []);
 
+	// Re-fetch when filters change (especially pagination)
+	useEffect(() => {
+		fetchComments();
+		// eslint-disable-next-line
+	}, [filters.page, filters.limit, filters.sortBy, filters.order]);
+
+	// Debounced search đã tắt - người dùng phải nhấn nút Tìm kiếm
+	// useEffect(() => {
+	// 	if (filters.keyword === "" || filters.keyword.length < 2) {
+	// 		return;
+	// 	}
+	// 	const timer = setTimeout(() => {
+	// 		fetchComments();
+	// 	}, 500);
+	// 	return () => clearTimeout(timer);
+	// 	// eslint-disable-next-line
+	// }, [filters.keyword]);
+
+	// Handle manual search
+	const handleSearch = () => {
+		setFilters({ ...filters, page: 1 });
+		fetchComments();
+	};
+
 	// Select all comments
 	const handleSelectAll = (e) => {
 		if (e.target.checked) {
@@ -163,36 +187,56 @@ const CommentAdmin = () => {
 			{/* Statistics */}
 			{stats && (
 				<>
-					<div className="row mb-4">
-						<div className="col-md-3">
-							<div className="card text-center">
-								<div className="card-body">
-									<h5>Tổng bình luận</h5>
-									<h3>{stats.totalComments || 0}</h3>
+					<div className="row g-3 mb-4">
+						<div className="col-6 col-md-3">
+							<div className="card border-0 shadow-sm h-100">
+								<div className="card-body d-flex align-items-center gap-3">
+									<div className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style={{ width: '56px', height: '56px', flexShrink: 0 }}>
+										<i className="bi-chat-dots text-primary" style={{ fontSize: '1.5rem' }}></i>
+									</div>
+									<div>
+										<p className="text-muted mb-1 text-uppercase fw-semibold" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Tổng bình luận</p>
+										<h3 className="mb-0 fw-bold">{stats.totalComments || 0}</h3>
+									</div>
 								</div>
 							</div>
 						</div>
-						<div className="col-md-3">
-							<div className="card text-center">
-								<div className="card-body">
-									<h5>Bình luận gốc</h5>
-									<h3 className="text-success">{stats.totalRootComments || 0}</h3>
+						<div className="col-6 col-md-3">
+							<div className="card border-0 shadow-sm h-100">
+								<div className="card-body d-flex align-items-center gap-3">
+									<div className="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center" style={{ width: '56px', height: '56px', flexShrink: 0 }}>
+										<i className="bi-chat-left-text text-success" style={{ fontSize: '1.5rem' }}></i>
+									</div>
+									<div>
+										<p className="text-muted mb-1 text-uppercase fw-semibold" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Bình luận gốc</p>
+										<h3 className="mb-0 fw-bold text-success">{stats.totalRootComments || 0}</h3>
+									</div>
 								</div>
 							</div>
 						</div>
-						<div className="col-md-3">
-							<div className="card text-center">
-								<div className="card-body">
-									<h5>Phản hồi</h5>
-									<h3 className="text-info">{stats.totalReplies || 0}</h3>
+						<div className="col-6 col-md-3">
+							<div className="card border-0 shadow-sm h-100">
+								<div className="card-body d-flex align-items-center gap-3">
+									<div className="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center" style={{ width: '56px', height: '56px', flexShrink: 0 }}>
+										<i className="bi-reply-all text-info" style={{ fontSize: '1.5rem' }}></i>
+									</div>
+									<div>
+										<p className="text-muted mb-1 text-uppercase fw-semibold" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Phản hồi</p>
+										<h3 className="mb-0 fw-bold text-info">{stats.totalReplies || 0}</h3>
+									</div>
 								</div>
 							</div>
 						</div>
-						<div className="col-md-3">
-							<div className="card text-center">
-								<div className="card-body">
-									<h5>Gần đây (7 ngày)</h5>
-									<h3 className="text-warning">{stats.recentComments || 0}</h3>
+						<div className="col-6 col-md-3">
+							<div className="card border-0 shadow-sm h-100">
+								<div className="card-body d-flex align-items-center gap-3">
+									<div className="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center" style={{ width: '56px', height: '56px', flexShrink: 0 }}>
+										<i className="bi-clock-history text-warning" style={{ fontSize: '1.5rem' }}></i>
+									</div>
+									<div>
+										<p className="text-muted mb-1 text-uppercase fw-semibold" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Gần đây (7 ngày)</p>
+										<h3 className="mb-0 fw-bold text-warning">{stats.recentComments || 0}</h3>
+									</div>
 								</div>
 							</div>
 						</div>
@@ -300,68 +344,68 @@ const CommentAdmin = () => {
 			)}
 
 			{/* Filters */}
-			<div className="card mb-4">
-				<div className="card-body">
-					<div className="row g-3 align-items-end">
-						<div className="col-md-4">
-							<label className="form-label">Tìm kiếm theo nội dung</label>
-							<Form.Control
-								type="text"
-								placeholder="Nhập từ khóa..."
-								value={filters.keyword || ""}
-								onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
-								onKeyDown={(e) => {
-									if (e.key === 'Enter') {
-										fetchComments();
-									}
-								}}
-							/>
+			<div className="card border-0 shadow-sm mb-4">
+				<div className="card-body p-3 p-md-4">
+					<div className="row g-2 g-md-3 align-items-end">
+						<div className="col-12 col-md-5">
+							<label className="form-label text-muted text-uppercase fw-semibold mb-2" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+								<i className="bi-search me-1"></i>Tìm kiếm theo nội dung
+							</label>
+							<div className="input-group">
+								<span className="input-group-text bg-light border-0">
+									<i className="bi-search text-muted"></i>
+								</span>
+								<Form.Control
+									type="text"
+									className="border-0 bg-light"
+									placeholder="Nhập từ khóa..."
+									value={filters.keyword || ""}
+									onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
+									onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+									style={{ fontSize: '0.9rem' }}
+								/>
+								<button
+									className="btn btn-primary"
+									onClick={handleSearch}
+									style={{ fontSize: '0.9rem' }}
+								>
+									<i className="bi-search me-1"></i>
+									Tìm kiếm
+								</button>
+							</div>
 						</div>
-						{/* <div className="col-md-2">
-							<label className="form-label">Post ID</label>
-							<Form.Control
-								type="text"
-								placeholder="ID bài viết..."
-								value={filters.postId}
-								onChange={(e) => setFilters({ ...filters, postId: e.target.value })}
-							/>
-						</div> */}
-						<div className="col-md-2">
-							<label className="form-label">Sắp xếp theo</label>
+						<div className="col-6 col-md-3">
+							<label className="form-label text-muted text-uppercase fw-semibold mb-2" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+								<i className="bi-sort-alpha-down me-1"></i>Sắp xếp theo
+							</label>
 							<Form.Select
+								className="border-0 bg-light"
 								value={filters.sortBy}
 								onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+								style={{ fontSize: '0.9rem' }}
 							>
 								<option value="createdAt">Ngày tạo</option>
 								<option value="likesCount">Lượt thích</option>
 							</Form.Select>
 						</div>
-						<div className="col-md-2">
-							<label className="form-label">Thứ tự</label>
+						<div className="col-6 col-md-2">
+							<label className="form-label text-muted text-uppercase fw-semibold mb-2" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+								<i className="bi-arrows-down-up me-1"></i>Thứ tự
+							</label>
 							<Form.Select
+								className="border-0 bg-light"
 								value={filters.order}
 								onChange={(e) => setFilters({ ...filters, order: e.target.value })}
+								style={{ fontSize: '0.9rem' }}
 							>
 								<option value="desc">Giảm dần</option>
 								<option value="asc">Tăng dần</option>
 							</Form.Select>
 						</div>
-						<div className="col-md-2">
-							<button
-								className="btn btn-primary w-100"
-								onClick={() => {
-									setFilters({ ...filters, page: 1 });
-									fetchComments();
-								}}
-							>
-								<i className="bi-search me-2"></i>
-								Tìm kiếm
-							</button>
-						</div>
-						{(filters.keyword || filters.postId || filters.userId) && (
-							<div className="col-md-2">
+						{(filters.keyword || filters.sortBy !== "createdAt" || filters.order !== "desc") && (
+							<div className="col-12 col-md-2">
 								<button
-									className="btn btn-outline-secondary "
+									className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2"
 									onClick={() => {
 										setFilters({
 											keyword: "",
@@ -372,18 +416,15 @@ const CommentAdmin = () => {
 											sortBy: "createdAt",
 											order: "desc"
 										});
-										// setTimeout(() => fetchComments(), 100);
 									}}
+									style={{ fontSize: '0.85rem' }}
 								>
-									<i className="bi-x me-1"></i>
-									Xóa bộ lọc
+									<i className="bi-x-circle"></i>
+									<span className="d-none d-sm-inline">Xóa lọc</span>
 								</button>
 							</div>
 						)}
 					</div>
-
-					{/* Clear filters button */}
-
 				</div>
 			</div>
 
@@ -402,9 +443,10 @@ const CommentAdmin = () => {
 			{loading ? (
 				<LoadingPost count={5} />
 			) : (
-				<div className="card">
-					<div className="card-body">
-						<Table striped bordered hover responsive>
+				<div className="card border-0 shadow-sm">
+					<div className="card-body p-0">
+						<div className="table-responsive">
+							<Table className="mb-0" striped hover>
 							<thead>
 								<tr>
 									<th>
@@ -500,11 +542,12 @@ const CommentAdmin = () => {
 									</tr>
 								))}
 							</tbody>
-						</Table>
+							</Table>
+						</div>
 
 						{/* Pagination */}
 						{pagination.pages > 1 && (
-							<div className="d-flex justify-content-between align-items-center mt-3">
+							<div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 p-3 border-top">
 								<div>
 									<small className="text-muted">
 										Hiển thị {comments.length} / {pagination.total} bình luận
@@ -563,8 +606,11 @@ const CommentAdmin = () => {
 
 			{/* Modal hiển thị thông tin bình luận */}
 			<Modal show={showModal} onHide={handleCloseModal} centered size="lg">
-				<Modal.Header closeButton>
-					<Modal.Title>Chi tiết bình luận</Modal.Title>
+				<Modal.Header closeButton className="border-0 pb-0">
+					<Modal.Title className="d-flex align-items-center gap-2">
+						<i className="bi-info-circle text-primary"></i>
+						Chi tiết bình luận
+					</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
 					{selectedComment && (

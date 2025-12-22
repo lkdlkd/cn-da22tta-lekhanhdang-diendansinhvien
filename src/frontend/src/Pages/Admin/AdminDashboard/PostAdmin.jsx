@@ -38,10 +38,9 @@ const PostAdmin = () => {
 	const filterDefaults = {
 		keyword: "",
 		categoryId: "",
-		authorId: "",
+		username: "",
 		pinned: "",
 		locked: "",
-		isDraft: "",
 		moderationStatus: "",
 		isDeleted: "",
 		page: 1,
@@ -70,10 +69,9 @@ const PostAdmin = () => {
 			const params = {};
 			if (filters.keyword) params.keyword = filters.keyword;
 			if (filters.categoryId) params.categoryId = filters.categoryId;
-			if (filters.authorId) params.authorId = filters.authorId;
+			if (filters.username) params.username = filters.username;
 			if (filters.pinned !== "") params.pinned = filters.pinned;
 			if (filters.locked !== "") params.locked = filters.locked;
-			if (filters.isDraft !== "") params.isDraft = filters.isDraft;
 			if (filters.moderationStatus) params.moderationStatus = filters.moderationStatus;
 			if (filters.isDeleted !== "") params.isDeleted = filters.isDeleted;
 			params.page = filters.page;
@@ -445,22 +443,56 @@ const PostAdmin = () => {
 			{/* Statistics */}
 			{stats && (
 				<>
-					<div className="row mb-4 g-3">
-						{statCards.map(card => (
-							<div className="col-sm-6 col-md-4 col-lg-2" key={card.title}>
-								<div className="card text-center h-100">
-									<div className="card-body">
-										<h6 className="text-muted mb-1">{card.title}</h6>
-										<h3 className={card.accent}>{card.value ?? 0}</h3>
+					<div className="row g-3 mb-4">
+						<div className="col-6 col-md-4">
+							<div className="card border-0 shadow-sm h-100">
+								<div className="card-body d-flex align-items-center gap-3">
+									<div className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style={{ width: '56px', height: '56px', flexShrink: 0 }}>
+										<i className="bi-file-earmark-text text-primary" style={{ fontSize: '1.5rem' }}></i>
+									</div>
+									<div>
+										<p className="text-muted mb-1 text-uppercase fw-semibold" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Tổng bài viết</p>
+										<h3 className="mb-0 fw-bold">{stats.totalPosts || 0}</h3>
 									</div>
 								</div>
 							</div>
-						))}
+						</div>
+						<div className="col-6 col-md-4">
+							<div className="card border-0 shadow-sm h-100">
+								<div className="card-body d-flex align-items-center gap-3">
+									<div className="rounded-circle bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center" style={{ width: '56px', height: '56px', flexShrink: 0 }}>
+										<i className="bi-lock text-secondary" style={{ fontSize: '1.5rem' }}></i>
+									</div>
+									<div>
+										<p className="text-muted mb-1 text-uppercase fw-semibold" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Đã khóa</p>
+										<h3 className="mb-0 fw-bold text-secondary">{stats.lockedPosts || 0}</h3>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div className="col-6 col-md-4">
+							<div className="card border-0 shadow-sm h-100">
+								<div className="card-body d-flex align-items-center gap-3">
+									<div className="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center" style={{ width: '56px', height: '56px', flexShrink: 0 }}>
+										<i className="bi-clock-history text-info" style={{ fontSize: '1.5rem' }}></i>
+									</div>
+									<div>
+										<p className="text-muted mb-1 text-uppercase fw-semibold" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>Bài mới (7 ngày)</p>
+										<h3 className="mb-0 fw-bold text-info">{stats.recentPosts || 0}</h3>
+									</div>
+								</div>
+							</div>
+						</div>
 					</div>
 					{topCategories.length > 0 && (
-						<div className="card mb-4">
+						<div className="card border-0 shadow-sm mb-4">
+							<div className="card-header bg-white border-0 pb-0">
+								<h5 className="mb-0 d-flex align-items-center gap-2">
+									<i className="bi-bar-chart text-primary"></i>
+									Danh mục nhiều bài viết nhất
+								</h5>
+							</div>
 							<div className="card-body">
-								<h5 className="card-title">Danh mục nhiều bài viết nhất</h5>
 								<div className="table-responsive">
 									<Table size="sm" className="mb-0">
 										<thead>
@@ -486,117 +518,175 @@ const PostAdmin = () => {
 			)}
 
 			{/* Filters */}
-			<div className="card mb-4">
-				<div className="card-body">
-					<div className="row g-3 align-items-end">
-						<div className="col-md-4">
-							<Form.Control
-								type="text"
-								placeholder="Tìm kiếm theo tiêu đề, nội dung..."
-								value={pendingFilters.keyword}
-								onChange={(e) => setPendingFilters({ ...pendingFilters, keyword: e.target.value })}
-								onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
-							/>
+			<div className="card border-0 shadow-sm mb-4">
+				<div className="card-body p-3 p-md-4">
+					{/* Row 1: Tìm kiếm chính */}
+					<div className="row g-2 g-md-3 align-items-end">
+						<div className="col-12 col-md-4">
+							<label className="form-label text-muted text-uppercase fw-semibold mb-2" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+								<i className="bi-search me-1"></i>Tìm kiếm nội dung
+							</label>
+							<div className="input-group">
+								<span className="input-group-text bg-light border-0">
+									<i className="bi-search text-muted"></i>
+								</span>
+								<Form.Control
+									type="text"
+									className="border-0 bg-light"
+									placeholder="Tiêu đề, nội dung..."
+									value={pendingFilters.keyword}
+									onChange={(e) => setPendingFilters({ ...pendingFilters, keyword: e.target.value })}
+									onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
+									style={{ fontSize: '0.9rem' }}
+								/>
+							</div>
 						</div>
-						<div className="col-md-2">
+						<div className="col-6 col-md-2">
+							<label className="form-label text-muted text-uppercase fw-semibold mb-2" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+								<i className="bi-folder me-1"></i>Danh mục
+							</label>
 							<Form.Select
+								className="border-0 bg-light"
 								value={pendingFilters.categoryId}
 								onChange={(e) => setPendingFilters({ ...pendingFilters, categoryId: e.target.value })}
+								style={{ fontSize: '0.9rem' }}
 							>
-								<option value="">Tất cả danh mục</option>
+								<option value="">Tất cả</option>
 								{categories.map(cat => (
 									<option key={cat._id} value={cat._id}>{cat.title}</option>
 								))}
 							</Form.Select>
 						</div>
-						<div className="col-md-2">
-							<Form.Select
-								value={pendingFilters.pinned}
-								onChange={(e) => setPendingFilters({ ...pendingFilters, pinned: e.target.value })}
-							>
-								<option value="">Ghim</option>
-								<option value="true">Đã ghim</option>
-								<option value="false">Chưa ghim</option>
-							</Form.Select>
+						<div className="col-6 col-md-3">
+							<label className="form-label text-muted text-uppercase fw-semibold mb-2" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+								<i className="bi-person me-1"></i>Tác giả
+							</label>
+							<Form.Control
+								type="text"
+								className="border-0 bg-light"
+								placeholder="Nhập username..."
+								value={pendingFilters.username}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, username: e.target.value })}
+								onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
+								style={{ fontSize: '0.9rem' }}
+							/>
 						</div>
-						<div className="col-md-2">
+						<div className="col-12 col-md-3">
+							<label className="form-label text-muted text-uppercase fw-semibold mb-2" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+								<i className="bi-check-circle me-1"></i>Trạng thái duyệt
+							</label>
 							<Form.Select
-								value={pendingFilters.locked}
-								onChange={(e) => setPendingFilters({ ...pendingFilters, locked: e.target.value })}
-							>
-								<option value="">Khóa</option>
-								<option value="true">Đã khóa</option>
-								<option value="false">Chưa khóa</option>
-							</Form.Select>
-						</div>
-						<div className="col-md-2">
-							<Form.Select
-								value={pendingFilters.sortBy}
-								onChange={(e) => setPendingFilters({ ...pendingFilters, sortBy: e.target.value })}
-							>
-								<option value="createdAt">Sắp xếp: Ngày tạo</option>
-								<option value="views">Sắp xếp: Lượt xem</option>
-								<option value="likesCount">Sắp xếp: Lượt thích</option>
-								<option value="commentsCount">Sắp xếp: Bình luận</option>
-							</Form.Select>
-						</div>
-						<div className="col-md-2">
-							<Form.Select
-								value={pendingFilters.order}
-								onChange={(e) => setPendingFilters({ ...pendingFilters, order: e.target.value })}
-							>
-								<option value="desc">Thứ tự: Giảm dần</option>
-								<option value="asc">Thứ tự: Tăng dần</option>
-							</Form.Select>
-						</div>
-					</div>
-					<div className="row g-3 mt-1 align-items-end">
-						<div className="col-md-2">
-							<Form.Select
-								value={pendingFilters.isDraft}
-								onChange={(e) => setPendingFilters({ ...pendingFilters, isDraft: e.target.value })}
-							>
-								<option value="">Bản nháp</option>
-								<option value="true">Chỉ nháp</option>
-								<option value="false">Đã xuất bản</option>
-							</Form.Select>
-						</div>
-						<div className="col-md-2">
-							<Form.Select
+								className="border-0 bg-light"
 								value={pendingFilters.moderationStatus}
 								onChange={(e) => setPendingFilters({ ...pendingFilters, moderationStatus: e.target.value })}
+								style={{ fontSize: '0.9rem' }}
 							>
-								<option value="">Trạng thái duyệt</option>
+								<option value="">Tất cả</option>
 								<option value="pending">Chờ duyệt</option>
 								<option value="approved">Đã duyệt</option>
 								<option value="rejected">Đã từ chối</option>
 							</Form.Select>
 						</div>
-						<div className="col-md-2">
+					</div>
+
+					{/* Row 2: Bộ lọc nâng cao và sắp xếp */}
+					<div className="row g-2 g-md-3 mt-2 align-items-end">
+						<div className="col-6 col-md-2">
+							<label className="form-label text-muted text-uppercase fw-semibold mb-2" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+								<i className="bi-pin-angle me-1"></i>Ghim
+							</label>
 							<Form.Select
+								className="border-0 bg-light"
+								value={pendingFilters.pinned}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, pinned: e.target.value })}
+								style={{ fontSize: '0.9rem' }}
+							>
+								<option value="">Tất cả</option>
+								<option value="true">Đã ghim</option>
+								<option value="false">Chưa ghim</option>
+							</Form.Select>
+						</div>
+						<div className="col-6 col-md-2">
+							<label className="form-label text-muted text-uppercase fw-semibold mb-2" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+								<i className="bi-lock me-1"></i>Khóa
+							</label>
+							<Form.Select
+								className="border-0 bg-light"
+								value={pendingFilters.locked}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, locked: e.target.value })}
+								style={{ fontSize: '0.9rem' }}
+							>
+								<option value="">Tất cả</option>
+								<option value="true">Đã khóa</option>
+								<option value="false">Chưa khóa</option>
+							</Form.Select>
+						</div>
+						<div className="col-6 col-md-2">
+							<label className="form-label text-muted text-uppercase fw-semibold mb-2" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+								<i className="bi-eye-slash me-1"></i>Hiển thị
+							</label>
+							<Form.Select
+								className="border-0 bg-light"
 								value={pendingFilters.isDeleted}
 								onChange={(e) => setPendingFilters({ ...pendingFilters, isDeleted: e.target.value })}
+								style={{ fontSize: '0.9rem' }}
 							>
-								<option value="">Trạng thái ẩn</option>
-								<option value="false">Chưa ẩn</option>
+								<option value="">Tất cả</option>
+								<option value="false">Đang hiển thị</option>
 								<option value="true">Đã ẩn</option>
 							</Form.Select>
 						</div>
-						<div className="col-md-3">
-							<Form.Control
-								type="text"
-								placeholder="ID tác giả (tùy chọn)"
-								value={pendingFilters.authorId}
-								onChange={(e) => setPendingFilters({ ...pendingFilters, authorId: e.target.value })}
-							/>
+						<div className="col-6 col-md-2">
+							<label className="form-label text-muted text-uppercase fw-semibold mb-2" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+								<i className="bi-sort-down me-1"></i>Sắp xếp
+							</label>
+							<Form.Select
+								className="border-0 bg-light"
+								value={pendingFilters.sortBy}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, sortBy: e.target.value })}
+								style={{ fontSize: '0.9rem' }}
+							>
+								<option value="createdAt">Ngày tạo</option>
+								<option value="views">Lượt xem</option>
+								<option value="likesCount">Lượt thích</option>
+								<option value="commentsCount">Bình luận</option>
+							</Form.Select>
 						</div>
-						<div className="col-md-3 d-flex gap-2">
-							<button className="btn btn-primary w-100" onClick={applyFilters} type="button">
-								Tìm
-							</button>
-							<button className="btn btn-outline-secondary w-100" onClick={resetFilters} type="button">
-								Đặt lại
-							</button>
+						<div className="col-6 col-md-2">
+							<label className="form-label text-muted text-uppercase fw-semibold mb-2" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+								<i className="bi-arrows-expand me-1"></i>Thứ tự
+							</label>
+							<Form.Select
+								className="border-0 bg-light"
+								value={pendingFilters.order}
+								onChange={(e) => setPendingFilters({ ...pendingFilters, order: e.target.value })}
+								style={{ fontSize: '0.9rem' }}
+							>
+								<option value="desc">Mới nhất</option>
+								<option value="asc">Cũ nhất</option>
+							</Form.Select>
+						</div>
+						<div className="col-12 col-md-2">
+							<div className="d-flex gap-2">
+								<button 
+									className="btn btn-primary flex-fill d-flex align-items-center justify-content-center gap-1" 
+									onClick={applyFilters} 
+									type="button" 
+									style={{ fontSize: '0.85rem' }}
+								>
+									<i className="bi-search"></i>
+									<span className="d-none d-md-inline">Tìm</span>
+								</button>
+								<button 
+									className="btn btn-outline-secondary d-flex align-items-center justify-content-center" 
+									onClick={resetFilters} 
+									type="button" 
+									style={{ fontSize: '0.85rem', minWidth: '45px' }}
+									title="Đặt lại bộ lọc"
+								>
+									<i className="bi-arrow-clockwise"></i>
+								</button>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -650,194 +740,246 @@ const PostAdmin = () => {
 			{loading ? (
 				<LoadingPost count={5} />
 			) : (
-				<div className="card">
-					<div className="card-body">
-						<Table striped bordered hover responsive>
-							<thead>
-								<tr>
-									<th>
-										<Form.Check
-											type="checkbox"
-											onChange={handleSelectAll}
-											checked={selectedPosts.length === posts.length && posts.length > 0}
-										/>
-									</th>
-									<th>STT</th>
-									<th>Hành động</th>
-									<th>Tiêu đề</th>
-									<th>Tác giả</th>
-									<th>Danh mục</th>
-									<th>Lượt xem</th>
-									<th>Lượt thích</th>
-									<th>Bình luận</th>
-									<th>Ngày tạo</th>
-									<th>Trạng thái</th>
-									<th>Duyệt</th>
-								</tr>
-							</thead>
-							<tbody>
-								{posts.map((post, idx) => (
-									<tr key={post._id}>
-										<td>
+				<div className="card border-0 shadow-sm">
+					<div className="card-body p-0">
+						<div className="table-responsive">
+							<Table className="mb-0" striped hover>
+								<thead>
+									<tr>
+										<th>
 											<Form.Check
 												type="checkbox"
-												checked={selectedPosts.includes(post._id)}
-												onChange={() => handleSelectPost(post._id)}
+												onChange={handleSelectAll}
+												checked={selectedPosts.length === posts.length && posts.length > 0}
 											/>
-										</td>
-										<td>{(filters.page - 1) * filters.limit + idx + 1}</td>
-										<td>
-											<div className="dropdown">
-												<button
-													className="btn btn-primary dropdown-toggle"
-													type="button"
-													data-bs-toggle="dropdown"
-													aria-expanded="false"
-												>
-													Thao tác <i className="bi bi-chevron-down ms-1"></i>
-												</button>
-												<ul className="dropdown-menu">
-													<li>
-														<button
-															className="dropdown-item"
-															onClick={() => handleShowModal(post)}
-														>
-															<i className="bi bi-eye me-2 text-info"></i>
-															Xem chi tiết
-														</button>
-													</li>
-													<li>
-														<button
-															className="dropdown-item"
-															onClick={() => handleOpenPublicPost(post.slug)}
-															disabled={!post.slug}
-														>
-															<i className="bi bi-link-45deg me-2 text-primary"></i>
-															Mở bài viết
-														</button>
-													</li>
-													<li><hr className="dropdown-divider" /></li>
-													<li>
-														<button
-															className="dropdown-item"
-															onClick={() => handleTogglePin(post._id)}
-														>
-															<i className={`bi ${post.pinned ? 'bi-pin-angle-fill' : 'bi-pin-angle'} me-2 text-warning`}></i>
-															{post.pinned ? 'Bỏ ghim' : 'Ghim bài viết'}
-														</button>
-													</li>
-													<li>
-														<button
-															className="dropdown-item"
-															onClick={() => handleToggleLock(post._id)}
-														>
-															<i className={`bi ${post.locked ? 'bi-unlock' : 'bi-lock'} me-2 text-secondary`}></i>
-															{post.locked ? 'Mở khóa' : 'Khóa bài viết'}
-														</button>
-													</li>
-													{post.moderationStatus === "pending" && (
-														<>
-															<li><hr className="dropdown-divider" /></li>
+										</th>
+										<th>STT</th>
+										<th>Hành động</th>
+										<th>Tiêu đề</th>
+										<th>Tác giả</th>
+										<th>Danh mục</th>
+										<th>thống kê</th>
+										<th>Ngày tạo</th>
+										<th>Trạng thái</th>
+										<th>Duyệt</th>
+									</tr>
+								</thead>
+								<tbody>
+									{posts.map((post, idx) => (
+										<tr key={post._id}>
+											<td>
+												<Form.Check
+													type="checkbox"
+													checked={selectedPosts.includes(post._id)}
+													onChange={() => handleSelectPost(post._id)}
+												/>
+											</td>
+											<td>{(filters.page - 1) * filters.limit + idx + 1}</td>
+											<td>
+												<div className="dropdown">
+													<button
+														className="btn btn-primary dropdown-toggle"
+														type="button"
+														data-bs-toggle="dropdown"
+														aria-expanded="false"
+													>
+														Thao tác <i className="bi bi-chevron-down ms-1"></i>
+													</button>
+													<ul className="dropdown-menu">
+														<li>
+															<button
+																className="dropdown-item"
+																onClick={() => handleShowModal(post)}
+															>
+																<i className="bi bi-eye me-2 text-info"></i>
+																Xem chi tiết
+															</button>
+														</li>
+														<li>
+															<button
+																className="dropdown-item"
+																onClick={() => handleOpenPublicPost(post.slug)}
+																disabled={!post.slug}
+															>
+																<i className="bi bi-link-45deg me-2 text-primary"></i>
+																Mở bài viết
+															</button>
+														</li>
+														<li><hr className="dropdown-divider" /></li>
+														<li>
+															<button
+																className="dropdown-item"
+																onClick={() => handleTogglePin(post._id)}
+															>
+																<i className={`bi ${post.pinned ? 'bi-pin-angle-fill' : 'bi-pin-angle'} me-2 text-warning`}></i>
+																{post.pinned ? 'Bỏ ghim' : 'Ghim bài viết'}
+															</button>
+														</li>
+														<li>
+															<button
+																className="dropdown-item"
+																onClick={() => handleToggleLock(post._id)}
+															>
+																<i className={`bi ${post.locked ? 'bi-unlock' : 'bi-lock'} me-2 text-secondary`}></i>
+																{post.locked ? 'Mở khóa' : 'Khóa bài viết'}
+															</button>
+														</li>
+														{post.moderationStatus === "pending" && (
+															<>
+																<li><hr className="dropdown-divider" /></li>
+																<li>
+																	<button
+																		className="dropdown-item text-success"
+																		onClick={() => handleApprove(post._id)}
+																	>
+																		<i className="bi bi-check-circle me-2"></i>
+																		Duyệt bài viết
+																	</button>
+																</li>
+																<li>
+																	<button
+																		className="dropdown-item text-danger"
+																		onClick={() => handleReject(post._id)}
+																	>
+																		<i className="bi bi-x-circle me-2"></i>
+																		Từ chối
+																	</button>
+																</li>
+															</>
+														)}
+														<li><hr className="dropdown-divider" /></li>
+														{post.isDeleted ? (
 															<li>
 																<button
 																	className="dropdown-item text-success"
-																	onClick={() => handleApprove(post._id)}
+																	onClick={() => handleRestore(post._id)}
 																>
-																	<i className="bi bi-check-circle me-2"></i>
-																	Duyệt bài viết
+																	<i className="bi bi-arrow-counterclockwise me-2"></i>
+																	Khôi phục
 																</button>
 															</li>
+														) : (
 															<li>
 																<button
-																	className="dropdown-item text-danger"
-																	onClick={() => handleReject(post._id)}
+																	className="dropdown-item text-warning"
+																	onClick={() => handleSoftDelete(post._id)}
 																>
-																	<i className="bi bi-x-circle me-2"></i>
-																	Từ chối
+																	<i className="bi bi-eye-slash me-2"></i>
+																	Ẩn bài viết
 																</button>
 															</li>
-														</>
-													)}
-													<li><hr className="dropdown-divider" /></li>
-													{post.isDeleted ? (
+														)}
 														<li>
 															<button
-																className="dropdown-item text-success"
-																onClick={() => handleRestore(post._id)}
+																className="dropdown-item text-danger"
+																onClick={() => handleDelete(post._id)}
 															>
-																<i className="bi bi-arrow-counterclockwise me-2"></i>
-																Khôi phục
+																<i className="bi bi-trash me-2"></i>
+																Xóa vĩnh viễn
 															</button>
 														</li>
-													) : (
-														<li>
-															<button
-																className="dropdown-item text-warning"
-																onClick={() => handleSoftDelete(post._id)}
-															>
-																<i className="bi bi-eye-slash me-2"></i>
-																Ẩn bài viết
-															</button>
-														</li>
-													)}
-													<li>
-														<button
-															className="dropdown-item text-danger"
-															onClick={() => handleDelete(post._id)}
-														>
-															<i className="bi bi-trash me-2"></i>
-															Xóa vĩnh viễn
-														</button>
-													</li>
-												</ul>
-											</div>
-										</td>
-										<td className="text-break">
-											<div className="fw-semibold">{post.title}</div>
-											{post.slug && <small className="text-muted d-block">/{post.slug}</small>}
-											{post.tags && post.tags.length > 0 && (
-												<div className="d-flex flex-wrap gap-1 mt-1">
-													{post.tags.slice(0, 3).map((tag, tagIdx) => (
-														<span key={tagIdx} className="badge bg-light text-dark border">#{tag}</span>
-													))}
-													{post.tags.length > 3 && (
-														<span className="badge bg-light text-dark">+{post.tags.length - 3}</span>
-													)}
+													</ul>
 												</div>
-											)}
-										</td>
-										<td>
-											<ul>
-												<li className="fw-semibold"><div className="fw-semibold"><img
-													src={post.authorId?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
-													alt={post.authorId?.username}
-													style={{ width: "40px", height: "40px", borderRadius: "50%" }}
-												/> - {post.authorId?.displayName || post.authorId?.username || "N/A"}</div></li>
-												<li className="fw-semibold">Username: {post.authorId?.username || "N/A"}</li>
-											</ul>
+											</td>
+											<td className="text-break">
+												<div className="fw-semibold">{post.title}</div>
+												{post.slug && <small className="text-muted d-block">/{post.slug}</small>}
+												{post.tags && post.tags.length > 0 && (
+													<div className="d-flex flex-wrap gap-1 mt-1">
+														{post.tags.slice(0, 3).map((tag, tagIdx) => (
+															<span key={tagIdx} className="badge bg-light text-dark border">#{tag}</span>
+														))}
+														{post.tags.length > 3 && (
+															<span className="badge bg-light text-dark">+{post.tags.length - 3}</span>
+														)}
+													</div>
+												)}
+											</td>
+											<td>
+												<ul>
+													<li className="fw-semibold"><div className="fw-semibold"><img
+														src={post.authorId?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
+														alt={post.authorId?.username}
+														style={{ width: "40px", height: "40px", borderRadius: "50%" }}
+													/> - {post.authorId?.displayName || post.authorId?.username || "N/A"}</div></li>
+													<li className="fw-semibold">Username: {post.authorId?.username || "N/A"}</li>
+												</ul>
 
 
-										</td>
-										<td>{post.categoryId?.title || "N/A"}</td>
-										<td>{post.views || 0}</td>
+											</td>
+											<td>{post.categoryId?.title || "N/A"}</td>
+											<td>
+												<ul>
+													<li>Lượt xem: {post.views || 0}</li>
+													<li>Lượt thích: {post.likesCount || 0}</li>
+													<li>Bình luận: {post.commentsCount || 0}</li>
+												</ul>
+											</td>
+											{/* <td>{post.views || 0}</td>
 										<td>{post.likesCount || 0}</td>
-										<td>{post.commentsCount || 0}</td>
-										<td>{formatDateTime(post.createdAt)}</td>
-										<td>{renderStatusBadges(post)}</td>
-										<td>{renderModerationBadge(post)}</td>
+										<td>{post.commentsCount || 0}</td> */}
+											<td>{formatDateTime(post.createdAt)}</td>
+											<td>{renderStatusBadges(post)}</td>
+											<td>{renderModerationBadge(post)}</td>
 
-									</tr>
-								))}
-							</tbody>
-						</Table>
+										</tr>
+									))}
+								</tbody>
+							</Table>
+						</div>
+
+						{/* Pagination */}
+						{pagination.pages > 1 && (
+							<div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 p-3 border-top">
+								<div>
+									<small className="text-muted">
+										Hiển thị {posts.length} / {pagination.total} bài viết
+									</small>
+								</div>
+								<Pagination className="mb-0">
+									<Pagination.First onClick={() => goToPage(1)} disabled={pagination.page === 1} />
+									<Pagination.Prev onClick={() => goToPage(pagination.page - 1)} disabled={pagination.page === 1} />
+									{Array.from({ length: pagination.pages }, (_, i) => i + 1).map(p => {
+										const pageNum = p;
+										// Hiển thị trang đầu, cuối và 2 trang gần current
+										if (
+											pageNum === 1 ||
+											pageNum === pagination.pages ||
+											(pageNum >= pagination.page - 1 && pageNum <= pagination.page + 1)
+										) {
+											return (
+												<Pagination.Item
+													key={pageNum}
+													active={pageNum === pagination.page}
+													onClick={() => goToPage(pageNum)}
+												>
+													{pageNum}
+												</Pagination.Item>
+											);
+										} else if (
+											pageNum === pagination.page - 2 ||
+											pageNum === pagination.page + 2
+										) {
+											return <Pagination.Ellipsis key={pageNum} disabled />;
+										}
+										return null;
+									})}
+									<Pagination.Next onClick={() => goToPage(pagination.page + 1)} disabled={pagination.page === pagination.pages} />
+									<Pagination.Last onClick={() => goToPage(pagination.pages)} disabled={pagination.page === pagination.pages} />
+								</Pagination>
+							</div>
+						)}
 					</div>
 				</div>
 			)}
 
 			{/* Modal hiển thị thông tin bài viết */}
 			<Modal show={showModal} onHide={handleCloseModal} centered size="lg">
-				<Modal.Header closeButton>
-					<Modal.Title>Thông tin bài viết</Modal.Title>
+				<Modal.Header closeButton className="border-0 pb-0">
+					<Modal.Title className="d-flex align-items-center gap-2">
+						<i className="bi-info-circle text-primary"></i>
+						Thông tin bài viết
+					</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
 					{selectedPost && (
@@ -954,26 +1096,6 @@ const PostAdmin = () => {
 					</button>
 				</Modal.Footer>
 			</Modal>
-
-			{/* Pagination + page size */}
-			<div className="mt-3">
-
-				{pagination.pages > 1 && (
-					<div className="d-flex justify-content-center">
-						<Pagination>
-							<Pagination.First onClick={() => goToPage(1)} disabled={pagination.page === 1} />
-							<Pagination.Prev onClick={() => goToPage(pagination.page - 1)} disabled={pagination.page === 1} />
-							{Array.from({ length: pagination.pages }, (_, i) => i + 1).map(p => (
-								<Pagination.Item key={p} active={p === pagination.page} onClick={() => goToPage(p)}>
-									{p}
-								</Pagination.Item>
-							))}
-							<Pagination.Next onClick={() => goToPage(pagination.page + 1)} disabled={pagination.page === pagination.pages} />
-							<Pagination.Last onClick={() => goToPage(pagination.pages)} disabled={pagination.page === pagination.pages} />
-						</Pagination>
-					</div>
-				)}
-			</div>
 		</div>
 	);
 };

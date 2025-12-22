@@ -433,16 +433,6 @@ const UserAdmin = () => {
 						</div>
 						<div className="col-md-2">
 							<Form.Select
-								value={pendingFilters.isBanned}
-								onChange={(e) => setPendingFilters({ ...pendingFilters, isBanned: e.target.value })}
-							>
-								<option value="">Tất cả trạng thái</option>
-								<option value="false">Hoạt động</option>
-								<option value="true">Bị cấm</option>
-							</Form.Select>
-						</div>
-						<div className="col-md-2">
-							<Form.Select
 								value={pendingFilters.isOnline}
 								onChange={(e) => setPendingFilters({ ...pendingFilters, isOnline: e.target.value })}
 							>

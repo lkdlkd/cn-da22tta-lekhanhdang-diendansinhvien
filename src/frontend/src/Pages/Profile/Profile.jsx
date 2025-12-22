@@ -62,6 +62,15 @@ const Profile = () => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [selectedSchool, setSelectedSchool] = useState("");
   const [availableFaculties, setAvailableFaculties] = useState([]);
+  const [activeTab, setActiveTab] = useState('info'); // 'info' or 'password'
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { user } = useOutletContext();
 
   useEffect(() => {
@@ -205,6 +214,75 @@ const Profile = () => {
     }
   };
 
+  const handlePasswordChange = (e) => {
+    setPasswordForm({ ...passwordForm, [e.target.name]: e.target.value });
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    // Validate
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setError("Vui lòng điền đầy đủ thông tin");
+      setLoading(false);
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      setError("Mật khẩu mới phải có ít nhất 6 ký tự");
+      setLoading(false);
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setError("Mật khẩu mới và xác nhận không khớp");
+      setLoading(false);
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/users/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Đổi mật khẩu thất bại');
+      }
+
+      setSuccess("Đổi mật khẩu thành công!");
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+
+      // Auto logout sau 2s
+      setTimeout(() => {
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      }, 2000);
+    } catch (err) {
+      setError(err.message || "Đổi mật khẩu thất bại");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!profile) {
     return (
       <div className="container mt-5">
@@ -220,6 +298,7 @@ const Profile = () => {
   }
 
   return (
+
     <div className="profile-container">
       <div className="container-fluid">
         <div className="row justify-content-center">
@@ -238,12 +317,12 @@ const Profile = () => {
                     {editMode && (
                       <label className="profile-avatar-edit-btn">
                         <i className="bi bi-camera"></i>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        style={{ display: "none" }}
-                        onChange={handleAvatarChange}
-                      />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: "none" }}
+                          onChange={handleAvatarChange}
+                        />
                       </label>
                     )}
                   </div>
@@ -291,12 +370,34 @@ const Profile = () => {
 
             {/* Form Card */}
             <div className="card border-0 profile-form-card">
-              <div className="card-header bg-white d-flex justify-content-between align-items-center profile-form-header">
-                <h5 className="profile-form-title">
-                  <i className="ph-duotone ph-user-circle-gear me-2"></i>
-                  Thông tin cá nhân
-                </h5>
-                {!editMode && (
+              {/* Tabs Header */}
+              <div className="card-header bg-white border-0 profile-tabs-header">
+                <nav className="profile-tabs">
+                  <button
+                    className={`profile-tab ${activeTab === 'info' ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveTab('info');
+                      setError("");
+                      setSuccess("");
+                    }}
+                  >
+                    <i className="ph-duotone ph-user-circle-gear me-2"></i>
+                    Thông tin cá nhân
+                  </button>
+                  <button
+                    className={`profile-tab ${activeTab === 'password' ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveTab('password');
+                      setError("");
+                      setSuccess("");
+                      setEditMode(false);
+                    }}
+                  >
+                    <i className="ph-duotone ph-lock-key me-2"></i>
+                    Đổi mật khẩu
+                  </button>
+                </nav>
+                {!editMode && activeTab === 'info' && (
                   <button
                     type="button"
                     className="btn btn-primary btn-sm profile-edit-btn"
@@ -323,173 +424,328 @@ const Profile = () => {
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
-                  <div className="row">
-                    {/* Username */}
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label profile-form-label">
-                        <i className="ph ph-user me-2"></i>
-                        Tên đăng nhập
-                      </label>
-                      <input
-                        value={profile.username}
-                        disabled
-                        className="form-control profile-form-control"
-                      />
-                    </div>
-                    {/* Email */}
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label profile-form-label">
-                        <i className="ph ph-envelope me-2"></i>
-                        Email
-                      </label>
-                      <input
-                        name="email"
-                        value={form.email}
-                        disabled
-                        className="form-control profile-form-control"
-                      />
-                    </div>
-                    {/* Display Name */}
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label profile-form-label">
-                        <i className="ph ph-identification-card me-2"></i>
-                        Tên hiển thị
-                      </label>
-                      <input
-                        name="displayName"
-                        value={form.displayName}
-                        onChange={handleChange}
-                        disabled={!editMode}
-                        className="form-control profile-form-control"
-                      />
+                {/* Tab: Thông tin cá nhân */}
+                {activeTab === 'info' && (
+                  <form onSubmit={handleSubmit}>
+                    <div className="row">
+                      {/* Username */}
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label profile-form-label">
+                          <i className="ph ph-user me-2"></i>
+                          Tên đăng nhập
+                        </label>
+                        <input
+                          value={profile.username}
+                          disabled
+                          className="form-control profile-form-control"
+                        />
+                      </div>
+                      {/* Email */}
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label profile-form-label">
+                          <i className="ph ph-envelope me-2"></i>
+                          Email
+                        </label>
+                        <input
+                          name="email"
+                          value={form.email}
+                          disabled
+                          className="form-control profile-form-control"
+                        />
+                      </div>
+                      {/* Display Name */}
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label profile-form-label">
+                          <i className="ph ph-identification-card me-2"></i>
+                          Tên hiển thị
+                        </label>
+                        <input
+                          name="displayName"
+                          value={form.displayName}
+                          onChange={handleChange}
+                          disabled={!editMode}
+                          className="form-control profile-form-control"
+                        />
+                      </div>
+
+                      {/* Phone */}
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label profile-form-label">
+                          <i className="ph ph-phone me-2"></i>
+                          Số điện thoại
+                        </label>
+                        <input
+                          name="phone"
+                          value={form.phone}
+                          onChange={handleChange}
+                          disabled={!editMode}
+                          className="form-control profile-form-control"
+                          placeholder="Chưa cập nhật"
+                        />
+                      </div>
+
+                      {/* School */}
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label profile-form-label">
+                          <i className="ph ph-buildings me-2"></i>
+                          Trường
+                        </label>
+                        <select
+                          value={selectedSchool}
+                          onChange={handleSchoolChange}
+                          disabled={!editMode}
+                          className="form-select profile-form-control"
+                        >
+                          <option value="">-- Chọn trường --</option>
+                          {Object.keys(facultiesData).map((school) => (
+                            <option key={school} value={school}>
+                              {school}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Faculty */}
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label profile-form-label">
+                          <i className="ph ph-building me-2"></i>
+                          Khoa
+                        </label>
+                        <select
+                          name="faculty"
+                          value={form.faculty}
+                          onChange={handleFacultyChange}
+                          disabled={!editMode || !selectedSchool}
+                          className="form-select profile-form-control"
+                        >
+                          <option value="">-- Chọn khoa --</option>
+                          {availableFaculties.map((faculty) => (
+                            <option key={faculty} value={faculty}>
+                              {faculty}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Class */}
+                      <div className="col-md-6 mb-3">
+                        <label className="form-label profile-form-label">
+                          <i className="ph ph-students me-2"></i>
+                          Lớp
+                        </label>
+                        <input
+                          name="class"
+                          value={form.class}
+                          onChange={handleChange}
+                          disabled={!editMode}
+                          className="form-control profile-form-control"
+                          placeholder="Chưa cập nhật"
+                        />
+                      </div>
+
+                      {/* Bio */}
+                      <div className="col-12 mb-3">
+                        <label className="form-label profile-form-label">
+                          <i className="ph ph-note-pencil me-2"></i>
+                          Tiểu sử
+                        </label>
+                        <textarea
+                          name="bio"
+                          value={form.bio}
+                          onChange={handleChange}
+                          disabled={!editMode}
+                          className="form-control profile-form-control profile-textarea"
+                          rows="4"
+                          placeholder="Viết gì đó về bạn..."
+                        />
+                      </div>
                     </div>
 
-                    {/* Phone */}
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label profile-form-label">
-                        <i className="ph ph-phone me-2"></i>
-                        Số điện thoại
-                      </label>
-                      <input
-                        name="phone"
-                        value={form.phone}
-                        onChange={handleChange}
-                        disabled={!editMode}
-                        className="form-control profile-form-control"
-                        placeholder="Chưa cập nhật"
-                      />
-                    </div>
+                    {/* Action Buttons */}
+                    {editMode && (
+                      <div className="d-flex gap-2 mt-3">
+                        <button
+                          type="submit"
+                          className="btn btn-primary flex-grow-1 profile-submit-btn"
+                          disabled={loading}
+                        >
+                          {loading ? (
+                            <>
+                              <span className="spinner-border spinner-border-sm me-2"></span>
+                              Đang lưu...
+                            </>
+                          ) : (
+                            <>
+                              <i className="ph ph-check-circle me-2"></i>
+                              Lưu thay đổi
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCancel}
+                          className="btn btn-light profile-cancel-btn"
+                          disabled={loading}
+                        >
+                          <i className="ph ph-x-circle me-2"></i>
+                          Hủy
+                        </button>
+                      </div>
+                    )}
+                  </form>
+                )}
 
-                    {/* School */}
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label profile-form-label">
-                        <i className="ph ph-buildings me-2"></i>
-                        Trường
-                      </label>
-                      <select
-                        value={selectedSchool}
-                        onChange={handleSchoolChange}
-                        disabled={!editMode}
-                        className="form-select profile-form-control"
-                      >
-                        <option value="">-- Chọn trường --</option>
-                        {Object.keys(facultiesData).map((school) => (
-                          <option key={school} value={school}>
-                            {school}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                {/* Tab: Đổi mật khẩu */}
+                {activeTab === 'password' && (
+                  <form onSubmit={handlePasswordSubmit}>
+                    <div className="password-change-container">
+                      <div className="password-change-header mb-4">
+                        <h5 className="password-change-title">
+                          <i className="ph-duotone ph-shield-check me-2"></i>
+                          Đổi mật khẩu
+                        </h5>
+                        <p className="password-change-subtitle">
+                          Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu cho người khác
+                        </p>
+                      </div>
 
-                    {/* Faculty */}
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label profile-form-label">
-                        <i className="ph ph-building me-2"></i>
-                        Khoa
-                      </label>
-                      <select
-                        name="faculty"
-                        value={form.faculty}
-                        onChange={handleFacultyChange}
-                        disabled={!editMode || !selectedSchool}
-                        className="form-select profile-form-control"
-                      >
-                        <option value="">-- Chọn khoa --</option>
-                        {availableFaculties.map((faculty) => (
-                          <option key={faculty} value={faculty}>
-                            {faculty}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                      <div className="row">
+                        {/* Current Password */}
+                        <div className="col-12 mb-3">
+                          <label className="form-label profile-form-label">
+                            <i className="ph ph-lock me-2"></i>
+                            Mật khẩu hiện tại
+                          </label>
+                          <div className="password-input-wrapper">
+                            <input
+                              type={showCurrentPassword ? "text" : "password"}
+                              name="currentPassword"
+                              value={passwordForm.currentPassword}
+                              onChange={handlePasswordChange}
+                              className="form-control profile-form-control"
+                              placeholder="Nhập mật khẩu hiện tại"
+                              autoComplete="current-password"
+                            />
+                            <button
+                              type="button"
+                              className="password-toggle-btn"
+                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            >
+                              <i className={`ph ${showCurrentPassword ? 'ph-eye-slash' : 'ph-eye'}`}></i>
+                            </button>
+                          </div>
+                        </div>
 
-                    {/* Class */}
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label profile-form-label">
-                        <i className="ph ph-students me-2"></i>
-                        Lớp
-                      </label>
-                      <input
-                        name="class"
-                        value={form.class}
-                        onChange={handleChange}
-                        disabled={!editMode}
-                        className="form-control profile-form-control"
-                        placeholder="Chưa cập nhật"
-                      />
-                    </div>
+                        {/* New Password */}
+                        <div className="col-md-6 mb-3">
+                          <label className="form-label profile-form-label">
+                            <i className="ph ph-lock-key me-2"></i>
+                            Mật khẩu mới
+                          </label>
+                          <div className="password-input-wrapper">
+                            <input
+                              type={showNewPassword ? "text" : "password"}
+                              name="newPassword"
+                              value={passwordForm.newPassword}
+                              onChange={handlePasswordChange}
+                              className="form-control profile-form-control"
+                              placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                              autoComplete="new-password"
+                            />
+                            <button
+                              type="button"
+                              className="password-toggle-btn"
+                              onClick={() => setShowNewPassword(!showNewPassword)}
+                            >
+                              <i className={`ph ${showNewPassword ? 'ph-eye-slash' : 'ph-eye'}`}></i>
+                            </button>
+                          </div>
+                        </div>
 
-                    {/* Bio */}
-                    <div className="col-12 mb-3">
-                      <label className="form-label profile-form-label">
-                        <i className="ph ph-note-pencil me-2"></i>
-                        Tiểu sử
-                      </label>
-                      <textarea
-                        name="bio"
-                        value={form.bio}
-                        onChange={handleChange}
-                        disabled={!editMode}
-                        className="form-control profile-form-control profile-textarea"
-                        rows="4"
-                        placeholder="Viết gì đó về bạn..."
-                      />
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  {editMode && (
-                    <div className="d-flex gap-2 mt-3">
-                      <button
-                        type="submit"
-                        className="btn btn-primary flex-grow-1 profile-submit-btn"
-                        disabled={loading}
-                      >
-                        {loading ? (
-                          <>
-                            <span className="spinner-border spinner-border-sm me-2"></span>
-                            Đang lưu...
-                          </>
-                        ) : (
-                          <>
+                        {/* Confirm Password */}
+                        <div className="col-md-6 mb-3">
+                          <label className="form-label profile-form-label">
                             <i className="ph ph-check-circle me-2"></i>
-                            Lưu thay đổi
-                          </>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCancel}
-                        className="btn btn-light profile-cancel-btn"
-                        disabled={loading}
-                      >
-                        <i className="ph ph-x-circle me-2"></i>
-                        Hủy
-                      </button>
+                            Xác nhận mật khẩu mới
+                          </label>
+                          <div className="password-input-wrapper">
+                            <input
+                              type={showConfirmPassword ? "text" : "password"}
+                              name="confirmPassword"
+                              value={passwordForm.confirmPassword}
+                              onChange={handlePasswordChange}
+                              className="form-control profile-form-control"
+                              placeholder="Nhập lại mật khẩu mới"
+                              autoComplete="new-password"
+                            />
+                            <button
+                              type="button"
+                              className="password-toggle-btn"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            >
+                              <i className={`ph ${showConfirmPassword ? 'ph-eye-slash' : 'ph-eye'}`}></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Password Requirements */}
+                      <div className="password-requirements mt-2 mb-4">
+                        <p className="mb-2 fw-semibold text-muted" style={{ fontSize: '13px' }}>
+                          <i className="ph ph-info me-1"></i>
+                          Yêu cầu mật khẩu:
+                        </p>
+                        <ul className="requirements-list">
+                          <li className={passwordForm.newPassword.length >= 6 ? 'valid' : ''}>
+                            <i className={`ph ${passwordForm.newPassword.length >= 6 ? 'ph-check-circle' : 'ph-circle'}`}></i>
+                            Tối thiểu 6 ký tự
+                          </li>
+                          <li className={passwordForm.newPassword === passwordForm.confirmPassword && passwordForm.newPassword !== '' ? 'valid' : ''}>
+                            <i className={`ph ${passwordForm.newPassword === passwordForm.confirmPassword && passwordForm.newPassword !== '' ? 'ph-check-circle' : 'ph-circle'}`}></i>
+                            Mật khẩu xác nhận khớp
+                          </li>
+                        </ul>
+                      </div>
+
+                      {/* Submit Button */}
+                      <div className="d-flex gap-2">
+                        <button
+                          type="submit"
+                          className="btn btn-primary flex-grow-1 profile-submit-btn"
+                          disabled={loading}
+                        >
+                          {loading ? (
+                            <>
+                              <span className="spinner-border spinner-border-sm me-2"></span>
+                              Đang xử lý...
+                            </>
+                          ) : (
+                            <>
+                              <i className="ph ph-shield-check me-2"></i>
+                              Đổi mật khẩu
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPasswordForm({
+                              currentPassword: '',
+                              newPassword: '',
+                              confirmPassword: ''
+                            });
+                            setError("");
+                          }}
+                          className="btn btn-light profile-cancel-btn"
+                          disabled={loading}
+                        >
+                          <i className="ph ph-x-circle me-2"></i>
+                          Xóa
+                        </button>
+                      </div>
                     </div>
-                  )}
-                </form>
+                  </form>
+                )}
               </div>
             </div>
           </div>

@@ -626,6 +626,47 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
+// ĐỔI MẬT KHẨU
+exports.changePassword = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: "Vui lòng điền đầy đủ thông tin" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "Mật khẩu mới phải có ít nhất 6 ký tự" });
+    }
+
+    // Lấy user với password
+    const user = await User.findById(userId).select('+password');
+    if (!user) {
+      return res.status(404).json({ error: "Không tìm thấy người dùng" });
+    }
+
+    // Kiểm tra mật khẩu hiện tại
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ error: "Mật khẩu hiện tại không đúng" });
+    }
+
+    // Cập nhật mật khẩu mới
+    user.password = newPassword;
+    await user.save();
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Đổi mật khẩu thành công! Vui lòng đăng nhập lại." 
+    });
+  } catch (error) {
+    console.error("Đổi mật khẩu lỗi:", error);
+    return res.status(500).json({ error: "Có lỗi xảy ra khi đổi mật khẩu" });
+  }
+};
+
 
 exports.getActiveUsers = async (req, res) => {
   try {
