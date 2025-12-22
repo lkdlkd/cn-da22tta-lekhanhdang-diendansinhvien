@@ -599,6 +599,12 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
       }
     });
 
+    // Sắp xếp comments và replies theo thời gian mới nhất
+    rootComments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    rootComments.forEach(comment => {
+      comment.replies.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    });
+
     return rootComments;
   };
 

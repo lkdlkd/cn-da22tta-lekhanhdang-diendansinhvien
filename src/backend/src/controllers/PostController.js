@@ -130,6 +130,7 @@ exports.getAllPosts = async (req, res) => {
 			comment.find({ postId: { $in: postIds } })
 				.populate('authorId', 'username displayName avatarUrl')
 				.populate('attachments')
+				.sort({ createdAt: -1 })
 				.lean(),
 			Like.find({ targetType: 'post', targetId: { $in: postIds } })
 				.populate('userId', 'username displayName avatarUrl')
@@ -222,6 +223,7 @@ exports.getPostBySlug = async (req, res) => {
 			comment.find({ postId: post._id })
 				.populate('authorId', 'username displayName avatarUrl faculty class')
 				.populate('attachments')
+				.sort({ createdAt: -1 })
 				.lean(),
 			Like.find({ targetType: 'post', targetId: post._id })
 				.populate('userId', 'username displayName avatarUrl faculty class')

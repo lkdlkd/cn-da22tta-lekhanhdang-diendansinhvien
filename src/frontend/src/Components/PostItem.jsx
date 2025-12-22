@@ -56,8 +56,19 @@ const PostItem = ({
   // State for liked comments (local to this post)
   const [likedComments, setLikedComments] = useState(new Set());
   
+  // State for comment pagination
+  const INITIAL_COMMENTS_COUNT = 5;
+  const [visibleCommentsCount, setVisibleCommentsCount] = useState(INITIAL_COMMENTS_COUNT);
+  
   const { auth } = useContext(AuthContext);
   const token = auth.token;
+
+  // Reset visible comments when comment section is opened or closed
+  React.useEffect(() => {
+    if (isCommentsExpanded) {
+      setVisibleCommentsCount(INITIAL_COMMENTS_COUNT);
+    }
+  }, [isCommentsExpanded]);
 
   // Sync liked comments from post data on mount/update
   React.useEffect(() => {
@@ -545,7 +556,7 @@ const PostItem = ({
             {/* Existing Comments */}
             {hasComments ? (
               <div className="post-item-comments-list">
-                {organizedComments.map(cmt => (
+                {organizedComments.slice(0, visibleCommentsCount).map(cmt => (
                   <CommentItem
                     key={cmt._id}
                     comment={cmt}
@@ -567,6 +578,29 @@ const PostItem = ({
                     isSubmittingReply={isSubmittingReply}
                   />
                 ))}
+                
+                {/* Show More/Less Comments Buttons */}
+                {organizedComments.length > INITIAL_COMMENTS_COUNT && (
+                  <div className="post-item-show-more-comments">
+                    {visibleCommentsCount < organizedComments.length ? (
+                      <button
+                        onClick={() => setVisibleCommentsCount(prev => Math.min(prev + 5, organizedComments.length))}
+                        className="post-item-show-more-comments-btn"
+                      >
+                        <i className="bi bi-chevron-down me-2"></i>
+                        Xem thêm {Math.min(5, organizedComments.length - visibleCommentsCount)} bình luận
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setVisibleCommentsCount(INITIAL_COMMENTS_COUNT)}
+                        className="post-item-show-less-comments-btn"
+                      >
+                        <i className="bi bi-chevron-up me-2"></i>
+                        Ẩn bớt bình luận
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="post-item-comments-empty">
@@ -575,7 +609,7 @@ const PostItem = ({
                 <div className="post-item-comments-empty-subtitle">Hãy là người đầu tiên bình luận!</div>
               </div>
             )}
-            {/* Comment Input - Facebook Style */}
+            {/* Comment Input - Simple Style */}
             <div className="post-item-comment-input-wrapper">
               <img
                 src={user?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=user"}
@@ -587,20 +621,43 @@ const PostItem = ({
                   <textarea
                     value={commentTexts[post._id] || ''}
                     onChange={e => handleCommentChange(post._id, e.target.value)}
-                    placeholder="Viết bình luận..."
+                    placeholder={`Bình luận dưới tên ${user?.displayName || user?.username || 'bạn'}...`}
                     className="post-item-comment-textarea"
                     rows={1}
                     onInput={e => {
                       e.target.style.height = 'auto';
                       e.target.style.height = e.target.scrollHeight + 'px';
                     }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if ((commentTexts[post._id] && commentTexts[post._id].trim()) || 
+                            (commentAttachments[post._id] && commentAttachments[post._id].length > 0)) {
+                          handleSubmitComment(post._id);
+                        }
+                      }
+                    }}
                   />
-                  <label className="post-item-comment-attach-btn">
+                </div>
+
+                {/* Icon toolbar */}
+                <div className="post-item-comment-icons">
+                  <label className="post-item-comment-icon-btn" title="Hình ảnh">
+                    <i className="bi bi-image"></i>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={e => handleAttachmentChange(post._id, e.target.files)}
+                      style={{ display: "none" }}
+                    />
+                  </label>
+                  <label className="post-item-comment-icon-btn" title="Đính kèm file">
                     <i className="bi bi-paperclip"></i>
                     <input
                       type="file"
                       multiple
-                      accept="image/*,video/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar"
+                      accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar"
                       onChange={e => handleAttachmentChange(post._id, e.target.files)}
                       style={{ display: "none" }}
                     />
@@ -632,22 +689,25 @@ const PostItem = ({
                     ))}
                   </div>
                 )}
-
-                {/* Send Button */}
-                {((commentTexts[post._id] && commentTexts[post._id].trim()) ||
-                  (commentAttachments[post._id] && commentAttachments[post._id].length > 0)) && (
-                    <button
-                      onClick={() => handleSubmitComment(post._id)}
-                      disabled={isSubmittingComment}
-                      className="post-item-comment-send-btn"
-                    >
-                      {isSubmittingComment && (
-                        <div className="post-item-comment-spinner" />
-                      )}
-                      {isSubmittingComment ? "Đang gửi..." : "Gửi"}
-                    </button>
-                  )}
               </div>
+
+              {/* Send Button - Always visible on the right */}
+              <button
+                onClick={() => handleSubmitComment(post._id)}
+                disabled={
+                  isSubmittingComment || 
+                  ((!commentTexts[post._id] || !commentTexts[post._id].trim()) && 
+                   (!commentAttachments[post._id] || commentAttachments[post._id].length === 0))
+                }
+                className="post-item-comment-send-btn"
+                title="Gửi"
+              >
+                {isSubmittingComment ? (
+                  <div className="post-item-comment-spinner" />
+                ) : (
+                  <i className="bi bi-send-fill"></i>
+                )}
+              </button>
             </div>
           </div>
         )}

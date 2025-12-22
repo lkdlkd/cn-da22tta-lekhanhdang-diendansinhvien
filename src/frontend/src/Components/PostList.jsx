@@ -395,6 +395,12 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
             }
         });
 
+        // Sắp xếp comments và replies theo thời gian mới nhất
+        rootComments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        rootComments.forEach(comment => {
+            comment.replies.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        });
+
         return rootComments;
     };
 

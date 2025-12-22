@@ -33,13 +33,18 @@ const CommentItem = ({
   const safeReplyTo = replyTo ?? {};
 
   const [isExpanded, setIsExpanded] = React.useState(false);
-  const [showAllReplies, setShowAllReplies] = React.useState(false);
   const [showLikesModal, setShowLikesModal] = React.useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [editContent, setEditContent] = React.useState(comment.content || '');
   const [editAttachments, setEditAttachments] = React.useState([]);
   const [attachmentsToRemove, setAttachmentsToRemove] = React.useState([]);
+  
+  // State for reply pagination
+  const INITIAL_REPLIES_COUNT = 3;
+  const LOAD_MORE_COUNT = 5;
+  const [visibleRepliesCount, setVisibleRepliesCount] = React.useState(INITIAL_REPLIES_COUNT);
+  
   const { user } = useOutletContext();
   const { auth } = useContext(AuthContext);
   const token = auth.token;
@@ -174,13 +179,10 @@ const CommentItem = ({
   const shouldTruncate = (isLongComment || hasMoreThan300Chars) && !isExpanded;
 
   // Giới hạn số lượng replies hiển thị
-  const INITIAL_REPLIES_COUNT = 3;
   const hasReplies = comment.replies && comment.replies.length > 0;
   const totalReplies = hasReplies ? comment.replies.length : 0;
-  const visibleReplies = showAllReplies
-    ? comment.replies
-    : comment.replies?.slice(0, INITIAL_REPLIES_COUNT) || [];
-  const hiddenRepliesCount = totalReplies - INITIAL_REPLIES_COUNT;
+  const visibleReplies = comment.replies?.slice(0, visibleRepliesCount) || [];
+  const remainingRepliesCount = totalReplies - visibleRepliesCount;
 
   return (
     <>
@@ -196,7 +198,7 @@ const CommentItem = ({
           <div className="comment-body">
             {/* Comment Bubble */}
             <div className="comment-bubble-wrapper">
-              <div className="comment-bubble">
+              <div className={`comment-bubble ${isEditing ? 'editing' : ''}`}>
                 <div className={`comment-author-name ${!comment.content ? 'empty' : ''}`}>
                   <Link to={`/user/${comment.authorId?.username}`}>
                     {comment.authorId?.displayName || comment.authorId?.username || "Ẩn danh"}
@@ -206,107 +208,123 @@ const CommentItem = ({
                 {/* Edit Mode */}
                 {isEditing ? (
                   <div className="comment-edit-container">
-                    <textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      className="comment-edit-textarea"
-                    />
+                    <div className="comment-edit-input-wrapper">
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="comment-edit-textarea"
+                        placeholder="Chỉnh sửa bình luận..."
+                        rows={3}
+                        onInput={(e) => {
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
+                      />
 
-                  {/* Existing attachments */}
-                  {comment.attachments && comment.attachments.length > 0 && (
-                    <div className="comment-attachments-section">
-                      <div className="comment-attachments-label">
-                        File đính kèm hiện tại:
-                      </div>
-                      <div className="comment-attachments-grid">
-                        {comment.attachments
-                          .filter(att => !attachmentsToRemove.includes(att._id))
-                          .map((att, idx) => (
-                            <div key={idx} className="comment-attachment-item">
-                              {att.mime && att.mime.startsWith('image') ? (
+                      {/* Existing attachments */}
+                      {comment.attachments && comment.attachments.length > 0 && (
+                        <div className="comment-edit-attachments-existing">
+                          {comment.attachments
+                            .filter(att => !attachmentsToRemove.includes(att._id))
+                            .map((att, idx) => (
+                              <div key={idx} className="comment-edit-attachment-item">
+                                {att.mime && att.mime.startsWith('image') ? (
+                                  <img
+                                    src={att.storageUrl}
+                                    alt="attachment"
+                                    className="comment-edit-attachment-preview"
+                                  />
+                                ) : (
+                                  <div className="comment-edit-attachment-file">
+                                    <i className="bi bi-file-earmark"></i>
+                                    <span className="comment-edit-attachment-name">
+                                      {att.filename}
+                                    </span>
+                                  </div>
+                                )}
+                                <button
+                                  onClick={() => removeExistingAttachment(att._id)}
+                                  className="comment-edit-attachment-remove"
+                                  title="Xóa"
+                                >×</button>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+
+                      {/* New attachments preview */}
+                      {editAttachments.length > 0 && (
+                        <div className="comment-edit-attachments-new">
+                          {editAttachments.map((item, idx) => (
+                            <div key={idx} className="comment-edit-attachment-item">
+                              {item.preview ? (
                                 <img
-                                  src={att.storageUrl}
-                                  alt="attachment"
-                                  className="comment-attachment-image"
+                                  src={item.preview}
+                                  alt="preview"
+                                  className="comment-edit-attachment-preview"
                                 />
                               ) : (
-                                <div className="comment-attachment-file">
-                                  <span className="comment-attachment-icon">📎</span>
-                                  <span className="comment-attachment-filename">
-                                    {att.filename}
+                                <div className="comment-edit-attachment-file">
+                                  <i className="bi bi-file-earmark"></i>
+                                  <span className="comment-edit-attachment-name">
+                                    {item.name}
                                   </span>
                                 </div>
                               )}
                               <button
-                                onClick={() => removeExistingAttachment(att._id)}
-                                className="comment-attachment-remove-btn"
+                                onClick={() => removeEditAttachment(idx)}
+                                className="comment-edit-attachment-remove"
+                                title="Xóa"
                               >×</button>
                             </div>
                           ))}
+                        </div>
+                      )}
+
+                      {/* Icon toolbar */}
+                      <div className="comment-edit-toolbar">
+                        <div className="comment-edit-icons">
+                          <label className="comment-edit-icon-btn" title="Hình ảnh">
+                            <i className="bi bi-image"></i>
+                            <input
+                              type="file"
+                              multiple
+                              accept="image/*"
+                              onChange={(e) => handleEditAttachmentChange(e.target.files)}
+                              style={{ display: "none" }}
+                            />
+                          </label>
+                          <label className="comment-edit-icon-btn" title="Đính kèm file">
+                            <i className="bi bi-paperclip"></i>
+                            <input
+                              type="file"
+                              multiple
+                              accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar"
+                              onChange={(e) => handleEditAttachmentChange(e.target.files)}
+                              style={{ display: "none" }}
+                            />
+                          </label>
+                        </div>
+                        
+                        {/* Action buttons */}
+                        <div className="comment-edit-actions">
+                          <button
+                            onClick={handleCancelEdit}
+                            className="comment-edit-cancel-btn"
+                          >
+                            Hủy
+                          </button>
+                          <button
+                            onClick={handleSubmitEdit}
+                            className="comment-edit-save-btn"
+                            disabled={!editContent.trim() && editAttachments.length === 0 && attachmentsToRemove.length === 0}
+                          >
+                            Lưu
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  )}
-
-                  {/* New attachments preview */}
-                  {editAttachments.length > 0 && (
-                    <div className="comment-attachments-section">
-                      <div className="comment-attachments-label">
-                        File mới:
-                      </div>
-                      <div className="comment-attachments-grid">
-                        {editAttachments.map((item, idx) => (
-                          <div key={idx} className="comment-attachment-item">
-                            {item.preview ? (
-                              <img
-                                src={item.preview}
-                                alt="preview"
-                                className="comment-attachment-image"
-                              />
-                            ) : (
-                              <div className="comment-attachment-file">
-                                <span className="comment-attachment-icon">📎</span>
-                                <span className="comment-attachment-filename">
-                                  {item.name}
-                                </span>
-                              </div>
-                            )}
-                            <button
-                              onClick={() => removeEditAttachment(idx)}
-                              className="comment-attachment-remove-btn"
-                            >×</button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Add attachment button */}
-                  <label className="comment-add-attachment-btn">
-                    📎 Thêm file
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*,video/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar"
-                      onChange={(e) => handleEditAttachmentChange(e.target.files)}
-                    />
-                  </label>
-
-                  {/* Action buttons */}
-                  <div className="comment-edit-actions">
-                    <button
-                      onClick={handleSubmitEdit}
-                      className="comment-edit-save-btn"
-                    >
-                      Lưu
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      className="comment-edit-cancel-btn"
-                    >
-                      Hủy
-                    </button>
                   </div>
-                </div>
               ) : (
                 // Normal view mode
                 comment.content && (
@@ -529,99 +547,27 @@ const CommentItem = ({
           )}
 
           {/* Action Buttons */}
-          <div style={{
-            fontSize: "12px",
-            color: "#65676b",
-            marginTop: "6px",
-            marginLeft: "12px",
-            display: "flex",
-            gap: "14px",
-            alignItems: "center"
-          }}>
-            <span style={{ fontWeight: "400", color: "#8a8d91" }}>{formatTime(comment.createdAt)}</span>
+          <div className="comment-actions">
+            <span className="comment-time">{formatTime(comment.createdAt)}</span>
             <button
               onClick={() => handleLikeComment && handleLikeComment(comment._id)}
-              style={{
-                background: "none",
-                border: "none",
-                color: isLiked ? "#1877f2" : "#65676b",
-                cursor: "pointer",
-                padding: 0,
-                fontWeight: "600",
-                fontSize: "12px",
-                transition: "color 0.2s ease"
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.textDecoration = "underline";
-                if (!isLiked) e.currentTarget.style.color = "#1877f2";
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.textDecoration = "none";
-                if (!isLiked) e.currentTarget.style.color = "#65676b";
-              }}
+              className={`comment-action-btn ${isLiked ? 'liked' : ''}`}
             >
               {isLiked ? "👍 " : ""}Thích
             </button>
             <button
-              style={{
-                background: "none",
-                border: "none",
-                color: "#65676b",
-                cursor: "pointer",
-                padding: 0,
-                fontWeight: "600",
-                fontSize: "12px",
-                transition: "color 0.2s ease"
-              }}
+              className="comment-action-btn"
               onClick={() => setReplyTo(prev => ({ ...(prev || {}), [comment._id]: !(prev && prev[comment._id]) }))}
-              onMouseOver={(e) => {
-                e.currentTarget.style.textDecoration = "underline";
-                e.currentTarget.style.color = "#1877f2";
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.textDecoration = "none";
-                e.currentTarget.style.color = "#65676b";
-              }}
             >
               Trả lời
             </button>
             {(comment.likes?.length > 0 || comment.likesCount > 0) && (
               <div
                 onClick={() => setShowLikesModal(true)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  marginLeft: "auto",
-                  cursor: "pointer",
-                  padding: "2px 6px",
-                  borderRadius: "10px",
-                  transition: "background-color 0.2s ease"
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = "#f0f2f5";
-                  const span = e.currentTarget.querySelector('span:last-child');
-                  if (span) span.style.textDecoration = "underline";
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = "transparent";
-                  const span = e.currentTarget.querySelector('span:last-child');
-                  if (span) span.style.textDecoration = "none";
-                }}
+                className="comment-likes-counter"
               >
-                <span style={{
-                  background: "linear-gradient(135deg, #1877f2 0%, #0c63d4 100%)",
-                  color: "white",
-                  borderRadius: "50%",
-                  width: "18px",
-                  height: "18px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "10px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.12)"
-                }}>👍</span>
-                <span style={{ fontSize: "12px", color: "#65676b", fontWeight: "500" }}>
+                <span className="comment-like-icon-badge">👍</span>
+                <span className="comment-likes-count">
                   {comment.likes?.length || comment.likesCount || 0}
                 </span>
               </div>
@@ -630,62 +576,54 @@ const CommentItem = ({
 
           {/* Reply Input */}
           {safeReplyTo[comment._id] && (
-            <div style={{
-              marginTop: "8px"
-            }}>
-              <div style={{
-                display: "flex",
-                gap: "8px",
-                alignItems: "flex-start"
-              }}>
+            <div className="comment-reply-container">
+              <div className="comment-reply-form">
                 <img
                   src={user && user.avatarUrl ? user.avatarUrl : "https://ui-avatars.com/api/?background=random&name=user"}
                   alt="Your avatar"
-                  style={{
-                    width: "32px",
-                    height: "32px",
-                    borderRadius: "50%",
-                    objectFit: "cover",
-                    flexShrink: 0
-                  }}
+                  className="comment-reply-avatar"
                 />
-                <div style={{ flex: 1 }}>
-                  <div style={{ position: "relative" }}>
+                <div className="comment-reply-input-wrapper">
+                  <div className="comment-reply-textarea-container">
                     <textarea
                       value={safeReplyTexts[comment._id] || ''}
                       onChange={e => handleReplyChange(comment._id, e.target.value)}
                       placeholder={`Trả lời ${comment.authorId?.displayName || comment.authorId?.username || ""}...`}
-                      style={{
-                        width: "100%",
-                        backgroundColor: "#f0f2f5",
-                        border: "none",
-                        borderRadius: "18px",
-                        padding: "8px 40px 8px 12px",
-                        fontSize: "13px",
-                        resize: "none",
-                        minHeight: "36px",
-                        outline: "none",
-                        fontFamily: "inherit"
-                      }}
+                      className="comment-reply-textarea"
                       rows={1}
                       onInput={(e) => {
                         e.target.style.height = 'auto';
                         e.target.style.height = e.target.scrollHeight + 'px';
                       }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (safeReplyTexts[comment._id] && safeReplyTexts[comment._id].trim()) {
+                            handleSubmitReply(postId, comment._id);
+                          }
+                        }
+                      }}
                     />
-                    <label style={{
-                      position: "absolute",
-                      right: "8px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      cursor: "pointer",
-                      fontSize: "18px",
-                      color: "#65676b"
-                    }}>
-                      📎
+                  </div>
+
+                  {/* Icon toolbar */}
+                  <div className="comment-reply-icons">
+                    <label className="comment-reply-icon-btn" title="Hình ảnh">
+                      <i className="bi bi-image"></i>
                       <input
                         type="file"
                         multiple
+                        accept="image/*"
+                        onChange={e => handleReplyAttachmentChange(comment._id, e.target.files)}
+                        style={{ display: "none" }}
+                      />
+                    </label>
+                    <label className="comment-reply-icon-btn" title="Đính kèm file">
+                      <i className="bi bi-paperclip"></i>
+                      <input
+                        type="file"
+                        multiple
+                        accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar"
                         onChange={e => handleReplyAttachmentChange(comment._id, e.target.files)}
                         style={{ display: "none" }}
                       />
@@ -694,128 +632,48 @@ const CommentItem = ({
 
                   {/* Attachment Previews */}
                   {safeReplyAttachments[comment._id] && safeReplyAttachments[comment._id].length > 0 && (
-                    <div style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
-                      gap: "6px",
-                      marginTop: "8px"
-                    }}>
+                    <div className="comment-reply-previews">
                       {safeReplyAttachments[comment._id].map((file, fidx) => (
-                        <div key={fidx} style={{
-                          position: "relative",
-                          backgroundColor: "#f0f2f5",
-                          borderRadius: "8px",
-                          overflow: "hidden"
-                        }}>
+                        <div key={fidx} className="comment-reply-preview-item">
                           {file.preview ? (
                             <img
                               src={file.preview}
                               alt="preview"
-                              style={{
-                                width: "100%",
-                                height: "80px",
-                                objectFit: "cover"
-                              }}
+                              className="comment-reply-preview-image"
                             />
                           ) : (
-                            <div style={{
-                              height: "80px",
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              padding: "6px"
-                            }}>
-                              <span style={{ fontSize: "20px", marginBottom: "4px" }}>📎</span>
-                              <span style={{
-                                fontSize: "9px",
-                                color: "#65676b",
-                                textAlign: "center",
-                                wordBreak: "break-word",
-                                overflow: "hidden",
-                                display: "-webkit-box",
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: "vertical"
-                              }}>{file.name}</span>
+                            <div className="comment-reply-preview-file">
+                              <span className="comment-reply-preview-file-icon">📎</span>
+                              <span className="comment-reply-preview-file-name">{file.name}</span>
                             </div>
                           )}
                           <button
                             onClick={() => removeReplyAttachment(comment._id, fidx)}
-                            style={{
-                              position: "absolute",
-                              top: "4px",
-                              right: "4px",
-                              width: "18px",
-                              height: "18px",
-                              borderRadius: "50%",
-                              backgroundColor: "rgba(0,0,0,0.6)",
-                              color: "white",
-                              border: "none",
-                              cursor: "pointer",
-                              fontSize: "12px",
-                              fontWeight: "bold",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              lineHeight: 1
-                            }}
+                            className="comment-reply-preview-remove"
                           >×</button>
                         </div>
                       ))}
                     </div>
                   )}
-
-                  {/* Send Button */}
-                  {((safeReplyTexts[comment._id] && safeReplyTexts[comment._id].trim()) ||
-                    (safeReplyAttachments[comment._id] && safeReplyAttachments[comment._id].length > 0)) && (
-                      <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
-                        <button
-                          onClick={() => handleSubmitReply(postId, comment._id)}
-                          disabled={isSubmittingReply && isSubmittingReply[comment._id]}
-                          style={{
-                            background: (isSubmittingReply && isSubmittingReply[comment._id]) ? "#e4e6eb" : "#1877f2",
-                            color: (isSubmittingReply && isSubmittingReply[comment._id]) ? "#bcc0c4" : "white",
-                            border: "none",
-                            borderRadius: "6px",
-                            padding: "6px 14px",
-                            fontSize: "13px",
-                            fontWeight: "600",
-                            cursor: (isSubmittingReply && isSubmittingReply[comment._id]) ? "not-allowed" : "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px"
-                          }}
-                        >
-                          {(isSubmittingReply && isSubmittingReply[comment._id]) && (
-                            <div style={{
-                              width: "12px",
-                              height: "12px",
-                              border: "2px solid #bcc0c4",
-                              borderTopColor: "transparent",
-                              borderRadius: "50%",
-                              animation: "spin 0.8s linear infinite"
-                            }} />
-                          )}
-                          {(isSubmittingReply && isSubmittingReply[comment._id]) ? "Đang gửi..." : "Gửi"}
-                        </button>
-                        <button
-                          onClick={() => setReplyTo(prev => ({ ...prev, [comment._id]: false }))}
-                          style={{
-                            background: "#e4e6eb",
-                            color: "#050505",
-                            border: "none",
-                            borderRadius: "6px",
-                            padding: "6px 14px",
-                            fontSize: "13px",
-                            fontWeight: "600",
-                            cursor: "pointer"
-                          }}
-                        >
-                          Hủy
-                        </button>
-                      </div>
-                    )}
                 </div>
+
+                {/* Send Button - Always visible on the right */}
+                <button
+                  onClick={() => handleSubmitReply(postId, comment._id)}
+                  disabled={
+                    (isSubmittingReply && isSubmittingReply[comment._id]) ||
+                    ((!safeReplyTexts[comment._id] || !safeReplyTexts[comment._id].trim()) &&
+                     (!safeReplyAttachments[comment._id] || safeReplyAttachments[comment._id].length === 0))
+                  }
+                  className="comment-reply-send-btn"
+                  title="Gửi"
+                >
+                  {(isSubmittingReply && isSubmittingReply[comment._id]) ? (
+                    <div className="comment-reply-spinner" />
+                  ) : (
+                    <i className="bi bi-send-fill"></i>
+                  )}
+                </button>
               </div>
             </div>
           )}
@@ -824,36 +682,7 @@ const CommentItem = ({
 
       {/* Render replies */}
       {hasReplies && (
-        <div style={{ marginTop: "4px", position: "relative" }}>
-          {/* Nút "Xem thêm câu trả lời" */}
-          {!showAllReplies && hiddenRepliesCount > 0 && (
-            <div style={{
-              marginBottom: "8px",
-              marginLeft: "40px"
-            }}>
-              <button
-                onClick={() => setShowAllReplies(true)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#65676b",
-                  cursor: "pointer",
-                  padding: "4px 0",
-                  fontWeight: "600",
-                  fontSize: "13px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px"
-                }}
-                onMouseOver={(e) => e.currentTarget.style.textDecoration = "underline"}
-                onMouseOut={(e) => e.currentTarget.style.textDecoration = "none"}
-              >
-                <span>↩️</span>
-                Xem thêm {hiddenRepliesCount} câu trả lời
-              </button>
-            </div>
-          )}
-
+        <div className="comment-replies-section">
           {visibleReplies.map((reply, idx) => (
             <div key={idx}>
               <CommentItem
@@ -879,28 +708,25 @@ const CommentItem = ({
             </div>
           ))}
 
-          {/* Nút "Ẩn bớt" */}
-          {showAllReplies && totalReplies > INITIAL_REPLIES_COUNT && (
-            <div style={{
-              marginTop: "4px",
-              marginLeft: "40px"
-            }}>
-              <button
-                onClick={() => setShowAllReplies(false)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#65676b",
-                  cursor: "pointer",
-                  padding: "4px 0",
-                  fontWeight: "600",
-                  fontSize: "13px"
-                }}
-                onMouseOver={(e) => e.currentTarget.style.textDecoration = "underline"}
-                onMouseOut={(e) => e.currentTarget.style.textDecoration = "none"}
-              >
-                Ẩn bớt câu trả lời
-              </button>
+          {/* Show More/Less Replies Buttons */}
+          {totalReplies > INITIAL_REPLIES_COUNT && (
+            <div className="comment-show-more-replies">
+              {visibleRepliesCount < totalReplies ? (
+                <button
+                  onClick={() => setVisibleRepliesCount(prev => Math.min(prev + LOAD_MORE_COUNT, totalReplies))}
+                  className="comment-show-more-btn"
+                >
+                  <span>↩️</span>
+                  Xem thêm {Math.min(LOAD_MORE_COUNT, remainingRepliesCount)} câu trả lời
+                </button>
+              ) : (
+                <button
+                  onClick={() => setVisibleRepliesCount(INITIAL_REPLIES_COUNT)}
+                  className="comment-show-less-btn"
+                >
+                  Ẩn bớt câu trả lời
+                </button>
+              )}
             </div>
           )}
         </div>
