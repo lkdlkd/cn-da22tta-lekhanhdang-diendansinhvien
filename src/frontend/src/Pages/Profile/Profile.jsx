@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getProfile, updateProfile } from "../../Utils/api";
+import { getProfile, updateProfile, changePassword } from "../../Utils/api";
 import { useOutletContext } from "react-router-dom";
 import { Link } from "react-router-dom";
 import './Profile.css';
@@ -71,7 +71,16 @@ const Profile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isOnline] = useState(true);
   const { user } = useOutletContext();
+
+  const getMemberSince = () => {
+    if (profile?.createdAt) {
+      const date = new Date(profile.createdAt);
+      return date.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' });
+    }
+    return 'Tháng 1, 2024';
+  };
 
   useEffect(() => {
     if (user) {
@@ -246,24 +255,8 @@ const Profile = () => {
     const token = localStorage.getItem("token");
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/users/change-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Đổi mật khẩu thất bại');
-      }
-
+      await changePassword(token, passwordForm.currentPassword, passwordForm.newPassword);
+      
       setSuccess("Đổi mật khẩu thành công!");
       setPasswordForm({
         currentPassword: '',
@@ -298,94 +291,196 @@ const Profile = () => {
   }
 
   return (
-
     <div className="profile-container">
       <div className="container-fluid">
         <div className="row justify-content-center">
-          <div className="col-lg-8">
-            {/* Header Card */}
-            <div className="card border-0 profile-header-card">
-              {/* Cover/Banner */}
-              <div className="profile-cover">
-                <div className="profile-avatar-wrapper">
-                  <div style={{ position: 'relative' }}>
-                    <img
-                      src={avatarPreview || `https://ui-avatars.com/api/?background=random&name=${profile.displayName || profile.username}&size=200`}
-                      alt="Avatar"
-                      className="profile-avatar"
-                    />
+          <div className="col-xl-10">
+            <div className="profile-layout">
+{/* Sidebar Profile Card - Redesigned */}
+              <aside className="profile-sidebar-card" role="complementary" aria-label="Thông tin cá nhân">
+                {/* Gradient Header with Pattern */}
+                <div className="profile-sidebar-header">
+                  <div className="profile-sidebar-avatar-wrapper">
+                    {/* Avatar with Online Ring */}
+                    <div className="profile-avatar-container">
+                      <img
+                        src={avatarPreview || `https://ui-avatars.com/api/?background=4f46e5&color=fff&name=${profile.displayName || profile.username}&size=200`}
+                        alt={`Ảnh đại diện của ${profile.displayName || profile.username}`}
+                        className="profile-sidebar-avatar"
+                        loading="lazy"
+                      />
+                      {isOnline && (
+                        <span 
+                          className="profile-online-indicator"
+                          title="Đang trực tuyến"
+                          aria-label="Trạng thái: Đang trực tuyến"
+                        >
+                          <span className="pulse-ring"></span>
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Avatar Edit Button */}
                     {editMode && (
-                      <label className="profile-avatar-edit-btn">
-                        <i className="bi bi-camera"></i>
+                      <label 
+                        className="profile-sidebar-avatar-edit"
+                        title="Thay đổi ảnh đại diện"
+                        aria-label="Thay đổi ảnh đại diện"
+                      >
+                        <i className="bi bi-camera" aria-hidden="true"></i>
                         <input
                           type="file"
                           accept="image/*"
                           style={{ display: "none" }}
                           onChange={handleAvatarChange}
+                          aria-label="Tải lên ảnh đại diện mới"
                         />
                       </label>
                     )}
                   </div>
                 </div>
-              </div>
 
-              <div className="card-body text-center profile-header-body">
-                <h4 className="profile-display-name">
-                  {profile.displayName || profile.username}
-                </h4>
-                <p className="profile-username">
-                  <i className="ph ph-at me-1"></i>
-                  {profile.username}
-                </p>
-                {profile.faculty && (
-                  <p className="profile-faculty-info">
-                    <i className="ph ph-graduation-cap me-1"></i>
-                    {profile.faculty} • {profile.class}
-                  </p>
-                )}
+                {/* Profile Info */}
+                <div className="profile-sidebar-body">
+                  {/* Name with Verified Badge */}
+                  <div className="profile-name-section">
+                    <h5 className="profile-sidebar-name" title={profile.displayName || profile.username}>
+                      {profile.displayName || profile.username}
+                      {profile.verified && (
+                        <i 
+                          className="ph-fill ph-seal-check profile-verified-badge"
+                          title="Tài khoản đã xác minh"
+                          aria-label="Đã xác minh"
+                        ></i>
+                      )}
+                    </h5>
+                    <p className="profile-sidebar-username">
+                      <i className="ph ph-at" aria-hidden="true"></i>
+                      <span>{profile.username}</span>
+                    </p>
+                  </div>
 
-                {/* Stats */}
-                <div className="profile-stats">
-                  <div className="profile-stat-item">
-                    <div className="profile-stat-value">
-                      {profile.stats?.postsCount || 0}
+                  {/* Bio Preview */}
+                  {profile.bio && (
+                    <div className="profile-bio-preview">
+                      <p>{profile.bio.length > 80 ? `${profile.bio.substring(0, 80)}...` : profile.bio}</p>
                     </div>
-                    <div className="profile-stat-label">Bài viết</div>
-                  </div>
-                  <div className="profile-stat-item">
-                    <div className="profile-stat-value">
-                      {profile.stats?.commentsCount || 0}
+                  )}
+
+                  {/* Faculty Badge */}
+                  {profile.faculty && (
+                    <div className="profile-sidebar-faculty" title={`${profile.faculty} - Lớp ${profile.class}`}>
+                      <i className="ph-duotone ph-graduation-cap" aria-hidden="true"></i>
+                      <div className="faculty-info">
+                        <span className="faculty-name">{profile.faculty}</span>
+                        {profile.class && <span className="class-name">Lớp {profile.class}</span>}
+                      </div>
                     </div>
-                    <div className="profile-stat-label">Bình luận</div>
+                  )}
+
+                  {/* Member Since */}
+                  <div className="profile-member-since">
+                    <i className="ph ph-calendar-blank" aria-hidden="true"></i>
+                    <span>Tham gia {getMemberSince()}</span>
                   </div>
-                  <div className="profile-stat-item">
-                    <div className="profile-stat-value">
-                      {profile.stats?.likesReceived || 0}
+
+                  {/* Stats with Progress Bars */}
+                  <div className="profile-sidebar-stats-new" role="region" aria-label="Thống kê hoạt động">
+                    <div className="stats-header">
+                      <i className="ph-duotone ph-chart-line-up"></i>
+                      <span>Hoạt động</span>
                     </div>
-                    <div className="profile-stat-label">Lượt thích</div>
+                    
+                    <div className="stat-item">
+                      <div className="stat-info">
+                        <span className="stat-label">
+                          <i className="ph ph-note-pencil"></i>
+                          Bài viết
+                        </span>
+                        <span className="stat-value">{profile.stats?.postsCount || 0}</span>
+                      </div>
+                      <div className="stat-progress">
+                        <div 
+                          className="stat-progress-bar"
+                          style={{ width: `${Math.min((profile.stats?.postsCount || 0) * 2, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    <div className="stat-item">
+                      <div className="stat-info">
+                        <span className="stat-label">
+                          <i className="ph ph-chat-circle-text"></i>
+                          Bình luận
+                        </span>
+                        <span className="stat-value">{profile.stats?.commentsCount || 0}</span>
+                      </div>
+                      <div className="stat-progress">
+                        <div 
+                          className="stat-progress-bar"
+                          style={{ width: `${Math.min((profile.stats?.commentsCount || 0) * 1.5, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    <div className="stat-item">
+                      <div className="stat-info">
+                        <span className="stat-label">
+                          <i className="ph ph-heart"></i>
+                          Lượt thích
+                        </span>
+                        <span className="stat-value">{profile.stats?.likesReceived || 0}</span>
+                      </div>
+                      <div className="stat-progress">
+                        <div 
+                          className="stat-progress-bar"
+                          style={{ width: `${Math.min((profile.stats?.likesReceived || 0) * 1, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Quick Actions */}
+                  {!editMode && (
+                    <div className="profile-quick-actions">
+                      <button 
+                        className="quick-action-btn"
+                        onClick={() => setActiveTab('info')}
+                        title="Xem hồ sơ"
+                      >
+                        <i className="ph-duotone ph-user-circle"></i>
+                        <span>Hồ sơ</span>
+                      </button>
+                      <button 
+                        className="quick-action-btn"
+                        onClick={() => setActiveTab('password')}
+                        title="Đổi mật khẩu"
+                      >
+                        <i className="ph-duotone ph-lock-key"></i>
+                        <span>Bảo mật</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
+              </aside>
 
-            {/* Form Card */}
-            <div className="card border-0 profile-form-card">
-              {/* Tabs Header */}
-              <div className="card-header bg-white border-0 profile-tabs-header">
-                <nav className="profile-tabs">
+              {/* Main Content Card */}
+              <div className="profile-main-card">
+                {/* Tabs */}
+                <div className="profile-main-tabs">
                   <button
-                    className={`profile-tab ${activeTab === 'info' ? 'active' : ''}`}
+                    className={`profile-main-tab ${activeTab === 'info' ? 'active' : ''}`}
                     onClick={() => {
                       setActiveTab('info');
                       setError("");
                       setSuccess("");
                     }}
                   >
-                    <i className="ph-duotone ph-user-circle-gear me-2"></i>
-                    Thông tin cá nhân
+                    <i className="ph-duotone ph-user-circle-gear"></i>
+                    <span>Thông tin cá nhân</span>
                   </button>
                   <button
-                    className={`profile-tab ${activeTab === 'password' ? 'active' : ''}`}
+                    className={`profile-main-tab ${activeTab === 'password' ? 'active' : ''}`}
                     onClick={() => {
                       setActiveTab('password');
                       setError("");
@@ -393,359 +488,413 @@ const Profile = () => {
                       setEditMode(false);
                     }}
                   >
-                    <i className="ph-duotone ph-lock-key me-2"></i>
-                    Đổi mật khẩu
+                    <i className="ph-duotone ph-lock-key"></i>
+                    <span>Đổi mật khẩu</span>
                   </button>
-                </nav>
-                {!editMode && activeTab === 'info' && (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm profile-edit-btn"
-                    onClick={() => setEditMode(true)}
-                  >
-                    <i className="ph ph-pencil-simple me-2"></i>
-                    Chỉnh sửa
-                  </button>
-                )}
-              </div>
+                </div>
 
-              <div className="card-body p-4">
-                {/* Messages */}
-                {error && (
-                  <div className="alert alert-danger d-flex align-items-center mb-4 profile-alert">
-                    <i className="ph ph-warning-circle me-2"></i>
-                    {error}
-                  </div>
-                )}
-                {success && (
-                  <div className="alert alert-success d-flex align-items-center mb-4 profile-alert">
-                    <i className="ph ph-check-circle me-2"></i>
-                    {success}
-                  </div>
-                )}
 
-                {/* Tab: Thông tin cá nhân */}
-                {activeTab === 'info' && (
-                  <form onSubmit={handleSubmit}>
-                    <div className="row">
-                      {/* Username */}
-                      <div className="col-md-6 mb-3">
-                        <label className="form-label profile-form-label">
-                          <i className="ph ph-user me-2"></i>
-                          Tên đăng nhập
-                        </label>
-                        <input
-                          value={profile.username}
-                          disabled
-                          className="form-control profile-form-control"
-                        />
-                      </div>
-                      {/* Email */}
-                      <div className="col-md-6 mb-3">
-                        <label className="form-label profile-form-label">
-                          <i className="ph ph-envelope me-2"></i>
-                          Email
-                        </label>
-                        <input
-                          name="email"
-                          value={form.email}
-                          disabled
-                          className="form-control profile-form-control"
-                        />
-                      </div>
-                      {/* Display Name */}
-                      <div className="col-md-6 mb-3">
-                        <label className="form-label profile-form-label">
-                          <i className="ph ph-identification-card me-2"></i>
-                          Tên hiển thị
-                        </label>
-                        <input
-                          name="displayName"
-                          value={form.displayName}
-                          onChange={handleChange}
-                          disabled={!editMode}
-                          className="form-control profile-form-control"
-                        />
-                      </div>
-
-                      {/* Phone */}
-                      <div className="col-md-6 mb-3">
-                        <label className="form-label profile-form-label">
-                          <i className="ph ph-phone me-2"></i>
-                          Số điện thoại
-                        </label>
-                        <input
-                          name="phone"
-                          value={form.phone}
-                          onChange={handleChange}
-                          disabled={!editMode}
-                          className="form-control profile-form-control"
-                          placeholder="Chưa cập nhật"
-                        />
-                      </div>
-
-                      {/* School */}
-                      <div className="col-md-6 mb-3">
-                        <label className="form-label profile-form-label">
-                          <i className="ph ph-buildings me-2"></i>
-                          Trường
-                        </label>
-                        <select
-                          value={selectedSchool}
-                          onChange={handleSchoolChange}
-                          disabled={!editMode}
-                          className="form-select profile-form-control"
-                        >
-                          <option value="">-- Chọn trường --</option>
-                          {Object.keys(facultiesData).map((school) => (
-                            <option key={school} value={school}>
-                              {school}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Faculty */}
-                      <div className="col-md-6 mb-3">
-                        <label className="form-label profile-form-label">
-                          <i className="ph ph-building me-2"></i>
-                          Khoa
-                        </label>
-                        <select
-                          name="faculty"
-                          value={form.faculty}
-                          onChange={handleFacultyChange}
-                          disabled={!editMode || !selectedSchool}
-                          className="form-select profile-form-control"
-                        >
-                          <option value="">-- Chọn khoa --</option>
-                          {availableFaculties.map((faculty) => (
-                            <option key={faculty} value={faculty}>
-                              {faculty}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Class */}
-                      <div className="col-md-6 mb-3">
-                        <label className="form-label profile-form-label">
-                          <i className="ph ph-students me-2"></i>
-                          Lớp
-                        </label>
-                        <input
-                          name="class"
-                          value={form.class}
-                          onChange={handleChange}
-                          disabled={!editMode}
-                          className="form-control profile-form-control"
-                          placeholder="Chưa cập nhật"
-                        />
-                      </div>
-
-                      {/* Bio */}
-                      <div className="col-12 mb-3">
-                        <label className="form-label profile-form-label">
-                          <i className="ph ph-note-pencil me-2"></i>
-                          Tiểu sử
-                        </label>
-                        <textarea
-                          name="bio"
-                          value={form.bio}
-                          onChange={handleChange}
-                          disabled={!editMode}
-                          className="form-control profile-form-control profile-textarea"
-                          rows="4"
-                          placeholder="Viết gì đó về bạn..."
-                        />
-                      </div>
+                {/* Main Body */}
+                <div className="profile-main-body">
+                  {/* Messages */}
+                  {error && (
+                    <div className="alert alert-danger d-flex align-items-center mb-4 profile-alert">
+                      <i className="ph ph-warning-circle me-2"></i>
+                      {error}
                     </div>
+                  )}
+                  {success && (
+                    <div className="alert alert-success d-flex align-items-center mb-4 profile-alert">
+                      <i className="ph ph-check-circle me-2"></i>
+                      {success}
+                    </div>
+                  )}
 
-                    {/* Action Buttons */}
-                    {editMode && (
-                      <div className="d-flex gap-2 mt-3">
-                        <button
-                          type="submit"
-                          className="btn btn-primary flex-grow-1 profile-submit-btn"
-                          disabled={loading}
-                        >
-                          {loading ? (
-                            <>
-                              <span className="spinner-border spinner-border-sm me-2"></span>
-                              Đang lưu...
-                            </>
-                          ) : (
-                            <>
+                  {/* Tab: Thông tin cá nhân */}
+                  {activeTab === 'info' && (
+                    <form onSubmit={handleSubmit}>
+                      {/* Basic Info Section */}
+                      <div className="mb-4">
+                        <div className="profile-section-header">
+                          <i className="ph ph-user-circle"></i>
+                          <h6>Thông tin cơ bản</h6>
+                          {/* Edit Button */}
+                          {!editMode && activeTab === 'info' && (
+                            <div className="ms-auto"  >
+                              <button
+                                type="button"
+                                className="btn profile-edit-btn"
+                                onClick={() => setEditMode(true)}
+                              >
+                                <i className="ph ph-pencil-simple me-2"></i>
+                                Chỉnh sửa
+                              </button>
+                            </div>
+                          )}
+
+                        </div>
+
+                        <div className="row g-3">
+                          {/* Display Name */}
+                          <div className="col-md-6">
+                            <label className="profile-form-label">
+                              <i className="ph ph-identification-card"></i>
+                              Tên hiển thị
+                            </label>
+                            <input
+                              name="displayName"
+                              value={form.displayName}
+                              onChange={handleChange}
+                              disabled={!editMode}
+                              className="form-control profile-form-control"
+                            />
+                          </div>
+
+                          {/* Username */}
+                          <div className="col-md-6">
+                            <label className="profile-form-label">
+                              <i className="ph ph-user"></i>
+                              Tên đăng nhập
+                            </label>
+                            <input
+                              value={profile.username}
+                              disabled
+                              className="form-control profile-form-control"
+                            />
+                          </div>
+
+                          {/* Email */}
+                          <div className="col-md-6">
+                            <label className="profile-form-label">
+                              <i className="ph ph-envelope"></i>
+                              Email
+                            </label>
+                            <input
+                              name="email"
+                              value={form.email}
+                              disabled
+                              className="form-control profile-form-control"
+                            />
+                          </div>
+
+                          {/* Phone */}
+                          <div className="col-md-6">
+                            <label className="profile-form-label">
+                              <i className="ph ph-phone"></i>
+                              Số điện thoại
+                            </label>
+                            <input
+                              name="phone"
+                              value={form.phone}
+                              onChange={handleChange}
+                              disabled={!editMode}
+                              className="form-control profile-form-control"
+                              placeholder="Chưa cập nhật"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Academic Info Section */}
+                      <div className="mb-4">
+                        <div className="profile-section-header">
+                          <i className="ph ph-graduation-cap"></i>
+                          <h6>Thông tin học vấn</h6>
+                        </div>
+                        <div className="row g-3">
+                          {/* School */}
+                          <div className="col-12">
+                            <label className="profile-form-label">
+                              <i className="ph ph-buildings"></i>
+                              Trường
+                            </label>
+                            <select
+                              value={selectedSchool}
+                              onChange={handleSchoolChange}
+                              disabled={!editMode}
+                              className="form-select profile-form-control"
+                            >
+                              <option value="">-- Chọn trường --</option>
+                              {Object.keys(facultiesData).map((school) => (
+                                <option key={school} value={school}>
+                                  {school}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Faculty */}
+                          <div className="col-md-6">
+                            <label className="profile-form-label">
+                              <i className="ph ph-building"></i>
+                              Khoa
+                            </label>
+                            <select
+                              name="faculty"
+                              value={form.faculty}
+                              onChange={handleFacultyChange}
+                              disabled={!editMode || !selectedSchool}
+                              className="form-select profile-form-control"
+                            >
+                              <option value="">-- Chọn khoa --</option>
+                              {availableFaculties.map((faculty) => (
+                                <option key={faculty} value={faculty}>
+                                  {faculty}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Class */}
+                          <div className="col-md-6">
+                            <label className="profile-form-label">
+                              <i className="ph ph-students"></i>
+                              Lớp
+                            </label>
+                            <input
+                              name="class"
+                              value={form.class}
+                              onChange={handleChange}
+                              disabled={!editMode}
+                              className="form-control profile-form-control"
+                              placeholder="Chưa cập nhật"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bio Section */}
+                      <div className="mb-4">
+                        <div className="profile-section-header">
+                          <i className="ph ph-note-pencil"></i>
+                          <h6>Giới thiệu bản thân</h6>
+                        </div>
+                        {/* Bio */}
+                        <div className="col-12">
+                          <label className="profile-form-label">
+                            Tiểu sử
+                          </label>
+                          <textarea
+                            name="bio"
+                            value={form.bio}
+                            onChange={handleChange}
+                            disabled={!editMode}
+                            className="form-control profile-form-control profile-textarea"
+                            rows="5"
+                            placeholder="Viết gì đó về bạn..."
+                            style={{ resize: 'vertical', minHeight: '120px', maxHeight: '300px' }}
+                          />
+                          <small className="text-muted" style={{ fontSize: '12px' }}>
+                            <i className="ph ph-info me-1"></i>
+                            Tối đa 500 ký tự {form.bio ? `• Còn ${500 - form.bio.length} ký tự` : ''}
+                          </small>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      {editMode && (
+                        <div className="border-top pt-4 mt-2">
+                          <div className="d-flex gap-3">
+                            <button
+                              type="submit"
+                              className="btn btn-primary flex-grow-1 profile-submit-btn"
+                              disabled={loading}
+                              style={{ minHeight: '44px' }}
+                            >
+                              {loading ? (
+                                <>
+                                  <span className="spinner-border spinner-border-sm me-2"></span>
+                                  Đang lưu...
+                                </>
+                              ) : (
+                                <>
+                                  <i className="ph ph-check-circle me-2"></i>
+                                  Lưu thay đổi
+                                </>
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleCancel}
+                              className="btn btn-light profile-cancel-btn"
+                              disabled={loading}
+                              style={{ minHeight: '44px', minWidth: '120px' }}
+                            >
+                              <i className="ph ph-x-circle me-2"></i>
+                              Hủy
+                            </button>
+                          </div>
+                          <p className="text-muted text-center mt-3 mb-0" style={{ fontSize: '12px' }}>
+                            <i className="ph ph-lock-simple me-1"></i>
+                            Thông tin của bạn được bảo mật và an toàn
+                          </p>
+                        </div>
+                      )}
+                    </form>
+                  )}
+
+                  {/* Tab: Đổi mật khẩu */}
+                  {activeTab === 'password' && (
+                    <form onSubmit={handlePasswordSubmit}>
+                      <div className="password-change-container">
+                        <div className="password-change-header mb-4">
+                          <h5 className="password-change-title">
+                            <i className="ph-duotone ph-shield-check me-2"></i>
+                            Đổi mật khẩu
+                          </h5>
+                          <p className="password-change-subtitle">
+                            Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu cho người khác
+                          </p>
+                        </div>
+
+                        <div className="row">
+                          {/* Current Password */}
+                          <div className="col-12 mb-4">
+                            <label className="form-label profile-form-label">
+                              <i className="ph ph-lock me-2"></i>
+                              Mật khẩu hiện tại
+                            </label>
+                            <div className="password-input-wrapper">
+                              <input
+                                type={showCurrentPassword ? "text" : "password"}
+                                name="currentPassword"
+                                value={passwordForm.currentPassword}
+                                onChange={handlePasswordChange}
+                                className="form-control profile-form-control"
+                                placeholder="Nhập mật khẩu hiện tại"
+                                autoComplete="current-password"
+                              />
+                              <button
+                                type="button"
+                                className="password-toggle-btn"
+                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                              >
+                                <i className={`ph ${showCurrentPassword ? 'ph-eye-slash' : 'ph-eye'}`}></i>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* New Password */}
+                          <div className="col-md-6 mb-4">
+                            <label className="form-label profile-form-label">
+                              <i className="ph ph-lock-key me-2"></i>
+                              Mật khẩu mới
+                            </label>
+                            <div className="password-input-wrapper">
+                              <input
+                                type={showNewPassword ? "text" : "password"}
+                                name="newPassword"
+                                value={passwordForm.newPassword}
+                                onChange={handlePasswordChange}
+                                className="form-control profile-form-control"
+                                placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                                autoComplete="new-password"
+                              />
+                              <button
+                                type="button"
+                                className="password-toggle-btn"
+                                onClick={() => setShowNewPassword(!showNewPassword)}
+                              >
+                                <i className={`ph ${showNewPassword ? 'ph-eye-slash' : 'ph-eye'}`}></i>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Confirm Password */}
+                          <div className="col-md-6 mb-4">
+                            <label className="form-label profile-form-label">
                               <i className="ph ph-check-circle me-2"></i>
-                              Lưu thay đổi
-                            </>
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCancel}
-                          className="btn btn-light profile-cancel-btn"
-                          disabled={loading}
-                        >
-                          <i className="ph ph-x-circle me-2"></i>
-                          Hủy
-                        </button>
-                      </div>
-                    )}
-                  </form>
-                )}
-
-                {/* Tab: Đổi mật khẩu */}
-                {activeTab === 'password' && (
-                  <form onSubmit={handlePasswordSubmit}>
-                    <div className="password-change-container">
-                      <div className="password-change-header mb-4">
-                        <h5 className="password-change-title">
-                          <i className="ph-duotone ph-shield-check me-2"></i>
-                          Đổi mật khẩu
-                        </h5>
-                        <p className="password-change-subtitle">
-                          Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu cho người khác
-                        </p>
-                      </div>
-
-                      <div className="row">
-                        {/* Current Password */}
-                        <div className="col-12 mb-3">
-                          <label className="form-label profile-form-label">
-                            <i className="ph ph-lock me-2"></i>
-                            Mật khẩu hiện tại
-                          </label>
-                          <div className="password-input-wrapper">
-                            <input
-                              type={showCurrentPassword ? "text" : "password"}
-                              name="currentPassword"
-                              value={passwordForm.currentPassword}
-                              onChange={handlePasswordChange}
-                              className="form-control profile-form-control"
-                              placeholder="Nhập mật khẩu hiện tại"
-                              autoComplete="current-password"
-                            />
-                            <button
-                              type="button"
-                              className="password-toggle-btn"
-                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                            >
-                              <i className={`ph ${showCurrentPassword ? 'ph-eye-slash' : 'ph-eye'}`}></i>
-                            </button>
+                              Xác nhận mật khẩu mới
+                            </label>
+                            <div className="password-input-wrapper">
+                              <input
+                                type={showConfirmPassword ? "text" : "password"}
+                                name="confirmPassword"
+                                value={passwordForm.confirmPassword}
+                                onChange={handlePasswordChange}
+                                className="form-control profile-form-control"
+                                placeholder="Nhập lại mật khẩu mới"
+                                autoComplete="new-password"
+                              />
+                              <button
+                                type="button"
+                                className="password-toggle-btn"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              >
+                                <i className={`ph ${showConfirmPassword ? 'ph-eye-slash' : 'ph-eye'}`}></i>
+                              </button>
+                            </div>
                           </div>
                         </div>
 
-                        {/* New Password */}
-                        <div className="col-md-6 mb-3">
-                          <label className="form-label profile-form-label">
-                            <i className="ph ph-lock-key me-2"></i>
-                            Mật khẩu mới
-                          </label>
-                          <div className="password-input-wrapper">
-                            <input
-                              type={showNewPassword ? "text" : "password"}
-                              name="newPassword"
-                              value={passwordForm.newPassword}
-                              onChange={handlePasswordChange}
-                              className="form-control profile-form-control"
-                              placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
-                              autoComplete="new-password"
-                            />
-                            <button
-                              type="button"
-                              className="password-toggle-btn"
-                              onClick={() => setShowNewPassword(!showNewPassword)}
-                            >
-                              <i className={`ph ${showNewPassword ? 'ph-eye-slash' : 'ph-eye'}`}></i>
-                            </button>
-                          </div>
+                        {/* Password Requirements */}
+                        <div className="password-requirements mt-2 mb-4">
+                          <p className="mb-2 fw-semibold text-muted" style={{ fontSize: '13px' }}>
+                            <i className="ph ph-info me-1"></i>
+                            Yêu cầu mật khẩu:
+                          </p>
+                          <ul className="requirements-list">
+                            <li className={passwordForm.newPassword.length >= 6 ? 'valid' : ''}>
+                              <i className={`ph ${passwordForm.newPassword.length >= 6 ? 'ph-check-circle' : 'ph-circle'}`}></i>
+                              Tối thiểu 6 ký tự
+                            </li>
+                            <li className={passwordForm.newPassword === passwordForm.confirmPassword && passwordForm.newPassword !== '' ? 'valid' : ''}>
+                              <i className={`ph ${passwordForm.newPassword === passwordForm.confirmPassword && passwordForm.newPassword !== '' ? 'ph-check-circle' : 'ph-circle'}`}></i>
+                              Mật khẩu xác nhận khớp
+                            </li>
+                          </ul>
                         </div>
 
-                        {/* Confirm Password */}
-                        <div className="col-md-6 mb-3">
-                          <label className="form-label profile-form-label">
-                            <i className="ph ph-check-circle me-2"></i>
-                            Xác nhận mật khẩu mới
-                          </label>
-                          <div className="password-input-wrapper">
-                            <input
-                              type={showConfirmPassword ? "text" : "password"}
-                              name="confirmPassword"
-                              value={passwordForm.confirmPassword}
-                              onChange={handlePasswordChange}
-                              className="form-control profile-form-control"
-                              placeholder="Nhập lại mật khẩu mới"
-                              autoComplete="new-password"
-                            />
+                        {/* Submit Button */}
+                        <div className="border-top pt-4">
+                          <div className="d-flex gap-3">
+                            <button
+                              type="submit"
+                              className="btn btn-primary flex-grow-1 profile-submit-btn"
+                              disabled={loading}
+                              style={{ minHeight: '44px' }}
+                            >
+                              {loading ? (
+                                <>
+                                  <span className="spinner-border spinner-border-sm me-2"></span>
+                                  Đang xử lý...
+                                </>
+                              ) : (
+                                <>
+                                  <i className="ph ph-shield-check me-2"></i>
+                                  Đổi mật khẩu
+                                </>
+                              )}
+                            </button>
                             <button
                               type="button"
-                              className="password-toggle-btn"
-                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              onClick={() => {
+                                setPasswordForm({
+                                  currentPassword: '',
+                                  newPassword: '',
+                                  confirmPassword: ''
+                                });
+                                setError("");
+                              }}
+                              className="btn btn-light profile-cancel-btn"
+                              disabled={loading}
+                              style={{ minHeight: '44px', minWidth: '120px' }}
                             >
-                              <i className={`ph ${showConfirmPassword ? 'ph-eye-slash' : 'ph-eye'}`}></i>
+                              <i className="ph ph-x-circle me-2"></i>
+                              Xóa
                             </button>
+                          </div>
+                          <div className="alert alert-warning mt-3 mb-0" style={{ border: '1px solid #fbbf24', background: '#fffbeb' }}>
+                            <i className="ph ph-warning me-2" style={{ color: '#f59e0b' }}></i>
+                            <small style={{ fontSize: '12px', color: '#92400e' }}>
+                              Sau khi đổi mật khẩu, bạn sẽ được đăng xuất tự động để đảm bảo bảo mật.
+                            </small>
                           </div>
                         </div>
                       </div>
-
-                      {/* Password Requirements */}
-                      <div className="password-requirements mt-2 mb-4">
-                        <p className="mb-2 fw-semibold text-muted" style={{ fontSize: '13px' }}>
-                          <i className="ph ph-info me-1"></i>
-                          Yêu cầu mật khẩu:
-                        </p>
-                        <ul className="requirements-list">
-                          <li className={passwordForm.newPassword.length >= 6 ? 'valid' : ''}>
-                            <i className={`ph ${passwordForm.newPassword.length >= 6 ? 'ph-check-circle' : 'ph-circle'}`}></i>
-                            Tối thiểu 6 ký tự
-                          </li>
-                          <li className={passwordForm.newPassword === passwordForm.confirmPassword && passwordForm.newPassword !== '' ? 'valid' : ''}>
-                            <i className={`ph ${passwordForm.newPassword === passwordForm.confirmPassword && passwordForm.newPassword !== '' ? 'ph-check-circle' : 'ph-circle'}`}></i>
-                            Mật khẩu xác nhận khớp
-                          </li>
-                        </ul>
-                      </div>
-
-                      {/* Submit Button */}
-                      <div className="d-flex gap-2">
-                        <button
-                          type="submit"
-                          className="btn btn-primary flex-grow-1 profile-submit-btn"
-                          disabled={loading}
-                        >
-                          {loading ? (
-                            <>
-                              <span className="spinner-border spinner-border-sm me-2"></span>
-                              Đang xử lý...
-                            </>
-                          ) : (
-                            <>
-                              <i className="ph ph-shield-check me-2"></i>
-                              Đổi mật khẩu
-                            </>
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setPasswordForm({
-                              currentPassword: '',
-                              newPassword: '',
-                              confirmPassword: ''
-                            });
-                            setError("");
-                          }}
-                          className="btn btn-light profile-cancel-btn"
-                          disabled={loading}
-                        >
-                          <i className="ph ph-x-circle me-2"></i>
-                          Xóa
-                        </button>
-                      </div>
-                    </div>
-                  </form>
-                )}
+                    </form>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -754,5 +903,4 @@ const Profile = () => {
     </div>
   );
 };
-
 export default Profile;

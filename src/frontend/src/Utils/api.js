@@ -88,7 +88,7 @@ export const verifyResetCode = async (email, code) => {
   return handleResponse(response);
 };
 
-export const resetPassword = async (token, newPassword , email = null, code = null) => {
+export const resetPassword = async (token, newPassword, email = null, code = null) => {
   const response = await fetch(`${API_BASE}/auth/reset-password`, {
     method: "POST",
     headers: withNoStore({ "Content-Type": "application/json" }),
@@ -114,12 +114,12 @@ export const getProfile = async (token) => {
 export const updateProfile = async (token, data) => {
   const isFormData = data instanceof FormData;
   const headers = withNoStore(
-    isFormData 
-      ? { Authorization: `Bearer ${token}` } 
+    isFormData
+      ? { Authorization: `Bearer ${token}` }
       : { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
   );
   const response = await fetch(`${API_BASE}/user`, {
-    method: "PUT",  
+    method: "PUT",
     headers,
     body: isFormData ? data : JSON.stringify(data),
   });
@@ -131,14 +131,14 @@ export const getActiveUsers = async (token, limit = 10, onlineOnly = false) => {
   if (onlineOnly) {
     params.append('onlineOnly', 'true');
   }
-  
+
   const headers = withNoStore({
     "Content-Type": "application/json",
   });
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
-  
+
   const response = await fetch(`${API_BASE}/users/active?${params.toString()}`, {
     method: "GET",
     headers,
@@ -154,7 +154,7 @@ export const getOnlineUsers = async (token, limit = 50) => {
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
-  
+
   const response = await fetch(`${API_BASE}/users/online?limit=${limit}`, {
     method: "GET",
     headers,
@@ -189,14 +189,14 @@ export const getUserByUsername = async (username, token) => {
 export const getUserPosts = async (username, params = {}, token) => {
   const { page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = params;
   const queryParams = new URLSearchParams({ page, limit, sortBy, order }).toString();
-  
+
   const headers = withNoStore({
     "Content-Type": "application/json",
   });
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
-  
+
   const response = await fetch(`${API_BASE}/users/${username}/posts?${queryParams}`, {
     method: "GET",
     headers,
@@ -204,14 +204,14 @@ export const getUserPosts = async (username, params = {}, token) => {
   return handleResponse(response);
 };
 
-export const changePassword = async (token, data) => {
-  const response = await fetch(`${API_BASE}/user/change-password`, {
+export const changePassword = async (token, currentPassword, newPassword) => {
+  const response = await fetch(`${API_BASE}/users/change-password`, {
     method: "POST",
     headers: withNoStore({
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     }),
-    body: JSON.stringify(data),
+    body: JSON.stringify({ currentPassword, newPassword }),
   });
   return handleResponse(response);
 };
@@ -346,8 +346,8 @@ export const createPost = async (token, data) => {
 export const updatePost = async (token, postId, data) => {
   const isFormData = data instanceof FormData;
   const headers = withNoStore(
-    isFormData 
-      ? { Authorization: `Bearer ${token}` } 
+    isFormData
+      ? { Authorization: `Bearer ${token}` }
       : { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
   );
   const response = await fetch(`${API_BASE}/posts/${postId}`, {
@@ -457,8 +457,8 @@ export const unlikeComment = async (token, commentId) => {
 export const createComment = async (token, data) => {
   const isFormData = data instanceof FormData;
   const headers = withNoStore(
-    isFormData 
-      ? { Authorization: `Bearer ${token}` } 
+    isFormData
+      ? { Authorization: `Bearer ${token}` }
       : { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
   );
   const response = await fetch(`${API_BASE}/comments`, {
@@ -472,8 +472,8 @@ export const createComment = async (token, data) => {
 export const updateComment = async (token, commentId, data) => {
   const isFormData = data instanceof FormData;
   const headers = withNoStore(
-    isFormData 
-      ? { Authorization: `Bearer ${token}` } 
+    isFormData
+      ? { Authorization: `Bearer ${token}` }
       : { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
   );
   const response = await fetch(`${API_BASE}/comments/${commentId}`, {
@@ -915,7 +915,7 @@ export const createReport = async (token, targetType, targetId, reason) => {
 export const getMyReports = async (token, page = 1, limit = 20, status = null) => {
   let url = `${API_BASE}/reports?page=${page}&limit=${limit}`;
   if (status) url += `&status=${status}`;
-  
+
   const response = await fetch(url, {
     method: "GET",
     headers: withNoStore({
@@ -942,13 +942,13 @@ export const cancelReport = async (token, reportId) => {
 // ============================================
 export const getAllReportsAdmin = async (token, page = 1, limit = 20, filters = {}) => {
   let url = `${API_BASE}/admin/reports/all?page=${page}&limit=${limit}`;
-  
+
   if (filters.status) url += `&status=${filters.status}`;
   if (filters.targetType) url += `&targetType=${filters.targetType}`;
   if (filters.keyword) url += `&keyword=${encodeURIComponent(filters.keyword)}`;
   if (filters.sortBy) url += `&sortBy=${filters.sortBy}`;
   if (filters.order) url += `&order=${filters.order}`;
-  
+
   const response = await fetch(url, {
     method: "GET",
     headers: withNoStore({
@@ -1167,7 +1167,7 @@ export const getOnlineUsersCount = async (token) => {
 
 // Lấy danh sách bài viết chờ duyệt
 export const getPendingPosts = async (token, queryParams = '') => {
-  const url = queryParams 
+  const url = queryParams
     ? `${API_BASE}/mod/posts/pending?${queryParams}`
     : `${API_BASE}/mod/posts/pending`;
   const response = await fetch(url, {

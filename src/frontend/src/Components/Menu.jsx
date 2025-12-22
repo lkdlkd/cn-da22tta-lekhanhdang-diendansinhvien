@@ -41,29 +41,30 @@ function Menu({ user, categories }) {
                                 <span className="pc-mtext">Trang chủ</span>
                             </Link>
                         </li>
-
-                        <li className="pc-item">
-                            <Link to="/forum" className="pc-link" onClick={handleNavigation}>
-                                <span className="pc-micon"><i className="ph-duotone ph-chats-circle"></i></span>
-                                <span className="pc-mtext">Diễn đàn</span>
-                            </Link>
-                        </li>
-
-                        <li className="pc-item">
-                            <Link to="/documents" className="pc-link" onClick={handleNavigation}>
-                                <span className="pc-micon"><i className="ph-duotone ph-folder-open"></i></span>
-                                <span className="pc-mtext">Tài liệu</span>
-                            </Link>
-                        </li>
-
+                        {user && (
+                            <>
+                                <li className="pc-item">
+                                    <Link to="/forum" className="pc-link" onClick={handleNavigation}>
+                                        <span className="pc-micon"><i className="ph-duotone ph-chats-circle"></i></span>
+                                        <span className="pc-mtext">Diễn đàn</span>
+                                    </Link>
+                                </li>
+                                <li className="pc-item">
+                                    <Link to="/documents" className="pc-link" onClick={handleNavigation}>
+                                        <span className="pc-micon"><i className="ph-duotone ph-folder-open"></i></span>
+                                        <span className="pc-mtext">Tài liệu</span>
+                                    </Link>
+                                </li>
+                            </>
+                        )}
                         {/* DANH MỤC */}
                         <li className="pc-item pc-hasmenu">
-                            <button 
+                            <button
                                 onClick={(e) => {
                                     e.preventDefault();
                                     toggleMenu("categories");
-                                }} 
-                                className="pc-link d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start" 
+                                }}
+                                className="pc-link d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start"
                                 style={{ cursor: "pointer" }}
                             >
                                 <div className="d-flex align-items-center">
@@ -142,12 +143,12 @@ function Menu({ user, categories }) {
                                 {/* ADMIN MENU */}
                                 {user.role === "admin" && (
                                     <li className="pc-item pc-hasmenu">
-                                        <button 
+                                        <button
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 toggleMenu("admin");
-                                            }} 
-                                            className="pc-link d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start" 
+                                            }}
+                                            className="pc-link d-flex justify-content-between align-items-center w-100 border-0 bg-transparent text-start"
                                             style={{ cursor: "pointer" }}
                                         >
                                             <div className="d-flex align-items-center">

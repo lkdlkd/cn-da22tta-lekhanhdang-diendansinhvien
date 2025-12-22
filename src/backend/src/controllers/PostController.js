@@ -1501,6 +1501,11 @@ exports.approvePost = async (req, res) => {
 			}
 		}, req.app.get('io'));
 
+		// Emit socket event for realtime update
+		if (req.app.get('io')) {
+			req.app.get('io').emit('post:new', post);
+		}
+
 		res.json({
 			success: true,
 			message: 'Đã duyệt bài viết thành công',
