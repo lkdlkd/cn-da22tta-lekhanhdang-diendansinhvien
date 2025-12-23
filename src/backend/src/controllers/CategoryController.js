@@ -31,42 +31,7 @@ exports.getAllCategories = async (req, res) => {
 	}
 };
 
-// [ADMIN] Lấy tất cả danh mục với thống kê
-exports.getAllCategoriesWithStats = async (req, res) => {
-	try {
-		const categories = await Category.find().lean();
 
-		// Thêm thống kê số lượng bài viết cho mỗi category
-		const categoriesWithStats = await Promise.all(
-			categories.map(async (category) => {
-				const postCount = await Post.countDocuments({ categoryId: category._id });
-				return {
-					...category,
-					postCount
-				};
-			})
-		);
-
-		res.json({
-			success: true,
-			data: categoriesWithStats,
-			total: categoriesWithStats.length
-		});
-	} catch (err) {
-		res.status(500).json({ success: false, error: err.message });
-	}
-};
-
-// Lấy danh mục theo id
-exports.getCategoryById = async (req, res) => {
-	try {
-		const category = await Category.findById(req.params.id);
-		if (!category) return res.status(404).json({ error: 'Category not found' });
-		res.json(category);
-	} catch (err) {
-		res.status(500).json({ error: err.message });
-	}
-};
 
 // Tạo danh mục mới
 exports.createCategory = async (req, res) => {

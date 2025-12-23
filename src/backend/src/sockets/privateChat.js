@@ -1,26 +1,26 @@
 const Message = require('../models/Message');
 
-// Register private chat socket handlers for a connected socket
+// Đăng ký các xử lý socket cho chat riêng tư
 // onlineUsers: Map<userId, socketId>
 module.exports = function registerPrivateChatHandlers(io, socket, onlineUsers) {
-  // Join private chat room
+  // Tham gia phòng chat riêng tư
   socket.on('chat:private:join', (roomId) => {
     socket.join(roomId);
     console.log(`🚪 Socket ${socket.id} joined room ${roomId}`);
   });
 
-  // Leave private chat room
+  // Rời khỏi phòng chat riêng tư
   socket.on('chat:private:leave', (roomId) => {
     socket.leave(roomId);
     console.log(`🚪 Socket ${socket.id} left room ${roomId}`);
   });
 
-  // Send private message (with optional ACK)
+  // Gửi tin nhắn riêng tư (có thể có ACK)
   socket.on('chat:private:message', async (data, callback) => {
     const { peerId, message } = data;
 
     try {
-      // Use authenticated userId from socket
+      // Sử dụng userId đã xác thực từ socket
       if (!socket.userId) {
         console.error('⚠️ Unauthenticated socket tried to send message:', socket.id);
         if (typeof callback === 'function') {
@@ -44,7 +44,7 @@ module.exports = function registerPrivateChatHandlers(io, socket, onlineUsers) {
       const participants = [senderId, peerId].sort();
       const roomId = participants.join('_');
 
-      // Find or create conversation
+      // Tìm hoặc tạo cuộc trò chuyện
       let conversation = await Message.findOne({
         participants: { $all: participants },
       });
@@ -57,7 +57,7 @@ module.exports = function registerPrivateChatHandlers(io, socket, onlineUsers) {
         });
       }
 
-      // Add message
+      // Thêm tin nhắn
       const newMessage = {
         senderId,
         text: message.text || '',
@@ -73,21 +73,21 @@ module.exports = function registerPrivateChatHandlers(io, socket, onlineUsers) {
         `✅ Message saved to DB. Total messages in conversation: ${conversation.messages.length}`
       );
 
-      // Emit to room (for users already in the room)
+      // Phát tín hiệu đến phòng (cho người dùng đã ở trong phòng)
       io.to(roomId).emit('chat:private:new', {
         fromUserId: senderId,
         toUserId: peerId,
         message: newMessage,
       });
 
-      // Also emit directly to peer's socket ONLY if they're not in the room
-      // IMPORTANT: Never emit notify to sender, only to peer
+      // Cũng phát tín hiệu trực tiếp đến socket của người nhận CHỈ KHI họ không ở trong phòng
+      // QUAN TRỌNG: Không bao giờ gửi thông báo cho người gửi, chỉ gửi cho người nhận
       const peerSocketId = onlineUsers.get(peerId);
       if (peerSocketId) {
         const peerSocket = io.sockets.sockets.get(peerSocketId);
         const isInRoom = peerSocket && peerSocket.rooms.has(roomId);
 
-        // Only emit notify if peer is NOT in the room (to update conversation list)
+        // Chỉ gửi thông báo nếu người nhận KHÔNG ở trong phòng (để cập nhật danh sách cuộc trò chuyện)
         if (!isInRoom) {
           io.to(peerSocketId).emit('chat:private:notify', {
             fromUserId: senderId,
@@ -112,7 +112,7 @@ module.exports = function registerPrivateChatHandlers(io, socket, onlineUsers) {
     }
   });
 
-  // Typing indicator
+  // Chỉ báo đang gõ
   socket.on('chat:private:typing', async (data) => {
     const { peerId, isTyping } = data;
 
@@ -137,7 +137,7 @@ module.exports = function registerPrivateChatHandlers(io, socket, onlineUsers) {
     }
   });
 
-  // Mark as read
+  // Đánh dấu đã đọc
   socket.on('chat:private:read', async (data) => {
     const { peerId } = data;
 
@@ -148,13 +148,13 @@ module.exports = function registerPrivateChatHandlers(io, socket, onlineUsers) {
       const participants = [readerId, peerId].sort();
       const roomId = participants.join('_');
 
-      // Find conversation first
+      // Tìm cuộc trò chuyện trước
       const conversation = await Message.findOne({
         participants: { $all: participants },
       });
 
       if (conversation) {
-        // Convert readMarks to Map if it's an array (migration)
+        // Chuyển đổi readMarks thành Map nếu nó là mảng (di chuyển dữ liệu)
         if (Array.isArray(conversation.readMarks)) {
           conversation.readMarks = new Map();
         } else if (!(conversation.readMarks instanceof Map)) {
@@ -163,13 +163,13 @@ module.exports = function registerPrivateChatHandlers(io, socket, onlineUsers) {
           );
         }
 
-        // Set read mark
+        // Đặt dấu đã đọc
         conversation.readMarks.set(readerId, {
           userId: readerId,
           lastReadAt: new Date(),
         });
 
-        // Save using markModified for Map
+        // Lưu bằng cách sử dụng markModified cho Map
         conversation.markModified('readMarks');
         await conversation.save();
 

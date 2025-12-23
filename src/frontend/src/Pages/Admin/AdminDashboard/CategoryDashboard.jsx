@@ -6,7 +6,6 @@ import Form from "react-bootstrap/Form";
 import Pagination from "react-bootstrap/Pagination";
 import { toast } from "react-toastify";
 import {
-    getAllCategoriesWithStats,
     getCategoriesStats,
     createCategory,
     updateCategory,

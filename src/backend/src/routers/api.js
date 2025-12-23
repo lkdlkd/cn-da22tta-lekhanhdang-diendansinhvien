@@ -128,11 +128,9 @@ router.get('/stats/forum', postRoutes.getForumStats);// Thống kê công khai c
 
 // ===== ADMIN - CATEGORY MANAGEMENT =====
 router.post('/categories', authenticateAdmin, categoryRoutes.createCategory);
-router.get('/admin/categories/stats', authenticateAdmin, categoryRoutes.getAllCategoriesWithStats);// Lấy danh mục với thống kê (postCount từng danh mục)
 router.get('/admin/categories/summary', authenticateAdmin, categoryRoutes.getCategoriesStats);// Thống kê tổng quan danh mục
 router.delete('/admin/categories/bulk-delete', authenticateAdmin, categoryRoutes.deleteMultipleCategories);// Xóa nhiều danh mục
 router.get('/admin/categories/search', authenticateAdmin, categoryRoutes.searchCategories);// Tìm kiếm danh mục
-router.get('/categories/:id', categoryRoutes.getCategoryById);
 router.put('/categories/:id', authenticateAdmin, categoryRoutes.updateCategory);
 router.delete('/categories/:id', authenticateAdmin, categoryRoutes.deleteCategory);
 
@@ -175,7 +173,6 @@ router.get('/admin/reports/all', authenticateAdmin, ReportController.getAllRepor
 router.get('/admin/reports/stats', authenticateAdmin, ReportController.getReportsStatsAdmin);// Thống kê báo cáo
 router.delete('/admin/reports/bulk-delete', authenticateAdmin, ReportController.deleteMultipleReportsAdmin);// Xóa nhiều báo cáo
 router.post('/admin/reports/bulk-handle', authenticateAdmin, ReportController.bulkHandleReportsAdmin);// Xử lý hàng loạt báo cáo
-router.get('/admin/reports/:id', authenticateAdmin, ReportController.getReportDetailAdmin);// Lấy chi tiết báo cáo
 router.get('/admin/reports/target/:targetType/:targetId', authenticateAdmin, ReportController.getReportsByTargetAdmin);// Lấy báo cáo theo target
 router.put('/admin/reports/:id', authenticateAdmin, ReportController.updateReportStatusAdmin);// Cập nhật trạng thái báo cáo
 router.delete('/admin/reports/:id', authenticateAdmin, ReportController.deleteReportAdmin);// Xóa báo cáo

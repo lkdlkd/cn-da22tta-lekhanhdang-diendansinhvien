@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPostsByCategory, getCategoryById } from '../../Utils/api';
+import { getPostsByCategory } from '../../Utils/api';
 import PostList from '../../Components/PostList';
 import PostDetail from '../../Components/PostDetail';
 import { useOutletContext } from 'react-router-dom';

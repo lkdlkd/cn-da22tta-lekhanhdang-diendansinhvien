@@ -5,7 +5,7 @@ import { deleteComment } from "@/Utils/api";
 import { useOutletContext } from "react-router-dom";
 import { AuthContext } from "../Context/AuthContext";
 import { Link } from "react-router-dom";
-import './CommentItem.css';
+import '../assets/css/CommentItem.css';
 
 const CommentItem = ({
   comment,

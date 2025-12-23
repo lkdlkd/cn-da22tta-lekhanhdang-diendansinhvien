@@ -1,63 +1,12 @@
 import React, { useContext } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { forwardRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../Context/AuthContext';
-import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../Utils/api';
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, getMyConversations } from '../Utils/api';
 import LoadingPost from './LoadingPost';
+import { onPrivateNotify, offPrivateNotify } from '../Utils/socket';
 const { socket } = require('../Utils/socket');
-
-const ArrowMenuIcon = ({
-  width = 24,
-  height = 24,
-  fill = "#5e72e4",
-  className = "",
-  ...props
-}) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={width}
-    height={height}
-    viewBox="0 0 24 24"
-    className={className}
-    {...props}
-  >
-    <path
-      d="M11.075 4.258c-.79.641-1.282 1.679-1.427 3.367a.75.75 0 1 1-1.495-.13c.165-1.911.753-3.409 1.977-4.402 1.204-.977 2.887-1.353 4.98-1.353h.13c2.31 0 4.121.458 5.337 1.674C21.793 4.629 22.25 6.44 22.25 8.75v6.52c0 2.31-.457 4.121-1.673 5.337S17.55 22.28 15.24 22.28h-.13c-2.078 0-3.75-.37-4.952-1.332-1.223-.978-1.819-2.454-1.994-4.338a.75.75 0 1 1 1.493-.14c.155 1.656.649 2.676 1.438 3.307.811.649 2.074 1.003 4.015 1.003h.13c2.161 0 3.48-.437 4.276-1.234.797-.797 1.234-2.115 1.234-4.276V8.75c0-2.16-.437-3.479-1.234-4.276-.796-.797-2.115-1.234-4.276-1.234h-.13c-1.956 0-3.223.36-4.034 1.018z"
-      fill={fill}
-    />
-    <path
-      opacity=".4"
-      d="M2.87 12a.75.75 0 0 1 .75-.75H15a.75.75 0 1 1 0 1.5H3.62a.75.75 0 0 1-.75-.75z"
-      fill={fill}
-    />
-    <path
-      opacity=".4"
-      d="M6.38 8.12a.75.75 0 0 1 0 1.06L3.56 12l2.82 2.82a.75.75 0 1 1-1.06 1.06l-3.35-3.35a.75.75 0 0 1 0-1.06l3.35-3.35a.75.75 0 0 1 1.06 0z"
-      fill={fill}
-    />
-  </svg>
-);
-
-const FilterSettingsIcon = ({
-  width = 24,
-  height = 24,
-  fill = "#138d42ff",
-  className = "",
-  ...props
-}) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={width}
-    height={height}
-    viewBox="0 0 512 512"
-    fill={fill}
-    className={className}
-    {...props}
-  >
-    <path d="M490.667 405.333h-56.811C424.619 374.592 396.373 352 362.667 352s-61.931 22.592-71.189 53.333H21.333C9.557 405.333 0 414.891 0 426.667S9.557 448 21.333 448h270.144c9.237 30.741 37.483 53.333 71.189 53.333s61.931-22.592 71.189-53.333h56.811c11.797 0 21.333-9.557 21.333-21.333s-9.535-21.334-21.332-21.334zm-128 53.334c-17.643 0-32-14.357-32-32s14.357-32 32-32 32 14.357 32 32-14.358 32-32 32zM490.667 64h-56.811c-9.259-30.741-37.483-53.333-71.189-53.333S300.736 33.259 291.477 64H21.333C9.557 64 0 73.557 0 85.333s9.557 21.333 21.333 21.333h270.144C300.736 137.408 328.96 160 362.667 160s61.931-22.592 71.189-53.333h56.811c11.797 0 21.333-9.557 21.333-21.333S502.464 64 490.667 64zm-128 53.333c-17.643 0-32-14.357-32-32s14.357-32 32-32 32 14.357 32 32-14.358 32-32 32zM490.667 234.667H220.523c-9.259-30.741-37.483-53.333-71.189-53.333s-61.931 22.592-71.189 53.333H21.333C9.557 234.667 0 244.224 0 256c0 11.776 9.557 21.333 21.333 21.333h56.811c9.259 30.741 37.483 53.333 71.189 53.333s61.931-22.592 71.189-53.333h270.144c11.797 0 21.333-9.557 21.333-21.333.001-11.776-9.535-21.333-21.332-21.333zM149.333 288c-17.643 0-32-14.357-32-32s14.357-32 32-32 32 14.357 32 32-14.357 32-32 32z" />
-  </svg>
-);
 
 
 export default function Header({ user }) {
@@ -68,12 +17,31 @@ export default function Header({ user }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
 
+  // Messages state
+  const [showMessages, setShowMessages] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+
   const searchRef = useRef(null);
   const userMenuRef = useRef(null);
   const notificationRef = useRef(null);
+  const messagesRef = useRef(null);
   const navigate = useNavigate();
   const { auth } = useContext(AuthContext);
   const token = auth.token;
+
+  // Refs for message tracking (like ListChat)
+  const processedMessagesRef = useRef(new Set());
+  const lastMessageTimestampRef = useRef({});
+  const conversationsRef = useRef(conversations);
+  const messageHandlerRef = useRef(null);
+  const stableHandlerRef = useRef(null);
+
+  // Update conversationsRef whenever conversations change
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   // Fetch notifications on mount
   useEffect(() => {
@@ -137,6 +105,174 @@ export default function Header({ user }) {
     };
   }, []);
 
+  // Fetch conversations function (reusable)
+  const fetchConversations = useCallback(async () => {
+    if (!token) return;
+
+    setLoadingMessages(true);
+    try {
+      const result = await getMyConversations(token);
+      const data = result.data || [];
+
+      setConversations(data.slice(0, 5)); // Chỉ lấy 5 conversation gần nhất
+
+      // Calculate total unread
+      const totalUnread = data.reduce((sum, conv) => {
+        return sum + (conv.unreadCount || 0);
+      }, 0);
+
+      setUnreadMessagesCount(totalUnread);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, [token]);
+
+  // Initial load of conversations
+  useEffect(() => {
+    if (token) {
+      fetchConversations();
+    }
+  }, [token, fetchConversations]);
+
+  // Handle incoming messages (like ListChat)
+  const handlePrivateNotify = useCallback((data) => {
+    console.log('📬 [Header] Received private:notify:', data);
+    
+    if (!token || !user) {
+      console.log('❌ [Header] No token or user, ignoring message');
+      return;
+    }
+
+    const { fromUserId, message } = data;
+    const fromUserIdStr = String(fromUserId);
+    const myIdStr = String(user.id || user._id);
+
+    console.log('📊 [Header] Processing message from:', fromUserIdStr, 'My ID:', myIdStr);
+
+    // Create unique message ID to prevent duplicates
+    const attachmentSignature = Array.isArray(message?.attachments)
+      ? message.attachments
+        .map((att) => att?._id || att?.storageUrl || att?.filename || att?.originalname || '')
+        .join('|')
+      : '';
+    const createdAtTs = message?.createdAt ? new Date(message.createdAt).getTime() : Date.now();
+    const messageId = [
+      fromUserIdStr,
+      message?._id || createdAtTs,
+      message?.text || '',
+      attachmentSignature,
+    ].join('::');
+
+    // Check for stale/duplicate messages
+    const lastTimestamp = lastMessageTimestampRef.current[fromUserIdStr];
+    if (lastTimestamp && createdAtTs <= lastTimestamp) {
+      console.log('⚠️ [Header] Stale message, ignoring');
+      return; // Ignore stale message
+    }
+    lastMessageTimestampRef.current[fromUserIdStr] = createdAtTs;
+
+    // Check if already processed
+    if (processedMessagesRef.current.has(messageId)) {
+      console.log('⚠️ [Header] Duplicate message, ignoring');
+      return; // Ignore duplicate
+    }
+
+    // Mark as processed
+    processedMessagesRef.current.add(messageId);
+
+    // Clean up old message IDs (keep only last 50)
+    if (processedMessagesRef.current.size > 50) {
+      const arr = Array.from(processedMessagesRef.current);
+      processedMessagesRef.current = new Set(arr.slice(-50));
+    }
+
+    // Ignore messages from self
+    if (fromUserIdStr === myIdStr) {
+      console.log('🚫 [Header] Message from self, ignoring');
+      return;
+    }
+
+    console.log('✅ [Header] Processing new message, updating conversations');
+
+    // Update conversations list
+    const prevConversations = conversationsRef.current || [];
+    const convIdx = prevConversations.findIndex(
+      (c) => String(c.peer?._id) === fromUserIdStr
+    );
+
+    if (convIdx !== -1) {
+      // Update existing conversation
+      console.log('📝 [Header] Updating existing conversation');
+      
+      // Increment unread count
+      setUnreadMessagesCount(prev => {
+        const newCount = prev + 1;
+        console.log('🔢 [Header] Unread count:', prev, '→', newCount);
+        return newCount;
+      });
+
+      // Move conversation to top and update last message
+      const updated = [...prevConversations];
+      const [movedConv] = updated.splice(convIdx, 1);
+      movedConv.lastMessage = message?.text || '[File]';
+      movedConv.lastMessageAt = message?.createdAt || new Date().toISOString();
+      movedConv.unreadCount = (movedConv.unreadCount || 0) + 1;
+      updated.unshift(movedConv);
+
+      setConversations(updated.slice(0, 5));
+    } else {
+      // New conversation, refresh list
+      console.log('🆕 [Header] New conversation, refreshing list');
+      fetchConversations();
+    }
+  }, [token, user, fetchConversations]);
+
+  // Store handler in ref
+  useEffect(() => {
+    messageHandlerRef.current = handlePrivateNotify;
+  }, [handlePrivateNotify]);
+
+  // Register socket listener with stable wrapper (like ListChat)
+  useEffect(() => {
+    // Create stable wrapper ONCE and store in ref
+    if (!stableHandlerRef.current) {
+      stableHandlerRef.current = (data) => {
+        if (messageHandlerRef.current) {
+          messageHandlerRef.current(data);
+        }
+      };
+    }
+
+    // Only register if we have auth and haven't registered yet
+    if (token && user) {
+      console.log('🔔 [Header] Registering socket listener for chat:private:notify');
+      onPrivateNotify(stableHandlerRef.current);
+    }
+
+    return () => {
+      // Only cleanup if we have the stable handler
+      if (stableHandlerRef.current) {
+        console.log('🔕 [Header] Unregistering socket listener for chat:private:notify');
+        offPrivateNotify(stableHandlerRef.current);
+      }
+    };
+  }, []); // Empty deps - register only once on mount
+
+  // Re-register listener when tab becomes visible (like ListChat)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (!document.hidden && token && user && stableHandlerRef.current) {
+        console.log('👁️ [Header] Tab visible, re-registering socket listener');
+        offPrivateNotify(stableHandlerRef.current);
+        onPrivateNotify(stableHandlerRef.current);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [token, user]);
+
   const handleActiveMenu = (e) => {
     e.stopPropagation();
 
@@ -174,6 +310,14 @@ export default function Header({ user }) {
         !notificationRef.current.contains(event.target)
       ) {
         setShowNotifications(false);
+      }
+
+      // Xử lý đóng messages dropdown
+      if (
+        messagesRef.current &&
+        !messagesRef.current.contains(event.target)
+      ) {
+        setShowMessages(false);
       }
 
       // Tự động đóng sidebar trên mobile khi click bên ngoài
@@ -232,6 +376,32 @@ export default function Header({ user }) {
     }
   };
 
+  // Handle conversation click
+  const handleConversationClick = (conversation) => {
+    const peer = conversation.peer;
+    
+    // Mark as read locally if there are unread messages
+    if (conversation.unreadCount > 0) {
+      const unreadAmount = conversation.unreadCount;
+      
+      // Update the conversations list
+      setConversations(prev => 
+        prev.map(conv => 
+          conv._id === conversation._id 
+            ? { ...conv, unreadCount: 0 } 
+            : conv
+        )
+      );
+      
+      // Decrease total unread count
+      setUnreadMessagesCount(prev => Math.max(0, prev - unreadAmount));
+    }
+    
+    // Navigate to chat
+    navigate(`/message/${peer?.username || ''}`);
+    setShowMessages(false);
+  };
+
   // Format time ago
   const formatTimeAgo = (date) => {
     const now = new Date();
@@ -246,8 +416,28 @@ export default function Header({ user }) {
   };
 
   return (
-    <header className="pc-header">
+    <header className="pc-header" style={{ overflow: 'visible', paddingTop: '4px', paddingBottom: '4px' }}>
       <style>{`
+        /* Header Overflow Fix */
+        .pc-header {
+          overflow: visible !important;
+        }
+
+        .pc-header .header-wrapper {
+          overflow: visible !important;
+          padding-top: 4px;
+          padding-bottom: 4px;
+        }
+
+        .pc-h-item {
+          position: relative;
+          overflow: visible !important;
+        }
+
+        .ms-auto, .ms-auto ul {
+          overflow: visible !important;
+        }
+
         @keyframes pulse {
           0%, 100% {
             opacity: 1;
@@ -340,18 +530,31 @@ export default function Header({ user }) {
 
         /* Header Icons */
         .pc-head-link {
-          transition: all 0.2s ease;
+          transition: all 0.3s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .pc-head-link:hover {
-          transform: scale(1.05);
+          background-color: rgba(13, 110, 253, 0.12) !important;
+          transform: translateY(-1px);
         }
 
         .pc-head-link:active {
-          transform: scale(0.95);
+          transform: translateY(0);
+        }
+
+        .user-avtar {
+          transition: all 0.3s ease;
+        }
+
+        .user-avtar:hover {
+          transform: scale(1.05);
+          border-color: #0d6efd !important;
         }
       `}</style>
-      <div className="header-wrapper">
+      <div className="header-wrapper" style={{ overflow: 'visible', position: 'relative' }}>
         {/* [Mobile Media Block] */}
         <div className="me-auto pc-mob-drp">
           <ul className="list-unstyled">
@@ -372,7 +575,7 @@ export default function Header({ user }) {
               </span>
             </li>
 
-            <li className="dropdown pc-h-item" ref={searchRef}>
+            {/* <li className="dropdown pc-h-item" ref={searchRef}>
               <span
                 className="pc-head-link arrow-none m-0 trig-drp-search"
                 onClick={() => setShowSearch(!showSearch)}
@@ -390,74 +593,68 @@ export default function Header({ user }) {
                   </form>
                 </div>
               )}
-            </li>
+            </li> */}
           </ul>
         </div>
 
         {/* [User Block] */}
-        <div className="ms-auto">
-          <ul>
-            {/* <li className="dropdown pc-h-item d-none d-md-inline-flex" ref={userMenuRef}>
+        <div className="ms-auto" style={{ overflow: 'visible' }}>
+          <ul className="list-unstyled d-flex align-items-center m-0 gap-2" style={{ overflow: 'visible' }}>
+            <li className="dropdown pc-h-item header-user-profile d-flex align-items-center" ref={notificationRef} style={{ marginRight: '8px', overflow: 'visible', padding: '8px 0' }}>
               <button
                 type="button"
-                className="pc-head-link dropdown-toggle arrow-none me-0 btn btn-link p-0 border-0"
-                data-bs-toggle="dropdown"
-                aria-haspopup="true"
-                aria-expanded="false"
-              >
-                <i className="ph-duotone ph-sun-dim"></i>
-              </button>
-              <div className="dropdown-menu dropdown-menu-end pc-h-dropdown">
-                <button className="dropdown-item" type="button" > <i className="ph-duotone ph-moon"></i> <span>Dark</span></button>
-                <button className="dropdown-item" type="button" > <i className="ph-duotone ph-sun-dim"></i> <span>Light</span></button>
-                <button className="dropdown-item" type="button" > <i className="ph-duotone ph-cpu"></i> <span>Default</span></button>
-              </div>
-            </li> */}
-            <li className="dropdown pc-h-item header-user-profile" ref={notificationRef}>
-              <button
-                type="button"
-                className="pc-head-link dropdown-toggle arrow-none me-0 btn btn-link p-0 border-0 position-relative"
+                className="pc-head-link dropdown-toggle arrow-none me-0 btn btn-link border-0 position-relative"
                 onClick={() => setShowNotifications(!showNotifications)}
                 aria-haspopup="true"
                 aria-expanded={showNotifications}
-                style={{ transition: 'all 0.3s ease' }}
+                style={{ 
+                  transition: 'all 0.3s ease',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  background: showNotifications ? 'rgba(13, 110, 253, 0.08)' : 'transparent',
+                  minWidth: '48px',
+                  minHeight: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
               >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="24" 
-                  height="24" 
-                  viewBox="0 0 24 24" 
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
                   fill="none"
-                  style={{ 
+                  style={{
                     filter: unreadCount > 0 ? 'drop-shadow(0 0 8px rgba(220, 53, 69, 0.5))' : 'none',
                     animation: unreadCount > 0 ? 'bellRing 2s infinite' : 'none'
                   }}
                 >
-                  <path 
-                    d="M12 2C11.4477 2 11 2.44772 11 3V3.17071C8.83481 3.58254 7.23129 5.37852 7.02393 7.57442L6.65896 11.3178C6.56559 12.2831 6.1256 13.186 5.41602 13.8486L3.51472 15.6087C2.64031 16.4186 3.21735 18 4.41472 18H19.5853C20.7827 18 21.3597 16.4186 20.4853 15.6087L18.584 13.8486C17.8744 13.186 17.4344 12.2831 17.341 11.3178L16.9761 7.57442C16.7687 5.37852 15.1652 3.58254 13 3.17071V3C13 2.44772 12.5523 2 12 2Z" 
+                  <path
+                    d="M12 2C11.4477 2 11 2.44772 11 3V3.17071C8.83481 3.58254 7.23129 5.37852 7.02393 7.57442L6.65896 11.3178C6.56559 12.2831 6.1256 13.186 5.41602 13.8486L3.51472 15.6087C2.64031 16.4186 3.21735 18 4.41472 18H19.5853C20.7827 18 21.3597 16.4186 20.4853 15.6087L18.584 13.8486C17.8744 13.186 17.4344 12.2831 17.341 11.3178L16.9761 7.57442C16.7687 5.37852 15.1652 3.58254 13 3.17071V3C13 2.44772 12.5523 2 12 2Z"
                     fill="currentColor"
                     opacity="0.2"
                   />
-                  <path 
-                    d="M12 2C11.4477 2 11 2.44772 11 3V3.17071C8.83481 3.58254 7.23129 5.37852 7.02393 7.57442L6.65896 11.3178C6.56559 12.2831 6.1256 13.186 5.41602 13.8486L3.51472 15.6087C2.64031 16.4186 3.21735 18 4.41472 18H19.5853C20.7827 18 21.3597 16.4186 20.4853 15.6087L18.584 13.8486C17.8744 13.186 17.4344 12.2831 17.341 11.3178L16.9761 7.57442C16.7687 5.37852 15.1652 3.58254 13 3.17071V3C13 2.44772 12.5523 2 12 2Z" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
+                  <path
+                    d="M12 2C11.4477 2 11 2.44772 11 3V3.17071C8.83481 3.58254 7.23129 5.37852 7.02393 7.57442L6.65896 11.3178C6.56559 12.2831 6.1256 13.186 5.41602 13.8486L3.51472 15.6087C2.64031 16.4186 3.21735 18 4.41472 18H19.5853C20.7827 18 21.3597 16.4186 20.4853 15.6087L18.584 13.8486C17.8744 13.186 17.4344 12.2831 17.341 11.3178L16.9761 7.57442C16.7687 5.37852 15.1652 3.58254 13 3.17071V3C13 2.44772 12.5523 2 12 2Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
                     strokeLinejoin="round"
                     fill="none"
                   />
-                  <path 
-                    d="M9 18C9 19.1046 10.3431 20 12 20C13.6569 20 15 19.1046 15 18" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
+                  <path
+                    d="M9 18C9 19.1046 10.3431 20 12 20C13.6569 20 15 19.1046 15 18"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
                     strokeLinejoin="round"
                   />
                   {unreadCount > 0 && (
-                    <circle 
-                      cx="18" 
-                      cy="6" 
-                      r="4" 
+                    <circle
+                      cx="18"
+                      cy="6"
+                      r="4"
                       fill="#dc3545"
                       stroke="white"
                       strokeWidth="2"
@@ -465,14 +662,19 @@ export default function Header({ user }) {
                   )}
                 </svg>
                 {unreadCount > 0 && (
-                  <span 
-                    className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                  <span
+                    className="position-absolute badge rounded-pill bg-danger"
                     style={{
+                      top: '2px',
+                      right: '2px',
                       fontSize: '10px',
                       padding: '3px 6px',
-                      minWidth: '18px',
+                      minWidth: '20px',
+                      fontWeight: '600',
                       animation: 'pulse 2s infinite',
-                      boxShadow: '0 0 10px rgba(220, 53, 69, 0.5)'
+                      boxShadow: '0 2px 8px rgba(220, 53, 69, 0.4)',
+                      border: '2px solid white',
+                      zIndex: 10
                     }}
                   >
                     {unreadCount > 99 ? '99+' : unreadCount}
@@ -480,7 +682,7 @@ export default function Header({ user }) {
                 )}
               </button>
               {showNotifications && (
-                <div 
+                <div
                   className="dropdown-menu dropdown-menu-end pc-h-dropdown show"
                   style={{
                     width: '360px',
@@ -491,7 +693,7 @@ export default function Header({ user }) {
                     animation: 'slideDown 0.3s ease'
                   }}
                 >
-                  <div 
+                  <div
                     className="dropdown-header d-flex align-items-center justify-content-between py-3 px-4"
                     style={{ borderBottom: '1px solid #e9ecef' }}
                   >
@@ -517,8 +719,8 @@ export default function Header({ user }) {
                   <div className="dropdown-body p-0">
                     <div
                       className="notification-scroll position-relative"
-                      style={{ 
-                        maxHeight: "400px", 
+                      style={{
+                        maxHeight: "400px",
                         overflowY: "auto",
                         overflowX: "hidden"
                       }}
@@ -566,9 +768,9 @@ export default function Header({ user }) {
                                     style={{
                                       width: '20px',
                                       height: '20px',
-                                      backgroundColor: notification.type === 'like' ? '#ff4757' : 
-                                                      notification.type === 'comment' ? '#0d6efd' : 
-                                                      notification.type === 'system' ? '#00d2d3' : '#6c757d',
+                                      backgroundColor: notification.type === 'like' ? '#ff4757' :
+                                        notification.type === 'comment' ? '#0d6efd' :
+                                          notification.type === 'system' ? '#00d2d3' : '#6c757d',
                                       border: '2px solid white'
                                     }}
                                   >
@@ -595,15 +797,15 @@ export default function Header({ user }) {
                                     )}
                                     {' '}
                                     <span className="text-muted">
-                                      {notification.type === 'like' ? 'đã thích bài viết của bạn' : 
-                                       notification.type === 'comment' ? 'đã bình luận bài viết của bạn' :
-                                       notification.type === 'system' ? '' :
-                                       'có hoạt động mới'}
+                                      {notification.type === 'like' ? 'đã thích bài viết của bạn' :
+                                        notification.type === 'comment' ? 'đã bình luận bài viết của bạn' :
+                                          notification.type === 'system' ? '' :
+                                            'có hoạt động mới'}
                                     </span>
                                   </p>
-                                  
+
                                   {notification.type === 'system' && notification.data?.message && (
-                                    <div 
+                                    <div
                                       className="mb-1 p-2 rounded d-flex align-items-start gap-2"
                                       style={{
                                         fontSize: '13px',
@@ -618,10 +820,10 @@ export default function Header({ user }) {
                                       </span>
                                     </div>
                                   )}
-                                  
+
                                   {notification.data?.postTitle && notification.type !== 'system' && (
-                                    <p 
-                                      className="text-muted mb-1 text-truncate" 
+                                    <p
+                                      className="text-muted mb-1 text-truncate"
                                       style={{ fontSize: '13px' }}
                                       title={notification.data.postTitle}
                                     >
@@ -629,11 +831,11 @@ export default function Header({ user }) {
                                       {notification.data.postTitle}
                                     </p>
                                   )}
-                                  
+
                                   {notification.data?.commentContent && (
-                                    <p 
-                                      className="text-muted mb-1 fst-italic text-truncate" 
-                                      style={{ 
+                                    <p
+                                      className="text-muted mb-1 fst-italic text-truncate"
+                                      style={{
                                         fontSize: '12px',
                                         backgroundColor: 'rgba(13, 110, 253, 0.05)',
                                         padding: '4px 8px',
@@ -644,7 +846,7 @@ export default function Header({ user }) {
                                       "{notification.data.commentContent.substring(0, 60)}{notification.data.commentContent.length > 60 ? '...' : ''}"
                                     </p>
                                   )}
-                                  
+
                                   <small className="text-muted d-flex align-items-center gap-1" style={{ fontSize: '12px' }}>
                                     <i className="ph ph-clock"></i>
                                     {formatTimeAgo(notification.createdAt)}
@@ -656,8 +858,8 @@ export default function Header({ user }) {
                                   <div className="flex-shrink-0">
                                     <span
                                       className="d-inline-block rounded-circle bg-primary"
-                                      style={{ 
-                                        width: '10px', 
+                                      style={{
+                                        width: '10px',
                                         height: '10px',
                                         boxShadow: '0 0 0 3px rgba(13, 110, 253, 0.2)'
                                       }}
@@ -672,11 +874,11 @@ export default function Header({ user }) {
                     </div>
                   </div>
                   {notifications.length > 0 && (
-                    <div 
+                    <div
                       className="dropdown-footer text-center py-2 border-top"
                       style={{ backgroundColor: '#f8f9fa' }}
                     >
-                      <button 
+                      <button
                         className="btn btn-link btn-sm text-primary text-decoration-none"
                         onClick={() => {
                           navigate('/notifications');
@@ -692,54 +894,281 @@ export default function Header({ user }) {
                 </div>
               )}
             </li>
-            {/* Tin nhắn - Tạm thời ẩn cho đến khi có API */}
-            {false && (
-              <li
-                className="dropdown pc-h-item header-user-profile"
-                ref={searchRef}
+            {/* Messages Dropdown */}
+            <li className="dropdown pc-h-item header-user-profile d-flex align-items-center" ref={messagesRef} style={{ marginRight: '8px', overflow: 'visible', padding: '8px 0' }}>
+              <button
+                type="button"
+                className="pc-head-link dropdown-toggle arrow-none me-0 btn btn-link border-0 position-relative"
+                onClick={() => setShowMessages(!showMessages)}
+                aria-haspopup="true"
+                aria-expanded={showMessages}
+                style={{ 
+                  transition: 'all 0.3s ease',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  background: showMessages ? 'rgba(13, 110, 253, 0.08)' : 'transparent',
+                  minWidth: '48px',
+                  minHeight: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
               >
-                <button
-                  type="button"
-                  className="pc-head-link dropdown-toggle arrow-none me-0 btn btn-link p-0 border-0"
-                  data-bs-toggle="dropdown"
-                  aria-haspopup="true"
-                  aria-expanded="false"
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  style={{
+                    filter: unreadMessagesCount > 0 ? 'drop-shadow(0 0 6px rgba(0, 123, 255, 0.4))' : 'none'
+                  }}
                 >
-                  <i className="ph-duotone ph-chat-circle-dots icon-message"></i>
-                  <span className="notification-badge">0</span>
-                </button>
-                <div className="dropdown-menu dropdown-menu-end pc-h-dropdown">
-                  <div className="dropdown-header d-flex align-items-center justify-content-between">
-                    <h5 className="m-0">Tin nhắn</h5>
+                  <path
+                    d="M12 2C6.477 2 2 6.477 2 12C2 13.89 2.525 15.66 3.438 17.168L2.546 20.2C2.49478 20.3741 2.49141 20.5594 2.53624 20.7354C2.58107 20.9114 2.67245 21.0718 2.80076 21.1992C2.92907 21.3267 3.08987 21.4165 3.26607 21.4599C3.44227 21.5032 3.62744 21.4983 3.801 21.446L6.832 20.562C8.39029 21.5051 10.1782 22.0025 12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2Z"
+                    fill="currentColor"
+                    opacity="0.2"
+                  />
+                  <path
+                    d="M12 2C6.477 2 2 6.477 2 12C2 13.89 2.525 15.66 3.438 17.168L2.546 20.2C2.49478 20.3741 2.49141 20.5594 2.53624 20.7354C2.58107 20.9114 2.67245 21.0718 2.80076 21.1992C2.92907 21.3267 3.08987 21.4165 3.26607 21.4599C3.44227 21.5032 3.62744 21.4983 3.801 21.446L6.832 20.562C8.39029 21.5051 10.1782 22.0025 12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                  />
+                  {unreadMessagesCount > 0 && (
+                    <circle
+                      cx="18"
+                      cy="6"
+                      r="4"
+                      fill="#007bff"
+                      stroke="white"
+                      strokeWidth="2"
+                    />
+                  )}
+                </svg>
+                {unreadMessagesCount > 0 && (
+                  <span
+                    className="position-absolute badge rounded-pill bg-primary"
+                    style={{
+                      top: '2px',
+                      right: '2px',
+                      fontSize: '10px',
+                      padding: '3px 6px',
+                      minWidth: '20px',
+                      fontWeight: '600',
+                      boxShadow: '0 2px 8px rgba(0, 123, 255, 0.4)',
+                      border: '2px solid white',
+                      zIndex: 10
+                    }}
+                  >
+                    {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                  </span>
+                )}
+              </button>
+              {showMessages && (
+                <div
+                  className="dropdown-menu dropdown-menu-end pc-h-dropdown show"
+                  style={{
+                    width: '360px',
+                    maxWidth: '90vw',
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+                    border: '1px solid rgba(0,0,0,0.1)',
+                    borderRadius: '12px',
+                    animation: 'slideDown 0.3s ease'
+                  }}
+                >
+                  <div
+                    className="dropdown-header d-flex align-items-center justify-content-between py-3 px-4"
+                    style={{
+                      borderBottom: '1px solid #e9ecef'
+                    }}
+                  >
+                    <h5 className="m-0 fw-bold" style={{ fontSize: '18px' }}>
+                      <i className="ph-duotone ph-chats-circle me-2"></i>
+                      Tin nhắn
+                      {unreadMessagesCount > 0 && (
+                        <span className="badge bg-primary ms-2" style={{ fontSize: '11px' }}>
+                          {unreadMessagesCount} mới
+                        </span>
+                      )}
+                    </h5>
                   </div>
-                  <div className="dropdown-body">
-                    <div
-                      className="message-scroll position-relative"
-                      style={{ maxHeight: "calc(100vh - 225px)" }}
-                    >
-                      <div className="dropdown-item text-center text-muted py-4">
-                        <i className="ph-duotone ph-chat-circle-slash" style={{ fontSize: '48px' }}></i>
-                        <p className="mb-0 mt-2">Chưa có tin nhắn</p>
+                  <div
+                    className="dropdown-body p-0"
+                    style={{
+                      maxHeight: '400px',
+                      overflowY: 'auto'
+                    }}
+                  >
+                    {loadingMessages ? (
+                      <div className="text-center py-5">
+                        <div className="spinner-border text-primary" role="status">
+                          <span className="visually-hidden">Đang tải...</span>
+                        </div>
+                        <p className="text-muted mt-3 mb-0 small">Đang tải tin nhắn...</p>
                       </div>
-                    </div>
+                    ) : conversations.length > 0 ? (
+                      <div className="list-group list-group-flush">
+                        {conversations.map((conv) => {
+                          const peer = conv.peer;
+                          return (
+                            <div
+                              key={conv._id}
+                              className="list-group-item list-group-item-action border-0"
+                              onClick={() => handleConversationClick(conv)}
+                              style={{
+                                cursor: 'pointer',
+                                borderLeft: conv.unreadCount > 0 ? '3px solid #0d6efd' : '3px solid transparent',
+                                transition: 'all 0.2s ease',
+                                padding: '12px 16px',
+                                backgroundColor: conv.unreadCount > 0 ? 'rgba(13, 110, 253, 0.03)' : 'transparent'
+                              }}
+                            >
+                              <div className="d-flex align-items-start gap-3">
+                                {/* Avatar */}
+                                <div className="flex-shrink-0 position-relative">
+                                  <img
+                                    src={peer?.avatarUrl || peer?.avatar || `https://ui-avatars.com/api/?name=${peer?.displayName || peer?.username || 'User'}&background=random`}
+                                    alt={peer?.username || 'User'}
+                                    className="rounded-circle"
+                                    style={{
+                                      width: '48px',
+                                      height: '48px',
+                                      objectFit: 'cover',
+                                      border: '2px solid white',
+                                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                    }}
+                                  />
+                                  {conv.unreadCount > 0 && (
+                                    <div
+                                      className="position-absolute bottom-0 end-0 rounded-circle d-flex align-items-center justify-content-center"
+                                      style={{
+                                        width: '20px',
+                                        height: '20px',
+                                        backgroundColor: '#0d6efd',
+                                        border: '2px solid white'
+                                      }}
+                                    >
+                                      <i className="ph-fill ph-chat-circle-text text-white" style={{ fontSize: '11px' }}></i>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Content */}
+                                <div className="flex-grow-1 min-width-0">
+                                  <div className="d-flex align-items-center justify-content-between mb-1">
+                                    <h6
+                                      className="mb-0 text-truncate fw-semibold"
+                                      style={{
+                                        fontSize: '14px',
+                                        color: '#2c3e50',
+                                        maxWidth: '200px'
+                                      }}
+                                    >
+                                      {peer?.displayName || peer?.username || 'Unknown User'}
+                                    </h6>
+                                    {conv.lastMessageAt && (
+                                      <small
+                                        className="text-muted flex-shrink-0"
+                                        style={{
+                                          fontSize: '11px'
+                                        }}
+                                      >
+                                        {formatTimeAgo(conv.lastMessageAt)}
+                                      </small>
+                                    )}
+                                  </div>
+
+                                  <p
+                                    className="mb-0 text-truncate"
+                                    style={{
+                                      fontSize: '13px',
+                                      color: conv.unreadCount > 0 ? '#495057' : '#6c757d',
+                                      lineHeight: '1.4'
+                                    }}
+                                  >
+                                    {conv.lastMessage || 'Bắt đầu cuộc trò chuyện'}
+                                  </p>
+
+                                  {conv.unreadCount > 0 && (
+                                    <span
+                                      className="badge bg-primary mt-1"
+                                      style={{
+                                        fontSize: '10px',
+                                        padding: '3px 8px',
+                                        borderRadius: '12px',
+                                        fontWeight: '600'
+                                      }}
+                                    >
+                                      {conv.unreadCount} tin nhắn mới
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-5 px-3">
+                        <i className="ph-duotone ph-chat-text" style={{ fontSize: '64px', opacity: 0.3, color: '#6c757d' }}></i>
+                        <p className="mb-0 mt-3 fw-semibold" style={{ color: '#495057' }}>Chưa có tin nhắn</p>
+                        <small className="text-muted" style={{ fontSize: '13px' }}>Bắt đầu trò chuyện với bạn bè</small>
+                      </div>
+                    )}
                   </div>
+                  {conversations.length > 0 && (
+                    <div
+                      className="dropdown-footer text-center py-2 border-top"
+                      style={{
+                        backgroundColor: '#f8f9fa'
+                      }}
+                    >
+                      <button
+                        className="btn btn-link btn-sm text-primary text-decoration-none"
+                        onClick={() => {
+                          navigate('/messages');
+                          setShowMessages(false);
+                        }}
+                        style={{ fontSize: '13px', fontWeight: '500' }}
+                      >
+                        Xem tất cả tin nhắn
+                        <i className="ph ph-arrow-right ms-1"></i>
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </li>
-            )}
+              )}
+            </li>
             <li
-              className="dropdown pc-h-item header-user-profile"
+              className="dropdown pc-h-item header-user-profile d-flex align-items-center"
               ref={userMenuRef}
+              style={{ overflow: 'visible', paddingTop: '4px' }}
             >
               <span
                 className="pc-head-link dropdown-toggle arrow-none me-0"
                 onClick={() => setShowUserMenu(!showUserMenu)}
+                style={{
+                  padding: '4px',
+                  borderRadius: '50%',
+                  background: showUserMenu ? 'rgba(13, 110, 253, 0.08)' : 'transparent',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer'
+                }}
               >
                 <img
                   src={user && user.avatarUrl || `https://ui-avatars.com/api/?background=random&name=user`}
                   alt="user-avatar"
                   className="user-avtar"
-                  width={40}
-                  height={40}
+                  width={36}
+                  height={36}
+                  style={{
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: '2px solid #e9ecef'
+                  }}
                 />
               </span>
               {showUserMenu && (
@@ -767,8 +1196,8 @@ export default function Header({ user }) {
                           src={user && user.avatarUrl || `https://ui-avatars.com/api/?background=random&name=user`}
                           alt="user-avatar"
                           className="rounded-circle"
-                          style={{ 
-                            width: '48px', 
+                          style={{
+                            width: '48px',
                             height: '48px',
                             objectFit: 'cover',
                             border: '2px solid #fff',
@@ -788,54 +1217,54 @@ export default function Header({ user }) {
                       </div>
 
                       <div className="dropdown-divider my-2"></div>
-                      
+
                       {/* Menu Items */}
-                      <Link 
-                        to={`/user/${user?.username}`} 
+                      <Link
+                        to={`/user/${user?.username}`}
                         className="dropdown-item d-flex align-items-center py-2 px-3 rounded"
                         style={{ transition: 'all 0.2s ease' }}
                         onClick={() => setShowUserMenu(false)}
                       >
                         <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#e3f2fd', borderRadius: '10px' }}>
-                          <i className="ph-duotone ph-user-circle" style={{ fontSize: '20px', color: '#1976d2' }}></i>
+                          <i className="ph-duotone ph-user-circle" style={{ fontSize: '20px', color: '#1976d2', marginLeft: '7px' }}></i>
                         </div>
                         <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#1c1c1c' }}>Trang cá nhân</span>
                       </Link>
 
-                      <Link 
-                        to="/profile" 
+                      <Link
+                        to="/profile"
                         className="dropdown-item d-flex align-items-center py-2 px-3 rounded mt-1"
                         style={{ transition: 'all 0.2s ease' }}
                         onClick={() => setShowUserMenu(false)}
                       >
                         <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#e8f5e9', borderRadius: '10px' }}>
-                          <i className="ph-duotone ph-gear" style={{ fontSize: '20px', color: '#388e3c' }}></i>
+                          <i className="ph-duotone ph-gear" style={{ fontSize: '20px', color: '#388e3c', marginLeft: '7px' }}></i>
                         </div>
                         <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#1c1c1c' }}>Cài đặt tài khoản</span>
                       </Link>
-                      
+
                       {/* Link MOD Dashboard cho MOD và ADMIN */}
                       {(user?.role === 'mod' || user?.role === 'admin') && (
                         <>
                           <div className="dropdown-divider my-2"></div>
-                          <Link 
-                            to="/mod/dashboard" 
+                          <Link
+                            to="/mod/dashboard"
                             className="dropdown-item d-flex align-items-center py-2 px-3 rounded"
                             style={{ transition: 'all 0.2s ease' }}
                             onClick={() => setShowUserMenu(false)}
                           >
                             <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#f3e5f5', borderRadius: '10px' }}>
-                              <i className="ph-duotone ph-shield-check" style={{ fontSize: '20px', color: '#8b5cf6' }}></i>
+                              <i className="ph-duotone ph-shield-check" style={{ fontSize: '20px', color: '#8b5cf6', marginLeft: '7px' }}></i>
                             </div>
                             <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#1c1c1c' }}>Quản lý duyệt bài</span>
                           </Link>
                         </>
                       )}
-                      
+
                       <div className="dropdown-divider my-2"></div>
-                      
-                      <Link 
-                        to="/login" 
+
+                      <Link
+                        to="/login"
                         className="dropdown-item d-flex align-items-center py-2 px-3 rounded"
                         style={{ transition: 'all 0.2s ease' }}
                         onClick={() => {
@@ -844,7 +1273,7 @@ export default function Header({ user }) {
                         }}
                       >
                         <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#ffebee', borderRadius: '10px' }}>
-                          <i className="ph-duotone ph-sign-out" style={{ fontSize: '20px', color: '#d32f2f' }}></i>
+                          <i className="ph-duotone ph-sign-out" style={{ fontSize: '20px', color: '#d32f2f', marginLeft: '7px' }}></i>
                         </div>
                         <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#d32f2f' }}>Đăng xuất</span>
                       </Link>

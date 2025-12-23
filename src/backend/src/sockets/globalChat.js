@@ -1,19 +1,19 @@
 const User = require('../models/User');
 const GlobalMessage = require('../models/GlobalMessage');
 
-// Register global chat socket handlers for a connected socket
+// Đăng ký các xử lý socket cho chat toàn cục
 module.exports = function registerGlobalChatHandlers(io, socket) {
-  // Join global chat room
+  // Tham gia phòng chat toàn cục
   socket.on('chat:global:join', () => {
     socket.join('global_chat');
   });
 
-  // Leave global chat room
+  // Rời khỏi phòng chat toàn cục
   socket.on('chat:global:leave', () => {
     socket.leave('global_chat');
   });
 
-  // Send global message (with optional ACK)
+  // Gửi tin nhắn toàn cục (có thể có ACK)
   socket.on('chat:global:message', async (data, callback) => {
     try {
       if (!socket.userId) {
@@ -36,20 +36,20 @@ module.exports = function registerGlobalChatHandlers(io, socket) {
 
       const { message } = data;
 
-      // Save message to DB
+      // Lưu tin nhắn vào database
       const newMessage = await GlobalMessage.create({
         senderId: socket.userId,
         text: message.text || '',
         attachments: message.attachments || [],
       });
 
-      // Populate sender info and attachments
+      // Lấy thông tin người gửi và tệp đính kèm
       const populatedMessage = await GlobalMessage.findById(newMessage._id)
         .populate('senderId', '_id username displayName avatar avatarUrl')
         .populate('attachments', '_id filename mime size storageUrl createdAt')
         .lean();
 
-      // Broadcast to all users in global chat room
+      // Phát tín hiệu đến tất cả người dùng trong phòng chat toàn cục
       io.to('global_chat').emit('chat:global:new', {
         message: populatedMessage,
       });
@@ -71,14 +71,14 @@ module.exports = function registerGlobalChatHandlers(io, socket) {
     }
   });
 
-  // Global typing indicator
+  // Chỉ báo đang gõ toàn cục
   socket.on('chat:global:typing', async (data) => {
     try {
       if (!socket.userId) return;
 
       const { isTyping } = data;
 
-      // Get user info và kiểm tra ban status
+      // Lấy thông tin người dùng và kiểm tra trạng thái ban
       const user = await User.findById(socket.userId)
         .select('username displayName isBanned')
         .lean();
@@ -86,7 +86,7 @@ module.exports = function registerGlobalChatHandlers(io, socket) {
       // Không cho phép user bị ban gửi typing indicator
       if (user?.isBanned) return;
 
-      // Broadcast to others in global chat (exclude sender)
+      // Phát tín hiệu đến người dùng khác trong chat toàn cục (không bao gồm người gửi)
       socket.to('global_chat').emit('chat:global:typing', {
         userId: socket.userId,
         username: user?.username,

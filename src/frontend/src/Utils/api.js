@@ -253,15 +253,7 @@ export const getPostsByCategory = async (slug, params = {}) => {
   return handleResponse(response);
 };
 
-export const getCategoryById = async (categoryId) => {
-  const response = await fetch(`${API_BASE}/categories/${categoryId}`, {
-    method: "GET",
-    headers: withNoStore({
-      "Content-Type": "application/json",
-    }),
-  });
-  return handleResponse(response);
-};
+
 
 export const createCategory = async (token, data) => {
   const response = await fetch(`${API_BASE}/categories`, {
@@ -556,16 +548,7 @@ export const deleteNotification = async (token, notificationId) => {
 // ============================================
 
 // ===== ADMIN - CATEGORY MANAGEMENT =====
-export const getAllCategoriesWithStats = async (token) => {
-  const response = await fetch(`${API_BASE}/admin/categories/stats`, {
-    method: "GET",
-    headers: withNoStore({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    }),
-  });
-  return handleResponse(response);
-};
+
 
 export const getCategoriesStats = async (token) => {
   const response = await fetch(`${API_BASE}/admin/categories/summary`, {
@@ -959,16 +942,6 @@ export const getAllReportsAdmin = async (token, page = 1, limit = 20, filters = 
   return handleResponse(response);
 };
 
-export const getReportDetailAdmin = async (token, reportId) => {
-  const response = await fetch(`${API_BASE}/admin/reports/${reportId}`, {
-    method: "GET",
-    headers: withNoStore({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    }),
-  });
-  return handleResponse(response);
-};
 
 export const getReportsByTargetAdmin = async (token, targetType, targetId) => {
   const response = await fetch(`${API_BASE}/admin/reports/target/${targetType}/${targetId}`, {
@@ -1069,32 +1042,6 @@ export const getDocuments = async (token, params = {}) => {
   });
   return handleResponse(response);
 };
-
-// export const getDocumentsByCategory = async (token, category, params = {}) => {
-//   const { page = 1, limit = 20, keyword = '' } = params;
-//   const q = new URLSearchParams({ page, limit });
-//   if (keyword) q.set('keyword', keyword);
-//   const response = await fetch(`${API_BASE}/documents/by-category/${category}?${q.toString()}`, {
-//     method: "GET",
-//     headers: withNoStore({
-//       "Content-Type": "application/json",
-//       Authorization: `Bearer ${token}`,
-//     }),
-//   });
-//   return handleResponse(response);
-// };
-
-// export const getDocumentDetail = async (token, id) => {
-//   const response = await fetch(`${API_BASE}/documents/${id}`, {
-//     method: "GET",
-//     headers: withNoStore({
-//       "Content-Type": "application/json",
-//       Authorization: `Bearer ${token}`,
-//     }),
-//   });
-//   return handleResponse(response);
-// };
-
 // ============================================
 // CHAT APIs
 // ============================================

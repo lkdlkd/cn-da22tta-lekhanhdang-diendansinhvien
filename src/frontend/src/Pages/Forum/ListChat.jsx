@@ -11,7 +11,7 @@ import {
 } from "../../Utils/socket";
 import PrivateChat from "./PrivateChat";
 import LoadingPost from "@/Components/LoadingPost";
-
+import { Link } from "react-router-dom";
 const ListChat = () => {
   const { auth } = useContext(AuthContext);
   const { user } = useOutletContext();
@@ -27,46 +27,46 @@ const ListChat = () => {
   const [selectedUsername, setSelectedUsername] = useState(username || null);
   const [filterMode, setFilterMode] = useState("all"); // all | unread | online
 
-  // Unread messages tracking
+  // Theo dõi số tin nhắn chưa đọc
   const [unreadCounts, setUnreadCounts] = useState({}); // { conversationId: count }
 
-  // Ref for search debounce
+  // Ref cho debounce tìm kiếm
   const searchTimeoutRef = useRef(null);
 
-  // Audio notification
+  // Âm thanh thông báo
   const notificationSoundRef = useRef(null);
   const searchInputRef = useRef(null);
 
-  // Track processed messages to prevent duplicates
+  // Theo dõi tin nhắn đã xử lý để tránh trùng lặp
   const processedMessagesRef = useRef(new Set());
 
-  // Ref to store current selectedUsername without causing listener re-registration
+  // Ref lưu selectedUsername hiện tại mà không gây ra đăng ký lại listener
   const selectedUsernameRef = useRef(selectedUsername);
 
-  // Ref to store the notify handler
+  // Ref lưu notify handler
   const notifyHandlerRef = useRef(null);
 
-  // Ref to store stable wrapper function for consistent cleanup
+  // Ref lưu wrapper function ổn định để cleanup nhất quán
   const stableHandlerRef = useRef(null);
 
-  // Ref to store last processed message timestamp per peer to avoid double counting
+  // Ref lưu timestamp tin nhắn đã xử lý cuối cùng của mỗi peer để tránh đếm trùng
   const lastMessageTimestampRef = useRef({});
 
-  // Ref to keep latest conversations array for synchronous access inside handlers
+  // Ref giữ mảng conversations mới nhất để truy cập đồng bộ trong handlers
   const conversationsRef = useRef(conversations);
 
   useEffect(() => {
     conversationsRef.current = conversations;
   }, [conversations]);
 
-  // Initialize notification sound
+  // Khởi tạo âm thanh thông báo
   useEffect(() => {
-    // Create audio element for notification sound
+    // Tạo phần tử audio cho âm thanh thông báo
     notificationSoundRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBzCI0fPTgjMGHm7A7+OZURE');
     notificationSoundRef.current.volume = 0.5;
   }, []);
 
-  // Play notification sound
+  // Phát âm thanh thông báo
   const playNotificationSound = useCallback(() => {
     if (notificationSoundRef.current) {
       notificationSoundRef.current.currentTime = 0;
@@ -74,7 +74,7 @@ const ListChat = () => {
     }
   }, []);
 
-  // Update ref whenever selectedUsername changes
+  // Cập nhật ref mỗi khi selectedUsername thay đổi
   useEffect(() => {
     selectedUsernameRef.current = selectedUsername;
   }, [selectedUsername]);
@@ -88,7 +88,7 @@ const ListChat = () => {
   //   });
   // }, [selectedUsername, username]);
 
-  // Load conversations
+  // Tải danh sách cuộc trò chuyện
   useEffect(() => {
     if (!auth.token) return;
 
@@ -117,7 +117,7 @@ const ListChat = () => {
     loadConversations();
   }, [auth.token]);
 
-  // Sync selectedUsername with route param (chỉ khi đang ở route /message/:username)
+  // Đồng bộ selectedUsername với route param (chỉ khi đang ở route /message/:username)
   useEffect(() => {
     // console.log('🔄 URL sync:', { urlUsername: username, currentSelected: selectedUsername });
 
@@ -126,14 +126,14 @@ const ListChat = () => {
       // console.log('➡️ Setting from URL:', username);
       setSelectedUsername(username);
     }
-    // Nếu không có username trong URL và đang có selectedUsername, clear nó
+    // Nếu không có username trong URL và đang có selectedUsername, xóa nó
     else if (!username && selectedUsername) {
       // console.log('🗑️ Clearing selected username');
       setSelectedUsername(null);
     }
-  }, [username]); // ❌ Removed selectedUsername from dependencies to prevent loop
+  }, [username]); // ❌ Đã xóa selectedUsername khỏi dependencies để tránh vòng lặp
 
-  // Handle browser back/forward buttons
+  // Xử lý nút back/forward của trình duyệt
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname;
@@ -149,7 +149,7 @@ const ListChat = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Update document title with unread count
+  // Cập nhật tiêu đề trang với số tin nhắn chưa đọc
   useEffect(() => {
     const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
     if (totalUnread > 0) {
@@ -158,18 +158,18 @@ const ListChat = () => {
       document.title = 'Tin nhắn - Diễn đàn';
     }
 
-    // Reset title on unmount
+    // Reset tiêu đề khi unmount
     return () => {
       document.title = 'Diễn đàn';
     };
   }, [unreadCounts]);
 
-  // Handle conversation selection
+  // Xử lý chọn cuộc trò chuyện
   const handleSelectConversation = (username) => {
     // console.log('🎯 Selecting conversation with:', username);
     setSelectedUsername(username);
 
-    // Clear unread count for this conversation
+    // Xóa số tin nhắn chưa đọc cho cuộc trò chuyện này
     const conv = conversations.find(c => c.peer?.username === username);
     if (conv && unreadCounts[conv._id]) {
       setUnreadCounts(prev => {
@@ -179,7 +179,7 @@ const ListChat = () => {
       });
     }
 
-    // Update URL without full page reload
+    // Cập nhật URL mà không reload toàn bộ trang
     window.history.pushState({}, '', `/message/${username}`);
     //  console.log('✅ Selected username set to:', username);
   };
@@ -196,15 +196,15 @@ const ListChat = () => {
     });
   }, []);
 
-  // Handle back from chat (mobile)
+  // Xử lý quay lại danh sách (mobile)
   const handleBackToList = () => {
     // console.log('⬅️ Back to list');
     setSelectedUsername(null);
-    // Update URL to remove username
+    // Cập nhật URL để xóa username
     window.history.pushState({}, '', `/messages`);
   };
 
-  // Load online users
+  // Tải danh sách người dùng đang online
   useEffect(() => {
     if (!auth.token) return;
 
@@ -222,7 +222,7 @@ const ListChat = () => {
     loadOnlineUsers();
   }, [auth.token]);
 
-  // Listen for presence updates
+  // Lắng nghe cập nhật trạng thái online
   useEffect(() => {
     const handleStatusChange = ({ userId, isOnline }) => {
       setOnlineUsers((prev) => {
@@ -231,7 +231,7 @@ const ListChat = () => {
         return updated;
       });
 
-      // Update online users list
+      // Cập nhật danh sách người dùng online
       if (isOnline) {
         // Reload online users when someone comes online
         getOnlineUsers(auth.token, 50).then((result) => {
@@ -240,7 +240,7 @@ const ListChat = () => {
           }
         });
       } else {
-        // Remove from online list
+        // Xóa khỏi danh sách online
         setOnlineUsersList((prev) => prev.filter((u) => String(u._id) !== String(userId)));
       }
     };
@@ -249,14 +249,14 @@ const ListChat = () => {
     return () => offUserStatusChanged(handleStatusChange);
   }, [auth.token]);
 
-  // Listen for new messages to update last message snippet
-  // Create the handler function - will be stored in ref
+  // Lắng nghe tin nhắn mới để cập nhật đoạn tin nhắn cuối
+  // Tạo hàm xử lý - sẽ được lưu trong ref
   const handlePrivateNotify = useCallback((data) => {
     const { fromUserId, message } = data;
     const fromUserIdStr = String(fromUserId);
     const myIdStr = String(user?.id || user?._id);
 
-    // Create unique message ID using _id when available + normalized timestamp
+    // Tạo ID tin nhắn duy nhất sử dụng _id khi có + timestamp chuẩn hóa
     const attachmentSignature = Array.isArray(message.attachments)
       ? message.attachments
         .map((att) => att?._id || att?.storageUrl || att?.filename || att?.originalname || '')
@@ -292,8 +292,8 @@ const ListChat = () => {
       processedMessagesRef.current = new Set(arr.slice(-50));
     }
 
-    // IMPORTANT: Ignore messages from self (sender)
-    // Only update conversation list for messages FROM others
+    // QUAN TRỌNG: Bỏ qua tin nhắn từ chính mình (người gửi)
+    // Chỉ cập nhật danh sách cuộc trò chuyện cho tin nhắn TỪ người khác
     if (fromUserIdStr === myIdStr) {
       // console.log('🚫 [ListChat] Ignoring notify from self');
       return;
@@ -335,14 +335,14 @@ const ListChat = () => {
     }
   }, [user, incrementUnread, playNotificationSound]);
 
-  // Store handler in ref
+  // Lưu handler vào ref
   useEffect(() => {
     notifyHandlerRef.current = handlePrivateNotify;
   }, [handlePrivateNotify]);
 
-  // Register listener with stable wrapper function - ONCE only
+  // Đăng ký listener với wrapper function ổn định - CHỈ MỘT LẦN
   useEffect(() => {
-    // Create stable wrapper ONCE and store in ref
+    // Tạo wrapper ổn định MỘT LẦN và lưu trong ref
     if (!stableHandlerRef.current) {
       stableHandlerRef.current = (data) => {
         if (notifyHandlerRef.current) {
@@ -351,7 +351,7 @@ const ListChat = () => {
       };
     }
 
-    // Only register if we have auth and haven't registered yet
+    // Chỉ đăng ký nếu có auth và chưa đăng ký
     if (auth.token && auth.user) {
       // console.log('🎧 [ListChat] Setting up notify listener (ONCE)');
       onPrivateNotify(stableHandlerRef.current);
@@ -359,13 +359,13 @@ const ListChat = () => {
 
     return () => {
       if (stableHandlerRef.current) {
-          // console.log('🔇 [ListChat] Cleaning up notify listener');
+        // console.log('🔇 [ListChat] Cleaning up notify listener');
         offPrivateNotify(stableHandlerRef.current);
       }
     };
-  }, []); // Empty deps - register only once on mount
+  }, []); // Dependencies rỗng - chỉ đăng ký một lần khi mount
 
-  // Re-register listener when tab becomes visible (helps after long sleep)
+  // Đăng ký lại listener khi tab hiển thị (hữu ích sau khi ngủ lâu)
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && socket.connected) {
@@ -378,7 +378,7 @@ const ListChat = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
-  // Search users by username (with debounce)
+  // Tìm kiếm người dùng theo username (có debounce)
   const handleSearch = (query) => {
     setSearchQuery(query);
 
@@ -391,15 +391,15 @@ const ListChat = () => {
       return;
     }
 
-    // Clear previous timeout
+    // Xóa timeout trước đó
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    // Show searching indicator immediately
+    // Hiển thị indicator đang tìm kiếm ngay lập tức
     setSearching(true);
 
-    // Debounce: wait 500ms after user stops typing
+    // Debounce: đợi 1000ms sau khi người dùng ngừng gõ
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         const result = await getUserByUsername(query.trim(), auth.token);
@@ -417,7 +417,7 @@ const ListChat = () => {
     }, 1000); // Wait 1000ms after last keystroke
   };
 
-  // Helper to calculate total unread count
+  // Hàm trợ giúp tính tổng số tin nhắn chưa đọc
   const getTotalUnread = () => {
     return Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
   };

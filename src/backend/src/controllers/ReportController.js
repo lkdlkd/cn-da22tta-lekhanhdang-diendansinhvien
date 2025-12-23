@@ -323,53 +323,6 @@ exports.getAllReportsAdmin = async (req, res) => {
 	}
 };
 
-// [ADMIN] Lấy chi tiết một báo cáo
-exports.getReportDetailAdmin = async (req, res) => {
-	try {
-		const reportId = req.params.id;
-
-		const report = await Report.findById(reportId)
-			.populate('reporterId', 'username displayName avatarUrl email faculty class')
-			.populate('handledBy', 'username displayName avatarUrl')
-			.lean();
-
-		if (!report) {
-			return res.status(404).json({ 
-				success: false, 
-				error: 'Báo cáo không tồn tại' 
-			});
-		}
-
-		// Populate target info chi tiết
-		let targetInfo = null;
-		if (report.targetType === 'post') {
-			targetInfo = await Post.findById(report.targetId)
-				.populate('authorId', 'username displayName avatarUrl email faculty class')
-				.populate('categoryId', 'title slug')
-				.lean();
-		} else if (report.targetType === 'comment') {
-			targetInfo = await Comment.findById(report.targetId)
-				.populate('authorId', 'username displayName avatarUrl email faculty class')
-				.populate('postId', 'title slug')
-				.lean();
-		} else if (report.targetType === 'user') {
-			targetInfo = await User.findById(report.targetId)
-				.select('-password')
-				.lean();
-		}
-
-		res.json({
-			success: true,
-			report: {
-				...report,
-				targetInfo
-			}
-		});
-	} catch (err) {
-		console.error('Error in getReportDetailAdmin:', err);
-		res.status(500).json({ success: false, error: err.message });
-	}
-};
 
 // [ADMIN] Cập nhật trạng thái báo cáo
 exports.updateReportStatusAdmin = async (req, res) => {

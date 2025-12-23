@@ -19,6 +19,7 @@ import {
   onUserStatusChanged,
   offUserStatusChanged,
 } from "../../Utils/socket";
+
 import LoadingPost from "@/Components/LoadingPost";
 
 const PrivateChat = ({ usernameOverride, onBack }) => {
@@ -65,7 +66,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
     "🌟", "💖", "😴", "🤩", "😜", "🥳", "🤝", "💕", "🌈", "⭐"
   ];
 
-  // Close emoji picker when clicking outside
+  // Đóng bảng chọn emoji khi click bên ngoài
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
@@ -82,7 +83,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
     };
   }, [showEmojiPicker]);
 
-  // Resolve username to userId
+  // Chuyển đổi username thành userId
   useEffect(() => {
     if (!username || !auth.token) {
       // .log('⚠️ Missing username or token:', { username, hasToken: !!auth.token });
@@ -126,7 +127,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
     setCurrentPage(1);
     setHasMore(true);
     setLoading(true);
-    isFirstLoadRef.current = true; // Mark as first load
+    isFirstLoadRef.current = true; // Đánh dấu là lần tải đầu tiên
 
     const loadHistory = async () => {
       try {
@@ -227,9 +228,9 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
       offPrivateTyping(handleTyping);
       offUserStatusChanged(handleStatusChange);
     };
-  }, [peerId, me, peer]); // Add peer to dependencies
+  }, [peerId, me, peer]); // Thêm peer vào dependencies
 
-  // Re-join private room when tab becomes visible (helps after long sleep)
+  // Tham gia lại phòng riêng khi tab hiển thị (hữu ích sau khi ngủ lâu)
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && socket.connected && peerId && me) {
@@ -242,33 +243,33 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [peerId, me]);
 
-  // Auto scroll to bottom
+  // Tự động cuộn xuống dưới
   useEffect(() => {
     if (isFirstLoadRef.current && messages.length > 0) {
-      // First load: scroll immediately without animation
+      // Lần tải đầu: cuộn ngay lập tức không có animation
       messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
       isFirstLoadRef.current = false;
     } else if (isAtBottom) {
-      // New message arrived and user is at bottom: smooth scroll
+      // Tin nhắn mới đến và người dùng ở dưới cùng: cuộn mượt
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isAtBottom]);
 
-  // Handle scroll to load more messages
+  // Xử lý cuộn để tải thêm tin nhắn
   const handleScroll = async (e) => {
     const container = e.target;
     const scrollTop = container.scrollTop;
     const scrollHeight = container.scrollHeight;
     const clientHeight = container.clientHeight;
 
-    // Check if user is at bottom (within 50px)
+    // Kiểm tra nếu người dùng ở dưới cùng (trong vòng 50px)
     const isNearBottom = scrollHeight - scrollTop - clientHeight < 50;
     setIsAtBottom(isNearBottom);
 
-    // Show/hide scroll to bottom button
+    // Hiển thị/ẩn nút cuộn xuống dưới
     setShowScrollButton(!isNearBottom && scrollTop > 200);
 
-    // If user scrolled to top (within 100px) and we have more messages to load
+    // Nếu người dùng cuộn lên trên (trong vòng 100px) và còn tin nhắn để tải
     if (scrollTop < 100 && !loadingMore && hasMore && peerId && auth.token) {
       setLoadingMore(true);
       previousScrollHeightRef.current = container.scrollHeight;
@@ -515,7 +516,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
     <div className="w-100 h-100 d-flex flex-column" style={{ overflow: "hidden", position: "relative" }}>
       <div className="d-flex flex-column h-100">
         {/* Header */}
-        <div className="border-bottom bg-white px-2 px-md-3 py-2" style={{
+        <div className="border-bottom px-2 px-md-3 py-2" style={{
           minHeight: "56px",
           flexShrink: 0,
           position: "sticky",
@@ -531,13 +532,17 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
                 padding: "0.25rem 0.5rem",
                 display: "flex",
                 alignItems: "center",
-                gap: "4px"
+                gap: "4px",
+                borderRadius: "20px",
+                transition: "all 0.2s"
               }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateX(-3px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateX(0)'}
             >
               <span style={{ fontSize: '20px' }}>←</span>
               <span className="d-none d-md-inline">Trở lại</span>
             </button>
-            <div className="position-relative me-2 me-md-3 flex-shrink-0">
+            <Link to={`/user/${peer.username}`} className="position-relative me-2 me-md-3 flex-shrink-0" style={{ cursor: "pointer", textDecoration: "none" }}>
               <img
                 src={peer.avatarUrl || `https://ui-avatars.com/api/?name=${peer.displayName || peer.username}&background=random`}
                 alt={peer.displayName || peer.username}
@@ -547,16 +552,24 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
               {peerOnline && (
                 <span
                   className="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle"
-                  style={{ width: 10, height: 10 }}
+                  style={{ 
+                    width: 10, 
+                    height: 10,
+                    boxShadow: '0 0 10px rgba(40, 167, 69, 0.6)'
+                  }}
                 ></span>
               )}
-            </div>
+            </Link>
             <div className="flex-grow-1 overflow-hidden">
-              <h6 className="mb-0 fw-semibold text-truncate" style={{ fontSize: "0.95rem" }}>
-                {peer.displayName || peer.username}
-              </h6>
+              <Link to={`/user/${peer.username}`} style={{ textDecoration: "none", color: "inherit" }}>
+                <h6 className="mb-0 fw-semibold text-truncate" style={{ fontSize: "0.95rem", transition: "color 0.2s" }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#667eea'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>
+                  {peer.displayName || peer.username}
+                </h6>
+              </Link>
               <small className="text-muted d-none d-sm-block" style={{ fontSize: "0.75rem" }}>
-                {peerOnline ? "Đang hoạt động" : "Không hoạt động"}
+                {peerOnline ? "🟢 Đang hoạt động" : "⚫ Không hoạt động"}
               </small>
             </div>
           </div>
@@ -614,12 +627,22 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
                 >
                   {/* Avatar - chỉ hiển thị cho tin nhắn người khác, bên trái */}
                   {!isMine && (
-                    <img
-                      src={sender.avatarUrl || sender.avatar || `https://ui-avatars.com/api/?name=${sender.displayName || sender.username}&background=random`}
-                      alt={sender.displayName || sender.username}
-                      className="rounded-circle me-2 flex-shrink-0"
-                      style={{ width: 28, height: 28, objectFit: "cover" }}
-                    />
+                    <Link to={`/user/${sender.username}`} className="flex-shrink-0">
+                      <img
+                        src={sender.avatarUrl || sender.avatar || `https://ui-avatars.com/api/?name=${sender.displayName || sender.username}&background=random`}
+                        alt={sender.displayName || sender.username}
+                        className="rounded-circle me-2"
+                        style={{ 
+                          width: 28, 
+                          height: 28, 
+                          objectFit: "cover",
+                          cursor: "pointer",
+                          transition: "transform 0.2s"
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      />
+                    </Link>
                   )}
 
                   <div style={{ maxWidth: "85%", maxWidth: "min(85%, 400px)" }}>
@@ -795,12 +818,13 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
         )}
 
         {/* Input */}
-        <div className="border-top bg-white p-2 p-md-3" style={{
+        <div className="border-top p-2 p-md-3" style={{
           flexShrink: 0,
           position: "sticky",
           bottom: 0,
           zIndex: 10,
-          boxShadow: "0 -2px 4px rgba(0,0,0,0.05)"
+          backgroundColor: "#f8f9fa",
+          boxShadow: "0 -2px 8px rgba(0,0,0,0.08)"
         }}>
           {/* File Preview */}
           {selectedFiles.length > 0 && (
@@ -904,7 +928,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
               )}
             </button>
 
-            {/* Emoji Picker Button */}
+            {/* Nút chọn Emoji */}
             <div className="position-relative" ref={emojiPickerRef}>
               <button
                 className="btn btn-outline-secondary flex-shrink-0 d-flex align-items-center justify-content-center"
@@ -921,7 +945,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
                 <i className="bi bi-emoji-smile fs-5"></i>
               </button>
 
-              {/* Emoji Picker Dropdown */}
+              {/* Menu chọn Emoji */}
               {showEmojiPicker && (
                 <div
                   className="position-absolute bg-white border rounded shadow-lg p-3"
@@ -1020,7 +1044,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
           }}
           onClick={closeLightbox}
         >
-          {/* Close Button */}
+          {/* Nút Đóng */}
           <button
             className="btn btn-light position-absolute top-0 end-0 m-3 rounded-circle"
             style={{ width: '40px', height: '40px', zIndex: 10000 }}
@@ -1029,7 +1053,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
             <i className="bi bi-x-lg"></i>
           </button>
 
-          {/* Previous Button */}
+          {/* Nút Trước */}
           {lightboxImages.length > 1 && (
             <button
               className="btn btn-light position-absolute start-0 top-50 translate-middle-y ms-3 rounded-circle"
@@ -1043,7 +1067,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
             </button>
           )}
 
-          {/* Image */}
+          {/* Ảnh */}
           <img
             src={lightboxImage}
             alt="Full size"
@@ -1057,7 +1081,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
             onClick={(e) => e.stopPropagation()}
           />
 
-          {/* Next Button */}
+          {/* Nút Tiếp */}
           {lightboxImages.length > 1 && (
             <button
               className="btn btn-light position-absolute end-0 top-50 translate-middle-y me-3 rounded-circle"
@@ -1071,7 +1095,7 @@ const PrivateChat = ({ usernameOverride, onBack }) => {
             </button>
           )}
 
-          {/* Image Counter */}
+          {/* Bộ đếm Ảnh */}
           {lightboxImages.length > 1 && (
             <div
               className="position-absolute bottom-0 start-50 translate-middle-x mb-3 bg-dark bg-opacity-75 text-white px-3 py-2 rounded"

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { getProfile, updateProfile, changePassword } from "../../Utils/api";
 import { useOutletContext } from "react-router-dom";
 import { Link } from "react-router-dom";
-import './Profile.css';
+import '../../assets/css/Profile.css';
 
 const facultiesData = {
   'Trường Kỹ thuật và Công nghệ': [
