@@ -84,7 +84,20 @@ const Home = () => {
   React.useEffect(() => {
     getPosts();
 
-    // Kết nối socket để nhận realtime bài viết mới
+    // Lắng nghe bài viết vừa tạo (chưa duyệt) - chỉ người đăng thấy
+    socket.on('post:created', ({ post: newPost, createdBy }) => {
+      // Chỉ hiển thị cho người đăng bài
+      if (user && String(user._id) === String(createdBy)) {
+        setPosts(prev => {
+          // Nếu đã có post này thì không thêm lại
+          if (prev.some(p => p._id === newPost._id)) return prev;
+          return [newPost, ...prev];
+        });
+        toast.info('Bài viết của bạn đang chờ kiểm duyệt');
+      }
+    });
+
+    // Kết nối socket để nhận realtime bài viết đã duyệt - tất cả người dùng thấy
     socket.on('post:new', (newPost) => {
       setPosts(prev => {
         // Nếu đã có post này thì không thêm lại
@@ -258,6 +271,7 @@ const Home = () => {
     });
 
     return () => {
+      socket.off('post:created');
       socket.off('post:new');
       socket.off('post:updated');
       socket.off('post:deleted');

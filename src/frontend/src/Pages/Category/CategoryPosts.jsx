@@ -46,6 +46,18 @@ const CategoryPosts = () => {
       });
     };
 
+    // Lắng nghe bài viết vừa tạo (chưa duyệt) - chỉ người đăng thấy
+    socket.on('post:created', ({ post: newPost, createdBy }) => {
+      // Chỉ hiển thị cho người đăng bài và phải cùng category
+      if (user && String(user._id) === String(createdBy) && String(newPost.categoryId?._id) === String(category?._id)) {
+        setPosts(prev => {
+          if (prev.some(p => p._id === newPost._id)) return prev;
+          return [newPost, ...prev];
+        });
+      }
+    });
+
+    // Bài viết đã duyệt - tất cả người dùng thấy
     socket.on('post:new', handleNewPost);
 
     // 🔥 REALTIME: Cập nhật bài viết
@@ -185,6 +197,7 @@ const CategoryPosts = () => {
 
     // Cleanup khi unmount
     return () => {
+      socket.off('post:created');
       socket.off('post:new', handleNewPost);
       socket.off('post:updated');
       socket.off('post:deleted');

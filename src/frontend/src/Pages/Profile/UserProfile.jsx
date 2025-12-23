@@ -314,6 +314,18 @@ const UserProfile = () => {
     };
 
     // Register listeners
+    // Lắng nghe bài viết vừa tạo (chưa duyệt) - chỉ người đăng thấy
+    socket.on('post:created', ({ post: newPost, createdBy }) => {
+      // Chỉ hiển thị nếu là bài viết của user này
+      if (String(createdBy) === String(currentUserId)) {
+        setPosts(prev => {
+          if (prev.some(p => p._id === newPost._id)) return prev;
+          return [newPost, ...prev];
+        });
+      }
+    });
+
+    // Bài viết đã duyệt - tất cả người dùng thấy
     socket.on('post:new', handleNewPost);
     socket.on('post:updated', handlePostUpdated);
     socket.on('post:deleted', handlePostDeleted);
@@ -327,6 +339,7 @@ const UserProfile = () => {
 
     // Cleanup
     return () => {
+      socket.off('post:created');
       socket.off('post:new', handleNewPost);
       socket.off('post:updated', handlePostUpdated);
       socket.off('post:deleted', handlePostDeleted);
