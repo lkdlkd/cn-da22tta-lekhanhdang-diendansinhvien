@@ -139,7 +139,7 @@ export default function Header({ user }) {
   // Handle incoming messages (like ListChat)
   const handlePrivateNotify = useCallback((data) => {
     console.log('📬 [Header] Received private:notify:', data);
-    
+
     if (!token || !user) {
       console.log('❌ [Header] No token or user, ignoring message');
       return;
@@ -205,7 +205,7 @@ export default function Header({ user }) {
     if (convIdx !== -1) {
       // Update existing conversation
       console.log('📝 [Header] Updating existing conversation');
-      
+
       // Increment unread count
       setUnreadMessagesCount(prev => {
         const newCount = prev + 1;
@@ -379,24 +379,24 @@ export default function Header({ user }) {
   // Handle conversation click
   const handleConversationClick = (conversation) => {
     const peer = conversation.peer;
-    
+
     // Mark as read locally if there are unread messages
     if (conversation.unreadCount > 0) {
       const unreadAmount = conversation.unreadCount;
-      
+
       // Update the conversations list
-      setConversations(prev => 
-        prev.map(conv => 
-          conv._id === conversation._id 
-            ? { ...conv, unreadCount: 0 } 
+      setConversations(prev =>
+        prev.map(conv =>
+          conv._id === conversation._id
+            ? { ...conv, unreadCount: 0 }
             : conv
         )
       );
-      
+
       // Decrease total unread count
       setUnreadMessagesCount(prev => Math.max(0, prev - unreadAmount));
     }
-    
+
     // Navigate to chat
     navigate(`/message/${peer?.username || ''}`);
     setShowMessages(false);
@@ -607,7 +607,7 @@ export default function Header({ user }) {
                 onClick={() => setShowNotifications(!showNotifications)}
                 aria-haspopup="true"
                 aria-expanded={showNotifications}
-                style={{ 
+                style={{
                   transition: 'all 0.3s ease',
                   padding: '12px',
                   borderRadius: '12px',
@@ -683,7 +683,7 @@ export default function Header({ user }) {
               </button>
               {showNotifications && (
                 <div
-                  className="dropdown-menu dropdown-menu-end pc-h-dropdown show"
+                  className="dropdown-menu dropdown-user-profile dropdown-menu-end pc-h-dropdown show"
                   style={{
                     width: '360px',
                     maxWidth: '90vw',
@@ -792,7 +792,7 @@ export default function Header({ user }) {
                                 </div>
 
                                 {/* Content */}
-                                <div className="flex-grow-1 min-width-0">
+                                <div className="flex-grow-1" style={{ minWidth: 0, maxWidth: '100%', overflow: 'hidden' }}>
                                   <p className="mb-1 text-dark" style={{ fontSize: '14px', lineHeight: '1.4' }}>
                                     <strong>{notification.data?.senderName || (notification.type === 'system' ? 'Hệ thống' : 'Người dùng')}</strong>
                                     {notification.type === 'system' && notification.data?.senderUsername && (
@@ -816,11 +816,22 @@ export default function Header({ user }) {
                                         fontSize: '13px',
                                         backgroundColor: 'rgba(0, 210, 211, 0.08)',
                                         border: '1px solid rgba(0, 210, 211, 0.2)',
-                                        lineHeight: '1.5'
+                                        lineHeight: '1.4',
+                                        maxWidth: '100%'
                                       }}
                                     >
-                                      <i className="ph-fill ph-info text-info" style={{ fontSize: '16px', marginTop: '1px', flexShrink: 0 }}></i>
-                                      <span className="text-dark" style={{ wordBreak: 'break-word' }}>
+                                      <i className="ph-fill ph-info text-info" style={{ fontSize: '14px', marginTop: '2px', flexShrink: 0 }}></i>
+                                      <span
+                                        className="text-dark"
+                                        style={{
+                                          overflow: 'hidden',
+                                          display: '-webkit-box',
+                                          WebkitLineClamp: 2,
+                                          WebkitBoxOrient: 'vertical',
+                                          wordBreak: 'break-word'
+                                        }}
+                                        title={notification.data.message}
+                                      >
                                         {notification.data.message}
                                       </span>
                                     </div>
@@ -828,8 +839,14 @@ export default function Header({ user }) {
 
                                   {notification.data?.postTitle && notification.type !== 'system' && (
                                     <p
-                                      className="text-muted mb-1 text-truncate"
-                                      style={{ fontSize: '13px' }}
+                                      className="text-muted mb-1"
+                                      style={{
+                                        fontSize: '13px',
+                                        maxWidth: '100%',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap'
+                                      }}
                                       title={notification.data.postTitle}
                                     >
                                       <i className="ph ph-article me-1"></i>
@@ -839,16 +856,21 @@ export default function Header({ user }) {
 
                                   {notification.data?.commentContent && (
                                     <p
-                                      className="text-muted mb-1 fst-italic text-truncate"
+                                      className="text-muted mb-1 fst-italic"
                                       style={{
                                         fontSize: '12px',
                                         backgroundColor: 'rgba(13, 110, 253, 0.05)',
                                         padding: '4px 8px',
                                         borderRadius: '4px',
-                                        borderLeft: '2px solid rgba(13, 110, 253, 0.3)'
+                                        borderLeft: '2px solid rgba(13, 110, 253, 0.3)',
+                                        maxWidth: '100%',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap'
                                       }}
+                                      title={notification.data.commentContent}
                                     >
-                                      "{notification.data.commentContent.substring(0, 60)}{notification.data.commentContent.length > 60 ? '...' : ''}"
+                                      "{notification.data.commentContent.substring(0, 40)}{notification.data.commentContent.length > 40 ? '...' : ''}"
                                     </p>
                                   )}
 
@@ -907,7 +929,7 @@ export default function Header({ user }) {
                 onClick={() => setShowMessages(!showMessages)}
                 aria-haspopup="true"
                 aria-expanded={showMessages}
-                style={{ 
+                style={{
                   transition: 'all 0.3s ease',
                   padding: '12px',
                   borderRadius: '12px',
@@ -974,7 +996,7 @@ export default function Header({ user }) {
               </button>
               {showMessages && (
                 <div
-                  className="dropdown-menu dropdown-menu-end pc-h-dropdown show"
+                  className="dropdown-menu dropdown-user-profile dropdown-menu-end pc-h-dropdown show"
                   style={{
                     width: '360px',
                     maxWidth: '90vw',
@@ -1092,12 +1114,17 @@ export default function Header({ user }) {
                                   </div>
 
                                   <p
-                                    className="mb-0 text-truncate"
+                                    className="mb-0"
                                     style={{
                                       fontSize: '13px',
                                       color: conv.unreadCount > 0 ? '#495057' : '#6c757d',
-                                      lineHeight: '1.4'
+                                      lineHeight: '1.4',
+                                      maxWidth: '250px',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
                                     }}
+                                    title={conv.lastMessage}
                                   >
                                     {conv.lastMessage || 'Bắt đầu cuộc trò chuyện'}
                                   </p>
