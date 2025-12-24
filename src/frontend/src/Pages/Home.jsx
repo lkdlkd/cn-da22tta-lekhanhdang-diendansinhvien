@@ -1,8 +1,5 @@
 import React from 'react';
 import { useState } from "react";
-import Modal from "react-bootstrap/Modal";
-import Table from "react-bootstrap/Table";
-import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import { getAllPosts } from "../Utils/api";
 import HeroSection from '../Components/HeroSection';
@@ -87,6 +84,7 @@ const Home = () => {
     // Lắng nghe bài viết vừa tạo (chưa duyệt) - chỉ người đăng thấy
     socket.on('post:created', ({ post: newPost, createdBy }) => {
       // Chỉ hiển thị cho người đăng bài
+      console.log('Received post:created for', createdBy, 'current user:', user?._id);
       if (user && String(user._id) === String(createdBy)) {
         setPosts(prev => {
           // Nếu đã có post này thì không thêm lại
@@ -283,7 +281,7 @@ const Home = () => {
       socket.off('comment:updated');
       socket.off('comment:deleted');
     };
-  }, []);
+  }, [user]); // Thêm user vào dependency để listener cập nhật khi user thay đổi
 
   // Open modal
   const handleOpenPostModal = () => {

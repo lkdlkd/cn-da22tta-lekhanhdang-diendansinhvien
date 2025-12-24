@@ -209,7 +209,7 @@ const CategoryPosts = () => {
       socket.off('comment:liked');
       socket.off('comment:unliked');
     };
-  }, [slug]); // Chỉ phụ thuộc vào slug, KHÔNG phụ thuộc category
+  }, [slug, user]); // Thêm user để listener cập nhật khi user thay đổi
 
   const loadCategoryAndPosts = async () => {
     try {

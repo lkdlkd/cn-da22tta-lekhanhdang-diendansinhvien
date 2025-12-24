@@ -1,39 +1,7 @@
+const Category = require('../../models/Category');
+const Post = require('../../models/Post');
 
-const Category = require('../models/Category');
-const Post = require('../models/Post');
-
-// Lấy tất cả danh mục
-exports.getAllCategories = async (req, res) => {
-	try {
-		// const categories = await Category.find();
-
-		const categories = await Category.find().lean();
-
-		// Thêm thống kê số lượng bài viết cho mỗi category
-		const categoriesWithStats = await Promise.all(
-			categories.map(async (category) => {
-				const postCount = await Post.countDocuments({ categoryId: category._id });
-				return {
-					...category,
-					postCount
-				};
-			})
-		);
-
-		res.json({
-			success: true,
-			data: categoriesWithStats,
-			total: categoriesWithStats.length
-		});
-		// res.json(categories);
-	} catch (err) {
-		res.status(500).json({ error: err.message });
-	}
-};
-
-
-
-// Tạo danh mục mới
+// [ADMIN] Tạo danh mục mới
 exports.createCategory = async (req, res) => {
 	try {
 		const category = new Category(req.body);
@@ -44,7 +12,7 @@ exports.createCategory = async (req, res) => {
 	}
 };
 
-// Cập nhật danh mục
+// [ADMIN] Cập nhật danh mục
 exports.updateCategory = async (req, res) => {
 	try {
 		const category = await Category.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -55,7 +23,7 @@ exports.updateCategory = async (req, res) => {
 	}
 };
 
-// Xóa danh mục
+// [ADMIN] Xóa danh mục
 exports.deleteCategory = async (req, res) => {
 	try {
 		const category = await Category.findByIdAndDelete(req.params.id);
@@ -187,4 +155,3 @@ exports.getCategoriesStats = async (req, res) => {
 		res.status(500).json({ success: false, error: err.message });
 	}
 };
-

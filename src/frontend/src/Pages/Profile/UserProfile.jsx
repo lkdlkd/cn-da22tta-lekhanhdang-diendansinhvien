@@ -351,7 +351,7 @@ const UserProfile = () => {
       socket.off('comment:liked', handleCommentLiked);
       socket.off('comment:unliked', handleCommentUnliked);
     };
-  }, [username]);
+  }, [username, currentUser]); // Thêm currentUser để listener cập nhật khi user thay đổi
 
   const loadMorePosts = () => {
     if (hasMore && !loadingPosts) {
