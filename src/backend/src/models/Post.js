@@ -13,7 +13,6 @@ const PostSchema = new mongoose.Schema({
   views: { type: Number, default: 0 }, // lượt xem
   commentsCount: { type: Number, default: 0 }, // số bình luận
   likesCount: { type: Number, default: 0 }, // số lượt thích
-  dislikesCount: { type: Number, default: 0 }, // số lượt không thích
   isDraft: { type: Boolean, default: false }, // bản nháp
   isDeleted: { type: Boolean, default: false }, // đã xóa
   moderationStatus: { 
