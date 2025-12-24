@@ -311,31 +311,42 @@ export function Register() {
                       backdropFilter: 'blur(10px)',
                       border: '3px solid rgba(255,255,255,0.3)'
                     }}>
-                      <i className="bi bi-person-plus-fill" style={{ fontSize: '42px' }}></i>
+                      <i className={`bi ${step === 3 ? 'bi-envelope-check-fill' : 'bi-person-plus-fill'}`} style={{ fontSize: '42px' }}></i>
                     </div>
-                    <h3 className="mb-2" style={{ fontWeight: 700, fontSize: '28px' }}>Đăng ký tài khoản</h3>
-                    <p className="mb-3" style={{ opacity: 0.95, fontSize: '15px', fontWeight: 500 }}>
-                      Bước {step} / 2: {step === 1 ? 'Thông tin cá nhân' : 'Thông tin học vấn & Bảo mật'}
-                    </p>
+                    <h3 className="mb-2" style={{ fontWeight: 700, fontSize: '28px' }}>
+                      {step === 3 ? 'Xác thực tài khoản' : 'Đăng ký tài khoản'}
+                    </h3>
+                    {step !== 3 && (
+                      <>
+                        <p className="mb-3" style={{ opacity: 0.95, fontSize: '15px', fontWeight: 500 }}>
+                          Bước {step} / 2: {step === 1 ? 'Thông tin cá nhân' : 'Thông tin học vấn & Bảo mật'}
+                        </p>
 
-                    {/* Progress Bar */}
-                    <div className="mx-auto" style={{ maxWidth: '250px' }}>
-                      <div style={{
-                        height: '6px',
-                        background: 'rgba(255,255,255,0.3)',
-                        borderRadius: '3px',
-                        overflow: 'hidden'
-                      }}>
-                        <div style={{
-                          height: '100%',
-                          width: `${(step / 2) * 100}%`,
-                          background: 'white',
-                          transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                          borderRadius: '3px',
-                          boxShadow: '0 0 10px rgba(255,255,255,0.5)'
-                        }}></div>
-                      </div>
-                    </div>
+                        {/* Progress Bar */}
+                        <div className="mx-auto" style={{ maxWidth: '250px' }}>
+                          <div style={{
+                            height: '6px',
+                            background: 'rgba(255,255,255,0.3)',
+                            borderRadius: '3px',
+                            overflow: 'hidden'
+                          }}>
+                            <div style={{
+                              height: '100%',
+                              width: `${(step / 2) * 100}%`,
+                              background: 'white',
+                              transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                              borderRadius: '3px',
+                              boxShadow: '0 0 10px rgba(255,255,255,0.5)'
+                            }}></div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {step === 3 && (
+                      <p className="mb-0" style={{ opacity: 0.95, fontSize: '15px', fontWeight: 500 }}>
+                        Hoàn tất đăng ký bằng cách xác thực email
+                      </p>
+                    )}
                   </div>
                 </div>
 

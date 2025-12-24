@@ -30,7 +30,7 @@ const GlobalChat = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [typingUsers, setTypingUsers] = useState([]); // Array of { userId, username, displayName }
-  const [attachments, setAttachments] = useState([]); // Selected attachments
+  const [attachments, setAttachments] = useState([]); // Selected File objects (not uploaded)
   const [uploading, setUploading] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
@@ -215,20 +215,20 @@ const GlobalChat = () => {
     try {
       const nextPage = currentPage + 1;
       const result = await getGlobalChatHistory(auth.token, nextPage, 100);
-      
+
       if (result.success) {
         const olderMessages = result.data.messages || [];
-        
+
         if (olderMessages.length > 0) {
           // Save current scroll position
           const container = messagesContainerRef.current;
           const oldScrollHeight = container?.scrollHeight || 0;
-          
+
           // Prepend older messages
           setMessages((prev) => [...olderMessages, ...prev]);
           setCurrentPage(nextPage);
           setHasMoreMessages(olderMessages.length === 100);
-          
+
           // Restore scroll position after render
           setTimeout(() => {
             if (container) {
@@ -332,33 +332,20 @@ const GlobalChat = () => {
   };
 
   // Handle file selection
-  const handleFileSelect = async (e) => {
+  // Chỉ lưu file vào state, không upload ngay
+  const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
-
-    setUploading(true);
-    try {
-      const result = await uploadChatFiles(auth.token, files);
-      if (result.success) {
-        setAttachments((prev) => [...prev, ...result.data]);
-      } else {
-        toast.error("Không thể tải file lên");
-      }
-    } catch (error) {
-      // console.error("Error uploading files:", error);
-      toast.error("Lỗi khi tải file");
-    } finally {
-      setUploading(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+    setAttachments((prev) => [...prev, ...files]);
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
   // Remove attachment
-  const handleRemoveAttachment = (attachmentId) => {
-    setAttachments((prev) => prev.filter((a) => a._id !== attachmentId));
+  const handleRemoveAttachment = (attachmentIdOrName) => {
+    setAttachments((prev) => prev.filter((a) => (a._id ? a._id !== attachmentIdOrName : a.name !== attachmentIdOrName)));
   };
 
   // Send message
@@ -371,12 +358,28 @@ const GlobalChat = () => {
     sendGlobalTyping(false); // Stop typing indicator
 
     try {
+      let uploadedAttachments = [];
+      // Nếu có file (File object), upload trước khi gửi
+      if (attachments.length > 0 && attachments[0] instanceof File) {
+        setUploading(true);
+        const result = await uploadChatFiles(auth.token, attachments);
+        setUploading(false);
+        if (result.success) {
+          uploadedAttachments = result.data;
+        } else {
+          toast.error("Không thể tải file lên");
+          setSending(false);
+          return;
+        }
+      } else if (attachments.length > 0) {
+        // Trường hợp đã là object attachment (nếu có)
+        uploadedAttachments = attachments;
+      }
+
       const messageData = {
         text: newMessage.trim(),
-        attachments: attachments.map((a) => a._id),
+        attachments: uploadedAttachments.map((a) => a._id),
       };
-
-      // console.log('📤 [GlobalChat] Sending message:', messageData);
 
       // Clear input immediately to prevent double send
       const textToSend = newMessage.trim();
@@ -386,7 +389,6 @@ const GlobalChat = () => {
 
       sendGlobalMessage(messageData, (res) => {
         if (!res || res.success !== true) {
-          //console.warn('⚠️ [GlobalChat] Message not accepted by server:', res);
           const reason = res?.error === 'unauthenticated'
             ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
             : 'Không thể gửi tin nhắn. Vui lòng thử lại.';
@@ -404,10 +406,10 @@ const GlobalChat = () => {
         clearTimeout(typingTimeoutRef.current);
       }
     } catch (error) {
-      // console.error("Error sending message:", error);
       toast.error("Không thể gửi tin nhắn");
     } finally {
       setSending(false);
+      setUploading(false);
     }
   };
 
@@ -529,8 +531,8 @@ const GlobalChat = () => {
             >
               <i className="bi bi-arrow-down"></i>
             </button>
-            <button 
-              className="btn btn-sm btn-outline-secondary" 
+            <button
+              className="btn btn-sm btn-outline-secondary"
               onClick={() => window.history.back()}
               title="Đóng"
             >
@@ -654,29 +656,38 @@ const GlobalChat = () => {
       <div className="card-footer global-chat-footer">
         {attachments.length > 0 && (
           <div className="global-chat-preview-container">
-            {attachments.map((att) => {
-              const isImage = att.mime?.startsWith("image/");
+            {attachments.map((att, idx) => {
+              const isImage = att.type ? att.type.startsWith("image/") : att.mime?.startsWith("image/");
+              const name = att.name || att.filename || `file${idx}`;
+              const size = att.size || att.size === 0 ? att.size : att.fileSize;
+              let previewUrl = "";
+              if (att instanceof File) {
+                previewUrl = URL.createObjectURL(att);
+              } else if (att.storageUrl) {
+                previewUrl = att.storageUrl;
+              }
               return (
-                <div key={att._id} className="global-chat-preview-item">
+                <div key={name + idx} className="global-chat-preview-item">
                   {isImage ? (
                     <img
-                      src={att.storageUrl}
-                      alt={att.filename}
+                      src={previewUrl}
+                      alt={name}
                       className="global-chat-preview-image"
                     />
                   ) : (
                     <i className="bi bi-file-earmark-text global-chat-attachment-icon"></i>
                   )}
                   <div className="global-chat-preview-info">
-                    <div className="global-chat-preview-name">{att.filename}</div>
-                    <small className="global-chat-preview-size">{(att.size / 1024).toFixed(1)} KB</small>
+                    <div className="global-chat-preview-name">{name}</div>
+                    <small className="global-chat-preview-size">{(size / 1024).toFixed(1)} KB</small>
                   </div>
                   <button
                     type="button"
                     className="btn btn-outline-danger global-chat-preview-remove"
-                    onClick={() => handleRemoveAttachment(att._id)}
+                    style={{ alignSelf: 'center', marginLeft: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 32, width: 32, padding: 0 }}
+                    onClick={() => handleRemoveAttachment(att._id || att.name)}
                   >
-                    <i className="bi bi-x"></i>
+                    <i className="bi bi-x" style={{ fontSize: 18, margin: 0 }}></i>
                   </button>
                 </div>
               );
@@ -722,32 +733,32 @@ const GlobalChat = () => {
                   <i className="bi bi-emoji-smile"></i>
                 </button>
 
-              {showEmojiPicker && (
-                <div className="global-chat-emoji-picker">
-                  <div className="global-chat-emoji-header">
-                    <small className="global-chat-emoji-title">Chọn emoji</small>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-close"
-                      onClick={() => setShowEmojiPicker(false)}
-                    ></button>
-                  </div>
-                  <div className="global-chat-emoji-grid">
-                    {emojis.map((emoji, idx) => (
+                {showEmojiPicker && (
+                  <div className="global-chat-emoji-picker">
+                    <div className="global-chat-emoji-header">
+                      <small className="global-chat-emoji-title">Chọn emoji</small>
                       <button
-                        key={idx}
                         type="button"
-                        className="global-chat-emoji-btn"
-                        onClick={() => handleEmojiSelect(emoji)}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
+                        className="btn btn-sm btn-close"
+                        onClick={() => setShowEmojiPicker(false)}
+                      ></button>
+                    </div>
+                    <div className="global-chat-emoji-grid">
+                      {emojis.map((emoji, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          className="global-chat-emoji-btn"
+                          onClick={() => handleEmojiSelect(emoji)}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
 
             <div className="global-chat-input-field">
               <textarea

@@ -690,7 +690,12 @@ export default function Header({ user }) {
                     boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
                     border: '1px solid rgba(0,0,0,0.1)',
                     borderRadius: '12px',
-                    animation: 'slideDown 0.3s ease'
+                    animation: 'slideDown 0.3s ease',
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    zIndex: 9999,
+                    marginTop: '8px'
                   }}
                 >
                   <div
@@ -976,7 +981,12 @@ export default function Header({ user }) {
                     boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
                     border: '1px solid rgba(0,0,0,0.1)',
                     borderRadius: '12px',
-                    animation: 'slideDown 0.3s ease'
+                    animation: 'slideDown 0.3s ease',
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    zIndex: 9999,
+                    marginTop: '8px'
                   }}
                 >
                   <div
@@ -1180,6 +1190,7 @@ export default function Header({ user }) {
                     inset: "0px 0px auto auto",
                     margin: 0,
                     transform: "translate(0px, 61px)",
+                    zIndex: 9999
                   }}
                 >
                   {/* <div className="dropdown-header d-flex align-items-center justify-content-between">

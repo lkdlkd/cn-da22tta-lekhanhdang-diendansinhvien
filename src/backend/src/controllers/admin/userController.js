@@ -115,11 +115,20 @@ exports.deleteUser = async (req, res) => {
     const allComments = await Comment.find({ _id: { $in: allCommentIds } }).select('attachments').lean();
     const commentAttachmentIds = allComments.flatMap(c => (c.attachments || []));
 
-    // Gom tất cả attachment IDs cần xoá (theo tham chiếu post/comment và theo chủ sở hữu)
+    // Lấy attachments từ messages (chat) - CHỈ từ messages do user này gửi
+    const messagesWithAttachments = await Message.find({ participants: userId }).select('messages').lean();
+    const messageAttachmentIds = messagesWithAttachments.flatMap(m => 
+      (m.messages || [])
+        .filter(msg => String(msg.senderId) === String(userId)) // Chỉ lấy message do user gửi
+        .flatMap(msg => (msg.attachments || []))
+    );
+
+    // Gom tất cả attachment IDs cần xoá (theo tham chiếu post/comment/message và theo chủ sở hữu)
     const ownerAttachments = await Attachment.find({ ownerId: userId }).select('_id storageUrl').lean();
     const allAttachmentIdSet = new Set([
       ...postAttachmentIds.map(id => String(id)),
       ...commentAttachmentIds.map(id => String(id)),
+      ...messageAttachmentIds.map(id => String(id)),
       ...ownerAttachments.map(a => String(a._id))
     ]);
     const allAttachmentIds = Array.from(allAttachmentIdSet);
@@ -470,11 +479,21 @@ exports.deleteMultipleUsers = async (req, res) => {
     const allComments = await Comment.find({ _id: { $in: allCommentIds } }).select('attachments').lean();
     const commentAttachmentIds = allComments.flatMap(c => (c.attachments || []));
 
-    // Gom attachment IDs: từ posts, comments và của chính các users
+    // Lấy attachments từ messages (chat) - CHỈ từ messages do các users này gửi
+    const userIdStrings = userIds.map(id => String(id));
+    const messagesWithAttachments = await Message.find({ participants: { $in: userIds } }).select('messages').lean();
+    const messageAttachmentIds = messagesWithAttachments.flatMap(m => 
+      (m.messages || [])
+        .filter(msg => userIdStrings.includes(String(msg.senderId))) // Chỉ lấy messages do các users gửi
+        .flatMap(msg => (msg.attachments || []))
+    );
+
+    // Gom attachment IDs: từ posts, comments, messages và của chính các users
     const ownerAttachments = await Attachment.find({ ownerId: { $in: userIds } }).select('_id storageUrl').lean();
     const allAttachmentIdSet = new Set([
       ...postAttachmentIds.map(id => String(id)),
       ...commentAttachmentIds.map(id => String(id)),
+      ...messageAttachmentIds.map(id => String(id)),
       ...ownerAttachments.map(a => String(a._id))
     ]);
     const allAttachmentIds = Array.from(allAttachmentIdSet);
