@@ -170,7 +170,7 @@ function Menu({ user, categories }) {
                                     </li>
                                 )}
 
-                                <li className="pc-item" onClick={
+                                {/* <li className="pc-item" onClick={
                                     () => {
                                         localStorage.removeItem("token");
                                         window.location.reload();
@@ -180,7 +180,7 @@ function Menu({ user, categories }) {
                                         <span className="pc-micon"><i className="ph-duotone ph-sign-out"></i></span>
                                         <span className="pc-mtext">Đăng xuất</span>
                                     </Link>
-                                </li>
+                                </li> */}
                             </>
                         )}
                     </ul>

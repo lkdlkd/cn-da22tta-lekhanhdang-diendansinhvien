@@ -349,8 +349,12 @@ exports.forgotPassword = async (req, res) => {
     const normalizedEmail = email.toLowerCase();
     const user = await User.findOne({ email: normalizedEmail });
 
+    // Trả về lỗi rõ ràng nếu email không tồn tại
     if (!user) {
-      return res.json({ success: true, message: 'Nếu email tồn tại, link đặt lại mật khẩu đã được gửi đến hộp thư của bạn.' });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Email không tồn tại trong hệ thống. Vui lòng kiểm tra lại email của bạn.' 
+      });
     }
 
     if (user.passwordResetRequestedAt && Date.now() - user.passwordResetRequestedAt.getTime() < RESEND_COOLDOWN_MS) {
