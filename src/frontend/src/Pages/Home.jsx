@@ -481,7 +481,7 @@ const Home = () => {
                       className="list-group-item list-group-item-action d-flex justify-content-between align-items-center border-0 home-category-item"
                     >
                       <span className="home-category-text">
-                        <i className="ph ph-folder-notch-open me-2 text-primary"></i>
+                        <i className="ph-duotone ph-folder-notch-open me-2 text-primary"></i>
                         {cat.title}
                       </span>
                       <span className="badge rounded-pill home-category-badge">

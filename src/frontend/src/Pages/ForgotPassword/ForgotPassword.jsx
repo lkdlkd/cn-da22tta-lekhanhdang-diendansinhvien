@@ -92,7 +92,7 @@ export function ForgotPassword() {
                 title: 'Thành công!',
                 text: 'Mật khẩu của bạn đã được đặt lại thành công',
                 confirmButtonText: 'Đăng nhập ngay',
-                confirmButtonColor: '#667eea'
+                confirmButtonColor: '#3498db'
             });
             navigate('/login');
         } catch (err) {
@@ -126,7 +126,7 @@ export function ForgotPassword() {
                                 <div
                                     className="card-header text-white text-center py-5"
                                     style={{
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
                                         border: 'none',
                                         position: 'relative',
                                         overflow: 'hidden'
@@ -186,8 +186,8 @@ export function ForgotPassword() {
 
                                             {/* Email input */}
                                             <div className="mb-4">
-                                                <label htmlFor="email" className="form-label" style={{ fontWeight: 600, fontSize: '14px', color: '#333', marginBottom: '10px' }}>
-                                                    <i className="bi bi-envelope-fill me-2" style={{ color: '#667eea' }}></i>
+                                                <label htmlFor="email" className="form-label" style={{ fontWeight: 600, fontSize: '14px', color: '#2c3e50', marginBottom: '10px' }}>
+                                                    <i className="bi bi-envelope-fill me-2" style={{ color: '#3498db' }}></i>
                                                     Email (@st.tvu.edu.vn)
                                                 </label>
                                                 <div className="position-relative">
@@ -209,9 +209,9 @@ export function ForgotPassword() {
                                                             transition: 'all 0.3s ease'
                                                         }}
                                                         onFocus={(e) => {
-                                                            e.target.style.borderColor = '#667eea';
+                                                            e.target.style.borderColor = '#3498db';
                                                             e.target.style.backgroundColor = '#ffffff';
-                                                            e.target.style.boxShadow = '0 0 0 4px rgba(102, 126, 234, 0.1)';
+                                                            e.target.style.boxShadow = '0 0 0 4px rgba(52, 152, 219, 0.1)';
                                                         }}
                                                         onBlur={(e) => {
                                                             e.target.style.borderColor = '#e8ecf1';
@@ -258,18 +258,18 @@ export function ForgotPassword() {
                                                     padding: '14px',
                                                     fontWeight: 600,
                                                     fontSize: '16px',
-                                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                    background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
                                                     border: 'none',
-                                                    boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
+                                                    boxShadow: '0 6px 20px rgba(52, 152, 219, 0.4)',
                                                     transition: 'all 0.3s ease'
                                                 }}
                                                 onMouseEnter={(e) => {
                                                     e.target.style.transform = 'translateY(-2px)';
-                                                    e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.5)';
+                                                    e.target.style.boxShadow = '0 8px 25px rgba(52, 152, 219, 0.5)';
                                                 }}
                                                 onMouseLeave={(e) => {
                                                     e.target.style.transform = 'translateY(0)';
-                                                    e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+                                                    e.target.style.boxShadow = '0 6px 20px rgba(52, 152, 219, 0.4)';
                                                 }}
                                             >
                                                 {loading ? (
@@ -336,8 +336,8 @@ export function ForgotPassword() {
 
                                                     <form onSubmit={handleVerifyCode}>
                                                         <div className="mb-4">
-                                                            <label htmlFor="code" className="form-label" style={{ fontWeight: 600, fontSize: '14px', color: '#333', marginBottom: '10px' }}>
-                                                                <i className="bi bi-shield-lock-fill me-2" style={{ color: '#667eea' }}></i>
+                                                            <label htmlFor="code" className="form-label" style={{ fontWeight: 600, fontSize: '14px', color: '#2c3e50', marginBottom: '10px' }}>
+                                                                <i className="bi bi-shield-lock-fill me-2" style={{ color: '#3498db' }}></i>
                                                                 Mã xác thực (6 số)
                                                             </label>
                                                             <div className="position-relative">
@@ -361,9 +361,9 @@ export function ForgotPassword() {
                                                                         transition: 'all 0.3s ease'
                                                                     }}
                                                                     onFocus={(e) => {
-                                                                        e.target.style.borderColor = '#667eea';
+                                                                        e.target.style.borderColor = '#3498db';
                                                                         e.target.style.backgroundColor = '#ffffff';
-                                                                        e.target.style.boxShadow = '0 0 0 4px rgba(102, 126, 234, 0.1)';
+                                                                        e.target.style.boxShadow = '0 0 0 4px rgba(52, 152, 219, 0.1)';
                                                                     }}
                                                                     onBlur={(e) => {
                                                                         e.target.style.borderColor = '#e8ecf1';
@@ -383,9 +383,9 @@ export function ForgotPassword() {
                                                                 padding: '14px',
                                                                 fontWeight: 600,
                                                                 fontSize: '16px',
-                                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                                background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
                                                                 border: 'none',
-                                                                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
+                                                                boxShadow: '0 6px 20px rgba(52, 152, 219, 0.4)',
                                                                 transition: 'all 0.3s ease'
                                                             }}
                                                         >
@@ -430,8 +430,8 @@ export function ForgotPassword() {
 
                                                     {/* New password */}
                                                     <div className="mb-4">
-                                                        <label htmlFor="newPassword" className="form-label" style={{ fontWeight: 600, fontSize: '14px', color: '#333', marginBottom: '10px' }}>
-                                                            <i className="bi bi-lock-fill me-2" style={{ color: '#667eea' }}></i>
+                                                        <label htmlFor="newPassword" className="form-label" style={{ fontWeight: 600, fontSize: '14px', color: '#2c3e50', marginBottom: '10px' }}>
+                                                            <i className="bi bi-lock-fill me-2" style={{ color: '#3498db' }}></i>
                                                             Mật khẩu mới
                                                         </label>
                                                         <div className="position-relative">
@@ -493,8 +493,8 @@ export function ForgotPassword() {
 
                                                     {/* Confirm password */}
                                                     <div className="mb-4">
-                                                        <label htmlFor="confirmPassword" className="form-label" style={{ fontWeight: 600, fontSize: '14px', color: '#333', marginBottom: '10px' }}>
-                                                            <i className="bi bi-lock-fill me-2" style={{ color: '#667eea' }}></i>
+                                                        <label htmlFor="confirmPassword" className="form-label" style={{ fontWeight: 600, fontSize: '14px', color: '#2c3e50', marginBottom: '10px' }}>
+                                                            <i className="bi bi-lock-fill me-2" style={{ color: '#3498db' }}></i>
                                                             Xác nhận mật khẩu
                                                         </label>
                                                         <div className="position-relative">
@@ -515,9 +515,9 @@ export function ForgotPassword() {
                                                                     transition: 'all 0.3s ease'
                                                                 }}
                                                                 onFocus={(e) => {
-                                                                    e.target.style.borderColor = '#667eea';
+                                                                    e.target.style.borderColor = '#3498db';
                                                                     e.target.style.backgroundColor = '#ffffff';
-                                                                    e.target.style.boxShadow = '0 0 0 4px rgba(102, 126, 234, 0.1)';
+                                                                    e.target.style.boxShadow = '0 0 0 4px rgba(52, 152, 219, 0.1)';
                                                                 }}
                                                                 onBlur={(e) => {
                                                                     e.target.style.borderColor = '#e8ecf1';
@@ -562,9 +562,9 @@ export function ForgotPassword() {
                                                             padding: '14px',
                                                             fontWeight: 600,
                                                             fontSize: '16px',
-                                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                            background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
                                                             border: 'none',
-                                                            boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
+                                                            boxShadow: '0 6px 20px rgba(52, 152, 219, 0.4)',
                                                             transition: 'all 0.3s ease'
                                                         }}
                                                     >
@@ -609,12 +609,12 @@ export function ForgotPassword() {
                                                 to="/login"
                                                 className="text-decoration-none"
                                                 style={{
-                                                    color: '#667eea',
+                                                    color: '#3498db',
                                                     fontWeight: 700,
                                                     transition: 'color 0.2s ease'
                                                 }}
-                                                onMouseEnter={(e) => e.target.style.color = '#764ba2'}
-                                                onMouseLeave={(e) => e.target.style.color = '#667eea'}
+                                                onMouseEnter={(e) => e.target.style.color = '#2980b9'}
+                                                onMouseLeave={(e) => e.target.style.color = '#3498db'}
                                             >
                                                 Đăng nhập ngay
                                             </Link>
@@ -631,11 +631,11 @@ export function ForgotPassword() {
                                     style={{
                                         fontSize: '15px',
                                         fontWeight: 600,
-                                        color: '#667eea',
+                                        color: '#3498db',
                                         transition: 'color 0.2s ease'
                                     }}
-                                    onMouseEnter={(e) => e.target.style.color = '#764ba2'}
-                                    onMouseLeave={(e) => e.target.style.color = '#667eea'}
+                                    onMouseEnter={(e) => e.target.style.color = '#2980b9'}
+                                    onMouseLeave={(e) => e.target.style.color = '#3498db'}
                                 >
                                     <i className="bi bi-arrow-left me-2"></i>
                                     Quay về trang chủ

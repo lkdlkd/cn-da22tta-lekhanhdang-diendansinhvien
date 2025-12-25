@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCategories } from '../../Utils/api';
 import LoadingPost from '@/Components/LoadingPost';
+import '../../assets/css/Categories.css';
 
 export default function Categories() {
   const navigate = useNavigate();
@@ -31,19 +32,15 @@ export default function Categories() {
   }
 
   return (
-    <div className="">
+    <div className="categories-container">
       {/* Header */}
-      <div className="card border-0 shadow-sm mb-4" style={{ 
-        borderRadius: '12px',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white'
-      }}>
-        <div className="card-body" style={{ padding: '24px' }}>
-          <h4 className="mb-2 d-flex align-items-center" style={{ fontWeight: 700 }}>
-            <i className="bi bi-folder2-open me-2" style={{ fontSize: '32px' }}></i>
+      <div className="card categories-header">
+        <div className="card-body categories-header-body">
+          <h4 className="categories-header-title">
+            <i className="bi bi-folder2-open categories-header-icon"></i>
             Tất cả chuyên mục
           </h4>
-          <p className="mb-0" style={{ opacity: 0.95, fontSize: '14px' }}>
+          <p className="categories-header-description">
             Khám phá các chủ đề thảo luận đa dạng
           </p>
         </div>
@@ -54,74 +51,32 @@ export default function Categories() {
         {categories.map((category) => (
           <div key={category._id} className="col-md-6 col-lg-4">
             <div 
-              className="card border-0 shadow-sm h-100"
-              style={{ 
-                borderRadius: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                overflow: 'hidden'
-              }}
+              className="card categories-card h-100"
               onClick={() => navigate(`/category/${category.slug}`)}
-              onMouseOver={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.12)';
-              }}
             >
-              <div 
-                className="card-header border-0"
-                style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  padding: '20px'
-                }}
-              >
+              <div className="card-header categories-card-header">
                 <div className="d-flex align-items-center">
-                  <div 
-                    className="rounded-circle d-flex align-items-center justify-content-center me-3"
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      backgroundColor: 'rgba(255,255,255,0.2)',
-                      backdropFilter: 'blur(10px)'
-                    }}
-                  >
-                    <i className="bi bi-folder2-open" style={{ 
-                      fontSize: '24px',
-                      color: 'white'
-                    }}></i>
+                  <div className="categories-card-icon-wrapper">
+                    <i className="bi bi-folder2-open categories-card-icon"></i>
                   </div>
                   <div className="flex-grow-1">
-                    <h6 className="mb-1" style={{ 
-                      fontWeight: 700,
-                      color: 'white',
-                      fontSize: '16px'
-                    }}>
+                    <h6 className="categories-card-title">
                       {category.title}
                     </h6>
-                    <small style={{ color: 'rgba(255,255,255,0.9)', fontSize: '12px' }}>
+                    <small className="categories-card-slug">
                       {category.slug}
                     </small>
                   </div>
                 </div>
               </div>
               
-              <div className="card-body" style={{ padding: '20px' }}>
+              <div className="card-body categories-card-body">
                 {category.description ? (
-                  <p className="text-muted mb-3" style={{ 
-                    fontSize: '13px',
-                    lineHeight: '1.6',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
-                  }}>
+                  <p className="text-muted categories-card-description">
                     {category.description}
                   </p>
                 ) : (
-                  <p className="text-muted mb-3" style={{ fontSize: '13px', fontStyle: 'italic' }}>
+                  <p className="text-muted categories-card-description-empty">
                     Chưa có mô tả
                   </p>
                 )}
@@ -129,21 +84,15 @@ export default function Categories() {
                 <div className="d-flex justify-content-between align-items-center">
                   <div className="d-flex gap-3">
                     <div className="d-flex align-items-center">
-                      <i className="bi bi-file-text text-primary me-1" style={{ fontSize: '16px' }}></i>
-                      <small className="text-muted" style={{ fontSize: '12px' }}>
+                      <i className="bi bi-file-text text-primary categories-card-stat-icon"></i>
+                      <small className="text-muted categories-card-stat-text">
                         <strong>{category.postCount || 0}</strong> bài viết
                       </small>
                     </div>
                   </div>
                   
                   <button 
-                    className="btn btn-sm btn-outline-primary"
-                    style={{ 
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      padding: '4px 12px'
-                    }}
+                    className="btn btn-sm btn-outline-primary categories-card-view-btn"
                   >
                     Xem <i className="bi bi-arrow-right ms-1"></i>
                   </button>
@@ -155,13 +104,9 @@ export default function Categories() {
       </div>
 
       {categories.length === 0 && (
-        <div className="card border-0 shadow-sm" style={{ borderRadius: '12px' }}>
-          <div className="card-body text-center py-5">
-            <i className="bi bi-folder2-open" style={{ 
-              fontSize: '64px', 
-              color: '#ccc',
-              marginBottom: '16px'
-            }}></i>
+        <div className="card categories-empty-card">
+          <div className="card-body categories-empty-body">
+            <i className="bi bi-folder2-open categories-empty-icon"></i>
             <h5 className="text-muted">Chưa có chuyên mục nào</h5>
           </div>
         </div>

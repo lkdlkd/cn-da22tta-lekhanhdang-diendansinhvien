@@ -1,0 +1,437 @@
+/* Register Page Styles */
+/* Alert */
+.register-alert-danger {
+    border-radius: 12px !important;
+    font-size: 14px !important;
+    background-color: #fff5f5 !important;
+    border: 2px solid #feb2b2 !important;
+    color: #c53030 !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.register-alert-danger i {
+    font-size: 22px;
+    margin-right: 8px;
+}
+
+/* Container */
+.register-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 30px 15px;
+    width: 100%;
+}
+
+.register-wrapper{
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* Card */
+.register-card {
+    border-radius: 24px;
+    overflow: hidden;
+}
+
+.register-card-row {
+    min-height: auto;
+}
+
+/* Left Image Section */
+.register-image-container {
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgb(248, 249, 250);
+
+    overflow: hidden;
+    position: relative;
+    padding: 30px;
+}
+
+.register-image {
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+    object-position: center;
+}
+
+/* Header */
+.register-header-title {
+    font-weight: 700;
+    font-size: 32px;
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.register-header-subtitle {
+    color: #5a6c7d;
+    font-size: 15px;
+    margin-bottom: 12px;
+}
+
+/* Progress Bar */
+.register-progress-container {
+    max-width: 250px;
+}
+
+.register-progress-bar {
+    height: 6px;
+    background: #e8ecf1;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.register-progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 3px;
+}
+
+/* Step Icon Circle */
+.register-step-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+.register-step-icon i {
+    font-size: 32px;
+    color: white;
+}
+
+.register-step-title {
+    margin-top: 16px;
+    margin-bottom: 8px;
+    font-weight: 700;
+    font-size: 20px;
+}
+
+.register-step-description {
+    margin-bottom: 0;
+    font-size: 14px;
+}
+
+/* Mobile Header Icon */
+.register-mobile-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+.register-mobile-icon i {
+    font-size: 42px;
+    color: white;
+}
+
+/* Form Labels */
+.register-label {
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.register-label i {
+    color: #3498db;
+    margin-right: 8px;
+}
+
+/* Form Inputs */
+.register-input {
+    border-radius: 12px;
+    padding: 14px 20px;
+    border: 2px solid #e8ecf1;
+    font-size: 15px;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.register-input:focus {
+    border-color: #3498db;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+    outline: none;
+}
+
+.register-input:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+/* Password Input */
+.register-password-input {
+    padding-right: 48px;
+}
+
+.register-password-toggle {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+    padding: 8px;
+    border: none;
+    background: transparent;
+}
+
+.register-password-toggle:hover {
+    color: #666;
+}
+
+.register-password-toggle i {
+    font-size: 20px;
+}
+
+/* Password Section Divider */
+.register-divider {
+    border-color: #e8ecf1;
+    margin-top: 16px;
+    margin-bottom: 16px;
+}
+
+.register-lock-icon-container {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.register-lock-icon-container i {
+    font-size: 24px;
+    color: white;
+}
+
+.register-lock-text {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 0;
+}
+
+/* Alert Messages */
+.register-alert {
+    border-radius: 12px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.register-alert i {
+    font-size: 22px;
+    margin-right: 8px;
+}
+
+.register-alert-danger {
+    background-color: #fff5f5;
+    border: 2px solid #feb2b2;
+    color: #c53030;
+}
+
+.register-alert-success {
+    background-color: #f0fdf4 !important;
+    border: 2px solid #86efac !important;
+    color: #15803d !important;
+}
+
+.register-alert-info {
+    background-color: #e0f2fe;
+    border: 2px solid #7dd3fc;
+    border-radius: 12px;
+    margin-bottom: 24px;
+}
+
+.register-alert-info .alert-heading {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.register-alert-info ul {
+    font-size: 14px;
+    padding-left: 20px;
+    margin-bottom: 0;
+}
+
+/* Verification Code Input */
+.register-verification-input {
+    border-radius: 12px;
+    padding: 18px 20px;
+    border: 2px solid #e8ecf1;
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 8px;
+    background-color: #f8f9fa;
+    text-align: center;
+}
+
+/* Buttons */
+.register-btn {
+    border-radius: 12px;
+    padding: 14px 24px;
+    font-weight: 600;
+    font-size: 16px;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.register-btn-primary {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+.register-btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(52, 152, 219, 0.5);
+}
+
+.register-btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.register-btn-secondary {
+    border: 2px solid #6c757d;
+    background: white;
+    color: #6c757d;
+    font-size: 15px;
+    flex: 1;
+}
+
+.register-btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.register-btn-outline {
+    border-radius: 12px;
+    padding: 10px 24px;
+    font-size: 14px;
+    border-width: 2px;
+}
+
+/* Navigation Buttons */
+.register-nav-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.register-btn-submit {
+    flex: 2;
+}
+
+/* Divider with Text */
+.register-text-divider {
+    position: relative;
+    margin-top: 24px;
+    margin-bottom: 24px;
+}
+
+.register-text-divider hr {
+    border-color: #e8ecf1;
+    margin: 0;
+}
+
+.register-text-divider span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 0 12px;
+    font-size: 13px;
+    color: #999;
+    background-color: white;
+    font-weight: 500;
+}
+
+/* Links */
+.register-link {
+    color: #3498db;
+    font-weight: 700;
+    transition: color 0.2s ease;
+    text-decoration: none;
+}
+
+.register-link:hover {
+    color: #2980b9;
+    text-decoration: none;
+}
+
+.register-back-link {
+    font-size: 15px;
+    font-weight: 600;
+    color: #3498db;
+    transition: color 0.2s ease;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.register-back-link:hover {
+    color: #2980b9;
+    text-decoration: none;
+}
+
+/* Text styles */
+.register-text-muted {
+    color: #666;
+    font-size: 15px;
+}
+
+.register-text-muted-small {
+    color: #999;
+    font-size: 14px;
+}
+
+/* Small step icon (for password section) */
+.register-small-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.register-small-icon i {
+    font-size: 24px;
+    color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+    .register-container {
+        padding: 20px;
+    }
+
+    .register-header-title {
+        font-size: 28px;
+    }
+}

@@ -5,6 +5,7 @@ import PostList from '../../Components/PostList';
 import PostDetail from '../../Components/PostDetail';
 import { useOutletContext } from 'react-router-dom';
 import LoadingPost from '../../Components/LoadingPost';
+import '../../assets/css/CategoryPosts.css';
 const { socket } = require('../../Utils/socket');
 
 const CategoryPosts = () => {
@@ -297,7 +298,7 @@ const CategoryPosts = () => {
   if (loading) {
     return (
       <div className="container mt-4">
-        <div className="text-center py-5">
+        <div className="category-posts-loading">
           <LoadingPost />
         </div>
       </div>
@@ -307,8 +308,8 @@ const CategoryPosts = () => {
   if (error) {
     return (
       <div className="container mt-4">
-        <div className="alert alert-danger d-flex align-items-center" role="alert">
-          <i className="ph ph-warning-circle me-2" style={{ fontSize: '24px' }}></i>
+        <div className="alert alert-danger category-posts-alert" role="alert">
+          <i className="ph ph-warning-circle category-posts-alert-icon"></i>
           <div>
             <strong>Lỗi!</strong> {error}
           </div>
@@ -325,48 +326,29 @@ const CategoryPosts = () => {
   }
 
   return (
-    <div className="">
+    <div className="category-posts-container">
       {/* Header với thông tin chuyên mục */}
-      <div className="card border-0 shadow-sm mb-4" style={{ 
-        borderRadius: '12px',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white'
-      }}>
-        <div className="card-body" style={{ padding: '24px' }}>
+      <div className="card category-posts-header">
+        <div className="card-body category-posts-header-body">
           <div className="d-flex align-items-center mb-3">
             <button 
-              className="btn btn-light btn-sm me-3"
+              className="btn btn-primary btn-sm category-posts-back-btn"
               onClick={() => navigate(-1)}
-              style={{ borderRadius: '8px' }}
             >
-              <i className="ph ph-arrow-left me-1"></i>
+              <i className="ph-duotone ph-arrow-left me-1"></i>
               Quay lại
             </button>
             <div className="flex-grow-1">
-              <h4 className="mb-2 d-flex align-items-center" style={{ fontWeight: 700 }}>
-                <i className="ph-duotone ph-folder-notch-open me-2" style={{ fontSize: '32px' }}></i>
+              <h4 className="category-posts-title">
+                <i className="ph-duotone ph-folder-notch-open category-posts-title-icon"></i>
                 {category?.title || 'Chuyên mục'}
               </h4>
               {category?.description && (
-                <p className="mb-0" style={{ opacity: 0.95, fontSize: '14px' }}>
+                <p className="category-posts-description">
                   {category.description}
                 </p>
               )}
             </div>
-          </div>
-          
-          {/* Stats */}
-          <div className="d-flex gap-4 mt-3" style={{ fontSize: '14px' }}>
-            <div className="d-flex align-items-center">
-              <i className="ph ph-file-text me-2" style={{ fontSize: '20px' }}></i>
-              <span><strong>{posts.length}</strong> bài viết</span>
-            </div>
-            {category?.count !== undefined && (
-              <div className="d-flex align-items-center">
-                <i className="ph ph-eye me-2" style={{ fontSize: '20px' }}></i>
-                <span><strong>{category.count}</strong> lượt xem</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -375,28 +357,17 @@ const CategoryPosts = () => {
         <div className="col-lg-12">
           {/* Posts list */}
           {posts.length === 0 ? (
-            <div className="card border-0 shadow-sm" style={{ borderRadius: '12px' }}>
-              <div className="card-body text-center py-5">
-                <i className="ph-duotone ph-folder-open" style={{ 
-                  fontSize: '64px', 
-                  color: '#ccc',
-                  marginBottom: '16px'
-                }}></i>
-                <h5 className="text-muted mb-3">Chưa có bài viết nào</h5>
-                <p className="text-muted mb-4">
+            <div className="card category-posts-empty-card">
+              <div className="card-body category-posts-empty-body">
+                <i className="ph-duotone ph-folder-open category-posts-empty-icon"></i>
+                <h5 className="category-posts-empty-title">Chưa có bài viết nào</h5>
+                <p className="category-posts-empty-text">
                   Chuyên mục này chưa có bài viết. Hãy là người đầu tiên đăng bài!
                 </p>
                 {user && (
                   <button 
-                    className="btn btn-primary"
+                    className="btn btn-primary category-posts-empty-btn"
                     onClick={() => navigate('/')}
-                    style={{ 
-                      borderRadius: '8px',
-                      padding: '10px 24px',
-                      fontWeight: 600,
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      border: 'none'
-                    }}
                   >
                     <i className="ph ph-plus-circle me-2"></i>
                     Tạo bài viết mới
@@ -405,41 +376,31 @@ const CategoryPosts = () => {
               </div>
             </div>
           ) : (
-            <div className="card border-0 shadow-sm" style={{ borderRadius: '12px' }}>
-              <div className="card-header bg-white d-flex justify-content-between align-items-center" style={{ 
-                borderBottom: '2px solid #f0f2f5',
-                padding: '16px 20px',
-                borderRadius: '12px 12px 0 0'
-              }}>
-                <h5 className="mb-0 d-flex align-items-center" style={{ fontWeight: 700, fontSize: '18px' }}>
-                  <i className="ph-duotone ph-list-bullets text-primary me-2" style={{ fontSize: '22px' }}></i>
+            <div className="card category-posts-list-card">
+              <div className="card-header category-posts-list-header">
+                <h5 className="category-posts-list-title">
+                  <i className="ph-duotone ph-list-bullets text-primary category-posts-list-title-icon"></i>
                   Danh sách bài viết
                 </h5>
-                <span className="badge rounded-pill" style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  fontSize: '12px',
-                  padding: '6px 12px'
-                }}>
+                <span className="badge category-posts-badge">
                   {posts.length} bài viết
                 </span>
               </div>
-              <div className="card-body p-0">
+              <div className=" category-posts-list-body">
                 {/* Search bar */}
-                <div className="p-3" style={{ borderBottom: '1px solid #f0f2f5' }}>
+                <div className="category-posts-search-wrapper">
                   <div className="input-group">
                     <input
                       type="text"
-                      className="form-control"
+                      className="form-control category-posts-search-input"
                       placeholder="Tìm kiếm trong chuyên mục..."
                       value={searchText}
                       onChange={(e) => setSearchText(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
-                      style={{ borderRadius: '8px 0 0 8px' }}
                     />
                     <button
-                      className="btn btn-primary"
+                      className="btn btn-primary category-posts-search-btn"
                       onClick={handleSearch}
-                      style={{ borderRadius: '0 8px 8px 0' }}
                     >
                       <i className="ph ph-magnifying-glass"> Tìm</i>
                     </button>

@@ -1,0 +1,166 @@
+/* Categories.css */
+
+/* Container */
+.categories-container {
+  padding: 0;
+}
+
+/* Header Card */
+.categories-header {
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  margin-bottom: 1.5rem;
+}
+
+.categories-header-body {
+  padding: 24px;
+}
+
+.categories-header-title {
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+}
+
+.categories-header-icon {
+  font-size: 32px;
+  margin-right: 0.5rem;
+}
+
+.categories-header-description {
+  margin-bottom: 0;
+  opacity: 0.95;
+  font-size: 14px;
+}
+
+/* Category Card */
+.categories-card {
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.categories-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.categories-card-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  border: none;
+}
+
+.categories-card-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  background-color: rgba(255,255,255,0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+}
+
+.categories-card-icon {
+  font-size: 24px;
+  color: white;
+}
+
+.categories-card-title {
+  margin-bottom: 0.25rem;
+  font-weight: 700;
+  color: white;
+  font-size: 16px;
+}
+
+.categories-card-slug {
+  color: rgba(255,255,255,0.9);
+  font-size: 12px;
+}
+
+.categories-card-body {
+  padding: 20px;
+}
+
+.categories-card-description {
+  font-size: 13px;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.categories-card-description-empty {
+  font-size: 13px;
+  font-style: italic;
+  margin-bottom: 1rem;
+}
+
+.categories-card-stat-icon {
+  font-size: 16px;
+  margin-right: 0.25rem;
+}
+
+.categories-card-stat-text {
+  font-size: 12px;
+}
+
+.categories-card-view-btn {
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+}
+
+/* Empty State */
+.categories-empty-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.categories-empty-body {
+  text-align: center;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+.categories-empty-icon {
+  font-size: 64px;
+  color: #ccc;
+  margin-bottom: 16px;
+}
+
+/* Responsive */
+@media (max-width: 767.98px) {
+  .categories-header-body {
+    padding: 16px;
+  }
+
+  .categories-header-title {
+    font-size: 1.25rem;
+  }
+
+  .categories-header-icon {
+    font-size: 24px;
+  }
+
+  .categories-card-header {
+    padding: 16px;
+  }
+
+  .categories-card-body {
+    padding: 16px;
+  }
+}
