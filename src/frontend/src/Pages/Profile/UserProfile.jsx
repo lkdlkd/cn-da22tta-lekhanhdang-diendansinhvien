@@ -433,7 +433,8 @@ const UserProfile = () => {
         setCommentTexts(prev => ({ ...prev, [postId]: '' }));
         setCommentAttachments(prev => ({ ...prev, [postId]: [] }));
         toast.success('Đã thêm bình luận');
-      } else {
+      }
+      else {
         toast.error(response.error || 'Không thể thêm bình luận');
       }
     } catch (err) {
@@ -510,23 +511,22 @@ const UserProfile = () => {
     const isCurrentlyLiked = likedPosts.has(postId);
 
     try {
-      // Optimistic UI update
       if (isCurrentlyLiked) {
+        const result = await unlikePost(token, postId);
+        if (!result.success) {
+          throw new Error(result.error || 'Lỗi khi bỏ thích bài viết');
+        }
         setLikedPosts(prev => {
           const newSet = new Set(prev);
           newSet.delete(postId);
           return newSet;
         });
-        const res = await unlikePost(token, postId);
-        if (!res.success) {
-          toast.error(res.error || 'Không thể bỏ thích bài viết');
-        }
       } else {
-        setLikedPosts(prev => new Set([...prev, postId]));
-        const res = await likePost(token, postId);
-        if (!res.success) {
-          toast.error(res.error || 'Không thể thích bài viết');
+        const result = await likePost(token, postId);
+        if (!result.success) {
+          throw new Error(result.error || 'Lỗi khi thích bài viết');
         }
+        setLikedPosts(prev => new Set([...prev, postId]));
       }
 
       // Refresh posts to sync with server
@@ -535,18 +535,7 @@ const UserProfile = () => {
         setPosts(updatedPosts.data);
       }
     } catch (err) {
-      console.error('Error liking post:', err);
-      // Revert optimistic update on error
-      if (isCurrentlyLiked) {
-        setLikedPosts(prev => new Set([...prev, postId]));
-      } else {
-        setLikedPosts(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(postId);
-          return newSet;
-        });
-      }
-      toast.error('Không thể thực hiện');
+      toast.error(err.message || 'Không thể thực hiện');
     }
   };
 
@@ -656,7 +645,6 @@ const UserProfile = () => {
             toast.error(result.error || "Lỗi xóa bài viết");
           }
         } catch (error) {
-          console.error("Error deleting post:", error);
           toast.error(error.message || "Lỗi xóa bài viết");
         }
       }

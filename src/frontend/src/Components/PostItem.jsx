@@ -112,27 +112,24 @@ const PostItem = ({
       const isLiked = likedComments.has(commentId);
 
       if (isLiked) {
-        await unlikeComment(token, commentId);
+        const result = await unlikeComment(token, commentId);
+        if (!result.success) {
+          throw new Error(result.error || "Lỗi khi bỏ thích bình luận");
+        }
         setLikedComments(prev => {
           const newSet = new Set(prev);
           newSet.delete(commentId);
           return newSet;
         });
       } else {
-        await likeComment(token, commentId);
+        const result = await likeComment(token, commentId);
+        if (!result.success) {
+          throw new Error(result.error || "Lỗi khi thích bình luận");
+        }
         setLikedComments(prev => new Set(prev).add(commentId));
       }
     } catch (error) {
-      // Fallback to UI-only toggle if API fails
-      setLikedComments(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(commentId)) {
-          newSet.delete(commentId);
-        } else {
-          newSet.add(commentId);
-        }
-        return newSet;
-      });
+      toast.error(error.message || "Không thể thực hiện");
     }
   };
 

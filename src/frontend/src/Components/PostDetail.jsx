@@ -265,23 +265,12 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
       socket.off('post:updated', handlePostUpdated);
       socket.off('post:deleted', handlePostDeleted);
     };
-  }, [navigate]); // Add navigate to dependencies  // Load liked posts từ localStorage
-  useEffect(() => {
-    const savedLikes = localStorage.getItem('likedPosts');
-    if (savedLikes) {
-      try {
-        const likesArray = JSON.parse(savedLikes);
-        setLikedPosts(new Set(likesArray));
-      } catch (error) {
-        console.error('Error loading likes:', error);
-      }
-    }
-  }, []);
+  }, [navigate]); // Add navigate to dependencies
 
-  // Sync liked posts with post data when post loads
+  // Sync liked posts with post data from database
   useEffect(() => {
     if (post && post.likes && currentUserId) {
-      const newLikedPosts = new Set(likedPosts);
+      const newLikedPosts = new Set();
 
       // Check if current user liked this post
       const userLiked = post.likes.some(like =>
@@ -290,18 +279,11 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
 
       if (userLiked) {
         newLikedPosts.add(post._id);
-      } else {
-        newLikedPosts.delete(post._id);
       }
 
       setLikedPosts(newLikedPosts);
     }
   }, [post, currentUserId]); // Run when post data changes
-
-  // Save liked posts to localStorage
-  useEffect(() => {
-    localStorage.setItem('likedPosts', JSON.stringify([...likedPosts]));
-  }, [likedPosts]);
 
   const handleLike = async (postId) => {
     if (!token) {
@@ -316,7 +298,7 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
       if (isLiked) {
         const res = await unlikePost(token, postId);
         if (!res.success) {
-          toast.error(res.error || 'Không thể bỏ thích bài viết');
+          throw new Error(res.error || "Lỗi khi bỏ thích bài viết");
         }
         setLikedPosts(prev => {
           const newSet = new Set(prev);
@@ -326,7 +308,7 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
       } else {
         const res = await likePost(token, postId);
         if (!res.success) {
-          toast.error(res.error || 'Không thể thích bài viết');
+          throw new Error(res.error || "Lỗi khi thích bài viết");
         }
         setLikedPosts(prev => {
           const newSet = new Set(prev);
@@ -337,17 +319,7 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
 
       // Don't refresh - socket will handle the update
     } catch (error) {
-      console.error("Error toggling like:", error);
-      // Fallback to UI-only toggle if API fails
-      setLikedPosts(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(postId)) {
-          newSet.delete(postId);
-        } else {
-          newSet.add(postId);
-        }
-        return newSet;
-      });
+      toast.error(error.message || "Lỗi khi thích/bỏ thích bài viết");
     }
   };
 

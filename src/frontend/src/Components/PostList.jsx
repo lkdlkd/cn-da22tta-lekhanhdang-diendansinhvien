@@ -122,25 +122,10 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
     const [commentTexts, setCommentTexts] = useState({});
     const [commentAttachments, setCommentAttachments] = useState({});
 
-    // Load liked posts từ server hoặc localStorage
-    useEffect(() => {
-        // TODO: Fetch liked posts from server
-        // For now, load from localStorage
-        const savedLikes = localStorage.getItem('likedPosts');
-        if (savedLikes) {
-            try {
-                const likesArray = JSON.parse(savedLikes);
-                setLikedPosts(new Set(likesArray));
-            } catch (error) {
-                console.error("Error loading liked posts:", error);
-            }
-        }
-    }, []);
-
-    // Sync liked posts with posts data when posts load
+    // Sync liked posts with posts data from database
     useEffect(() => {
         if (posts && posts.length > 0 && currentUserId) {
-            const newLikedPosts = new Set(likedPosts);
+            const newLikedPosts = new Set();
 
             posts.forEach(post => {
                 if (post.likes && Array.isArray(post.likes)) {
@@ -151,8 +136,6 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
 
                     if (userLiked) {
                         newLikedPosts.add(post._id);
-                    } else {
-                        newLikedPosts.delete(post._id);
                     }
                 }
             });
@@ -160,11 +143,6 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
             setLikedPosts(newLikedPosts);
         }
     }, [posts, currentUserId]); // Run when posts data changes
-
-    // Save liked posts to localStorage
-    useEffect(() => {
-        localStorage.setItem('likedPosts', JSON.stringify([...likedPosts]));
-    }, [likedPosts]);
 
     const handleLike = async (postId) => {
         if (!token) {
@@ -203,16 +181,6 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
             }
         } catch (error) {
             toast.error(error.message || "Lỗi khi thích/bỏ thích bài viết");
-            // Nếu API chưa implement, vẫn cho phép toggle UI
-            setLikedPosts(prev => {
-                const newSet = new Set(prev);
-                if (newSet.has(postId)) {
-                    newSet.delete(postId);
-                } else {
-                    newSet.add(postId);
-                }
-                return newSet;
-            });
         }
     };
 

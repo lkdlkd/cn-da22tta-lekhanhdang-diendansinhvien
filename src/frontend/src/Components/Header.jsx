@@ -1220,102 +1220,134 @@ export default function Header({ user }) {
                     zIndex: 9999
                   }}
                 >
-                  {/* <div className="dropdown-header d-flex align-items-center justify-content-between">
-                    <h5 className="m-0">Thông tin</h5>
-                  </div> */}
                   <div className="dropdown-body p-2">
                     <div
                       className="profile-notification-scroll position-relative"
                       style={{ maxHeight: "calc(100vh - 225px)" }}
                     >
-                      {/* User Info Header */}
-                      <div className="d-flex align-items-center p-2 mb-2 rounded" style={{ backgroundColor: '#f8f9fa' }}>
-                        <img
-                          src={user && user.avatarUrl || `https://ui-avatars.com/api/?background=random&name=user`}
-                          alt="user-avatar"
-                          className="rounded-circle"
-                          style={{
-                            width: '48px',
-                            height: '48px',
-                            objectFit: 'cover',
-                            border: '2px solid #fff',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                          }}
-                        />
-                        <div className="ms-3 flex-grow-1 min-width-0">
-                          <h6 className="mb-0 fw-bold text-truncate" style={{ fontSize: '15px' }}>
-                            {user?.displayName || "Vui Lòng Đăng Nhập"}
-                          </h6>
-                          {user?.username && (
-                            <small className="text-muted text-truncate d-block" style={{ fontSize: '12px' }}>
-                              @{user.username}
-                            </small>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="dropdown-divider my-2"></div>
-
-                      {/* Menu Items */}
-                      <Link
-                        to={`/user/${user?.username}`}
-                        className="dropdown-item d-flex align-items-center py-2 px-3 rounded"
-                        style={{ transition: 'all 0.2s ease' }}
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#e3f2fd', borderRadius: '10px' }}>
-                          <i className="ph-duotone ph-user-circle" style={{ fontSize: '20px', color: '#1976d2', marginLeft: '7px' }}></i>
-                        </div>
-                        <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#1c1c1c' }}>Trang cá nhân</span>
-                      </Link>
-
-                      <Link
-                        to="/profile"
-                        className="dropdown-item d-flex align-items-center py-2 px-3 rounded mt-1"
-                        style={{ transition: 'all 0.2s ease' }}
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#e8f5e9', borderRadius: '10px' }}>
-                          <i className="ph-duotone ph-gear" style={{ fontSize: '20px', color: '#388e3c', marginLeft: '7px' }}></i>
-                        </div>
-                        <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#1c1c1c' }}>Cài đặt tài khoản</span>
-                      </Link>
-
-                      {/* Link MOD Dashboard cho MOD và ADMIN */}
-                      {(user?.role === 'mod' || user?.role === 'admin') && (
+                      {user && token ? (
                         <>
+                          {/* User Info Header */}
+                          <div className="d-flex align-items-center p-2 mb-2 rounded" style={{ backgroundColor: '#f8f9fa' }}>
+                            <img
+                              src={user.avatarUrl || `https://ui-avatars.com/api/?background=random&name=user`}
+                              alt="user-avatar"
+                              className="rounded-circle"
+                              style={{
+                                width: '48px',
+                                height: '48px',
+                                objectFit: 'cover',
+                                border: '2px solid #fff',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                              }}
+                            />
+                            <div className="ms-3 flex-grow-1 min-width-0">
+                              <h6 className="mb-0 fw-bold text-truncate" style={{ fontSize: '15px' }}>
+                                {user.displayName || user.username}
+                              </h6>
+                              {user.username && (
+                                <small className="text-muted text-truncate d-block" style={{ fontSize: '12px' }}>
+                                  @{user.username}
+                                </small>
+                              )}
+                            </div>
+                          </div>
                           <div className="dropdown-divider my-2"></div>
+
+                          {/* Menu Items */}
                           <Link
-                            to="/mod/dashboard"
+                            to={`/user/${user.username}`}
                             className="dropdown-item d-flex align-items-center py-2 px-3 rounded"
                             style={{ transition: 'all 0.2s ease' }}
                             onClick={() => setShowUserMenu(false)}
                           >
-                            <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#f3e5f5', borderRadius: '10px' }}>
-                              <i className="ph-duotone ph-shield-check" style={{ fontSize: '20px', color: '#8b5cf6', marginLeft: '7px' }}></i>
+                            <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#e3f2fd', borderRadius: '10px' }}>
+                              <i className="ph-duotone ph-user-circle" style={{ fontSize: '20px', color: '#1976d2', marginLeft: '7px' }}></i>
                             </div>
-                            <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#1c1c1c' }}>Quản lý duyệt bài</span>
+                            <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#1c1c1c' }}>Trang cá nhân</span>
+                          </Link>
+
+                          <Link
+                            to="/profile"
+                            className="dropdown-item d-flex align-items-center py-2 px-3 rounded mt-1"
+                            style={{ transition: 'all 0.2s ease' }}
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#e8f5e9', borderRadius: '10px' }}>
+                              <i className="ph-duotone ph-gear" style={{ fontSize: '20px', color: '#388e3c', marginLeft: '7px' }}></i>
+                            </div>
+                            <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#1c1c1c' }}>Cài đặt tài khoản</span>
+                          </Link>
+
+                          {/* Link MOD Dashboard cho MOD và ADMIN */}
+                          {(user.role === 'mod' || user.role === 'admin') && (
+                            <>
+                              <div className="dropdown-divider my-2"></div>
+                              <Link
+                                to="/mod/dashboard"
+                                className="dropdown-item d-flex align-items-center py-2 px-3 rounded"
+                                style={{ transition: 'all 0.2s ease' }}
+                                onClick={() => setShowUserMenu(false)}
+                              >
+                                <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#f3e5f5', borderRadius: '10px' }}>
+                                  <i className="ph-duotone ph-shield-check" style={{ fontSize: '20px', color: '#8b5cf6', marginLeft: '7px' }}></i>
+                                </div>
+                                <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#1c1c1c' }}>Quản lý duyệt bài</span>
+                              </Link>
+                            </>
+                          )}
+
+                          <div className="dropdown-divider my-2"></div>
+
+                          <Link
+                            to="/login"
+                            className="dropdown-item d-flex align-items-center py-2 px-3 rounded"
+                            style={{ transition: 'all 0.2s ease' }}
+                            onClick={() => {
+                              localStorage.removeItem("token");
+                              window.location.reload();
+                            }}
+                          >
+                            <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#ffebee', borderRadius: '10px' }}>
+                              <i className="ph-duotone ph-sign-out" style={{ fontSize: '20px', color: '#d32f2f', marginLeft: '7px' }}></i>
+                            </div>
+                            <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#d32f2f' }}>Đăng xuất</span>
+                          </Link>
+                        </>
+                      ) : (
+                        <>
+                          {/* Menu khi chưa đăng nhập */}
+                          <div className="text-center p-3 mb-2">
+                            <i className="ph-duotone ph-user-circle" style={{ fontSize: '48px', color: '#6c757d', opacity: 0.5 }}></i>
+                            <p className="mb-0 mt-2 text-muted" style={{ fontSize: '14px' }}>Vui lòng đăng nhập </p>
+                          </div>
+                          <div className="dropdown-divider my-2"></div>
+
+                          <Link
+                            to="/login"
+                            className="dropdown-item d-flex align-items-center py-2 px-3 rounded"
+                            style={{ transition: 'all 0.2s ease' }}
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#e3f2fd', borderRadius: '10px' }}>
+                              <i className="ph-duotone ph-sign-in" style={{ fontSize: '20px', color: '#1976d2', marginLeft: '7px' }}></i>
+                            </div>
+                            <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#1c1c1c' }}>Đăng nhập</span>
+                          </Link>
+
+                          <Link
+                            to="/register"
+                            className="dropdown-item d-flex align-items-center py-2 px-3 rounded mt-1"
+                            style={{ transition: 'all 0.2s ease' }}
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#e8f5e9', borderRadius: '10px' }}>
+                              <i className="ph-duotone ph-user-plus" style={{ fontSize: '20px', color: '#388e3c', marginLeft: '7px' }}></i>
+                            </div>
+                            <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#1c1c1c' }}>Đăng ký</span>
                           </Link>
                         </>
                       )}
-
-                      <div className="dropdown-divider my-2"></div>
-
-                      <Link
-                        to="/login"
-                        className="dropdown-item d-flex align-items-center py-2 px-3 rounded"
-                        style={{ transition: 'all 0.2s ease' }}
-                        onClick={() => {
-                          localStorage.removeItem("token");
-                          window.location.reload();
-                        }}
-                      >
-                        <div className="d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '36px', height: '36px', backgroundColor: '#ffebee', borderRadius: '10px' }}>
-                          <i className="ph-duotone ph-sign-out" style={{ fontSize: '20px', color: '#d32f2f', marginLeft: '7px' }}></i>
-                        </div>
-                        <span className="ms-2 fw-medium" style={{ fontSize: '14px', color: '#d32f2f' }}>Đăng xuất</span>
-                      </Link>
-
                     </div>
                   </div>
                 </div>

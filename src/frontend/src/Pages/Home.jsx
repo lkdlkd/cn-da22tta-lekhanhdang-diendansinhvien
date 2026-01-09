@@ -23,7 +23,7 @@ const Home = () => {
   const [loadingpost, setLoadingpost] = React.useState(true);
   const [posts, setPosts] = React.useState([]);
   const [page, setPage] = useState(1);
-  const [limit] = useState(30);
+  const [limit] = useState(10);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchText, setSearchText] = useState('');
