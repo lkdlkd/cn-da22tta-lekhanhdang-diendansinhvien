@@ -466,8 +466,10 @@ const Home = () => {
           </div>
 
           <div className="col-lg-4">
-            {/* Categories widget */}
-            <div className="card mb-3 border-0 shadow-sm home-card">
+            {/* Sticky sidebar container */}
+            <div style={{ position: 'sticky', top: '85px', maxHeight: 'calc(100vh - 100px)', overflowY: 'auto', paddingBottom: '20px' }}>
+              {/* Categories widget */}
+              <div className="card mb-3 border-0 shadow-sm home-card">
               <div className="card-body home-card-body">
                 <h6 className="fw-bold mb-3 d-flex align-items-center home-widget-title">
                   <i className="ph-duotone ph-squares-four text-primary home-widget-icon"></i>
@@ -599,6 +601,8 @@ const Home = () => {
                 </div>
               </div>
             </div>
+            </div>
+            {/* End sticky sidebar container */}
           </div>
         </div>
       </div>

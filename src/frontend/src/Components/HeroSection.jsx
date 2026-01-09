@@ -59,7 +59,7 @@ export default function HeroSection() {
                 Tạo bài viết
               </button>
               <Link
-                to="/messages"
+                to="/forum"
                 className="btn btn-outline-primary hero-btn hero-btn-secondary px-4 py-2"
               >
                 <i className="bi bi-chat-dots-fill me-2"></i>

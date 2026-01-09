@@ -34,12 +34,12 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
     const [isSubmittingReply, setIsSubmittingReply] = useState({});
 
     // State for client-side pagination (fallback if server pagination not provided)
-    const [visibleCount, setVisibleCount] = useState(30);
-    const POSTS_PER_PAGE = 30;
+    const [visibleCount, setVisibleCount] = useState(10);
+    const POSTS_PER_PAGE = 10;
 
     // Reset visible count when posts change
     useEffect(() => {
-        setVisibleCount(20); // số bài viết muốn hiển thị ban đầu   
+        setVisibleCount(10); // số bài viết muốn hiển thị ban đầu   
     }, [posts]);
 
     const handleLoadMore = () => {
