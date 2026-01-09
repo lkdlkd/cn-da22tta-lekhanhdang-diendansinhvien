@@ -433,6 +433,8 @@ const UserProfile = () => {
         setCommentTexts(prev => ({ ...prev, [postId]: '' }));
         setCommentAttachments(prev => ({ ...prev, [postId]: [] }));
         toast.success('Đã thêm bình luận');
+      } else {
+        toast.error(response.error || 'Không thể thêm bình luận');
       }
     } catch (err) {
       toast.error('Không thể thêm bình luận');
@@ -486,11 +488,12 @@ const UserProfile = () => {
         if (updatedPosts.success) {
           setPosts(updatedPosts.data);
         }
-
         setReplyTexts(prev => ({ ...prev, [parentId]: '' }));
         setReplyAttachments(prev => ({ ...prev, [parentId]: [] }));
         setReplyTo(null);
         toast.success('Đã thêm trả lời');
+      } else {
+        toast.error(response.error || 'Không thể thêm trả lời');
       }
     } catch (err) {
       toast.error('Không thể thêm trả lời');
@@ -514,10 +517,16 @@ const UserProfile = () => {
           newSet.delete(postId);
           return newSet;
         });
-        await unlikePost(token, postId);
+        const res = await unlikePost(token, postId);
+        if (!res.success) {
+          toast.error(res.error || 'Không thể bỏ thích bài viết');
+        }
       } else {
         setLikedPosts(prev => new Set([...prev, postId]));
-        await likePost(token, postId);
+        const res = await likePost(token, postId);
+        if (!res.success) {
+          toast.error(res.error || 'Không thể thích bài viết');
+        }
       }
 
       // Refresh posts to sync with server
@@ -572,24 +581,24 @@ const UserProfile = () => {
       preConfirm: () => {
         const reason = document.getElementById('report-reason').value;
         const detail = document.getElementById('report-detail').value;
-        
+
         if (!reason) {
           Swal.showValidationMessage('Vui lòng chọn lý do báo cáo');
           return false;
         }
-        
+
         return { reason, detail };
       }
     });
 
     if (reason) {
       try {
-        const reasonText = reason.detail 
-          ? `${reason.reason}: ${reason.detail}` 
+        const reasonText = reason.detail
+          ? `${reason.reason}: ${reason.detail}`
           : reason.reason;
 
         const response = await createReport(token, 'user', users._id, reasonText);
-        
+
         if (response.success) {
           toast.success('Đã gửi báo cáo. Cảm ơn bạn đã giúp giữ cộng đồng an toàn!');
         } else {
@@ -680,7 +689,7 @@ const UserProfile = () => {
       </div>
     );
   }
-  
+
   // Kiểm tra currentUser trước khi truy cập username
   const isOwnProfile = currentUser && users && currentUser.username === users.username;
 

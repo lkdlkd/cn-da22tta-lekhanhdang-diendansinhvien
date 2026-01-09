@@ -25,10 +25,10 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
     const [replyTo, setReplyTo] = useState({});
     const [replyTexts, setReplyTexts] = useState({});
     const [replyAttachments, setReplyAttachments] = useState({});
-    
+
     // State for edit modal
     const [editingPost, setEditingPost] = useState(null);
-    
+
     // Loading states
     const [isSubmittingComment, setIsSubmittingComment] = useState({});
     const [isSubmittingReply, setIsSubmittingReply] = useState({});
@@ -79,7 +79,7 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
         const text = replyTexts[parentId];
         const attachments = replyAttachments[parentId] || [];
         if ((!text || !text.trim()) && attachments.length === 0) return;
-        
+
         // Prevent double submission
         if (isSubmittingReply[parentId]) return;
         if (!token) {
@@ -87,7 +87,7 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
             return;
         }
         setIsSubmittingReply(prev => ({ ...prev, [parentId]: true }));
-        
+
         try {
             let formData;
             if (attachments.length > 0) {
@@ -176,14 +176,20 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
             const isLiked = likedPosts.has(postId);
 
             if (isLiked) {
-                await api.unlikePost(token, postId);
+                const result = await api.unlikePost(token, postId);
+                if (!result.success) {
+                    throw new Error(result.error || "Lỗi khi bỏ thích bài viết");
+                }
                 setLikedPosts(prev => {
                     const newSet = new Set(prev);
                     newSet.delete(postId);
                     return newSet;
                 });
             } else {
-                await api.likePost(token, postId);
+                const result = await api.likePost(token, postId);
+                if (!result.success) {
+                    throw new Error(result.error || "Lỗi khi thích bài viết");
+                }
                 setLikedPosts(prev => {
                     const newSet = new Set(prev);
                     newSet.add(postId);
@@ -317,7 +323,7 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
         const attachments = commentAttachments[postId] || [];
 
         if ((!text || !text.trim()) && attachments.length === 0) return;
-        
+
         // Prevent double submission
         if (isSubmittingComment[postId]) return;
         if (!token) {
@@ -349,10 +355,10 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
                 setCommentTexts(prev => ({ ...prev, [postId]: '' }));
                 setCommentAttachments(prev => ({ ...prev, [postId]: [] }));
             } else {
-                console.error(res.error || 'Lỗi gửi bình luận');
+                toast.error(res.error || 'Lỗi gửi bình luận')
             }
         } catch (err) {
-            console.error(err.message || 'Lỗi gửi bình luận');
+            toast.error(err.message || 'Lỗi gửi bình luận');
         } finally {
             setIsSubmittingComment(prev => ({ ...prev, [postId]: false }));
         }
@@ -496,8 +502,8 @@ const PostList = ({ posts, loadingpost, onPostUpdate, onPostClick, hasMore: hasM
                     >
                         <i className="bi bi-arrow-down load-more-icon"></i>
                         {serverPaginated
-                          ? (isLoadingMore ? 'Đang tải...' : 'Xem thêm')
-                          : `Xem thêm ${Math.min(POSTS_PER_PAGE, posts.length - visibleCount)} bài viết`}
+                            ? (isLoadingMore ? 'Đang tải...' : 'Xem thêm')
+                            : `Xem thêm ${Math.min(POSTS_PER_PAGE, posts.length - visibleCount)} bài viết`}
                     </button>
                 </div>
             )}

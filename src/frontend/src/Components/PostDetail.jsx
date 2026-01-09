@@ -314,15 +314,25 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
       const isLiked = likedPosts.has(postId);
 
       if (isLiked) {
-        await unlikePost(token, postId);
+        const res = await unlikePost(token, postId);
+        if (!res.success) {
+          toast.error(res.error || 'Không thể bỏ thích bài viết');
+        }
         setLikedPosts(prev => {
           const newSet = new Set(prev);
           newSet.delete(postId);
           return newSet;
         });
       } else {
-        await likePost(token, postId);
-        setLikedPosts(prev => new Set(prev).add(postId));
+        const res = await likePost(token, postId);
+        if (!res.success) {
+          toast.error(res.error || 'Không thể thích bài viết');
+        }
+        setLikedPosts(prev => {
+          const newSet = new Set(prev);
+          newSet.add(postId);
+          return newSet;
+        });
       }
 
       // Don't refresh - socket will handle the update
@@ -472,7 +482,11 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
         });
       }
 
-      await createComment(token, formData || { postId, content: text });
+      const res = await createComment(token, formData || { postId, content: text });
+
+      if (!res.success) {
+        toast.error(res.error || 'Lỗi gửi bình luận');
+      }
 
       // Don't refresh - socket will handle the update
       // Clear form
@@ -544,7 +558,11 @@ export default function PostDetail({ post: initialPost, show, onClose }) {
         });
       }
 
-      await createComment(token, formData || { postId, parentId, content: text });
+      const res = await createComment(token, formData || { postId, parentId, content: text });
+
+      if (!res.success) {
+        toast.error(res.error || 'Lỗi gửi trả lời');
+      }
 
       // Don't refresh - socket will handle the update
       // Clear form
