@@ -692,6 +692,11 @@ exports.likePost = async (req, res) => {
 			return res.status(404).json({ success: false, error: 'Post not found' });
 		}
 
+		// Kiểm tra bài viết có bị khóa không
+		if (post.locked) {
+			return res.status(403).json({ success: false, error: 'Bài viết đã bị khóa, không thể thích' });
+		}
+
 		// Kiểm tra đã like chưa
 		const existingLike = await Like.findOne({
 			userId,

@@ -1627,3 +1627,33 @@
     transform: rotate(360deg);
   }
 }
+
+/* Locked post styles */
+.post-item-action-btn.disabled,
+.post-item-action-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  color: #8e8e8e;
+}
+
+.post-item-action-btn.disabled:hover,
+.post-item-action-btn:disabled:hover {
+  background-color: transparent;
+}
+
+.post-item-comment-locked-message {
+  padding: 16px;
+  text-align: center;
+  color: #65676b;
+  background-color: #f0f2f5;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.post-item-comment-locked-message i {
+  font-size: 16px;
+  color: #8e8e8e;
+}

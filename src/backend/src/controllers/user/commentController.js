@@ -10,6 +10,17 @@ exports.createComment = async (req, res) => {
 	try {
 		const { postId, content, parentId } = req.body;
 		const authorId = req.user._id;
+		
+		// Kiểm tra bài viết có tồn tại và có bị khóa không
+		const Post = require('../../models/Post');
+		const post = await Post.findById(postId);
+		if (!post) {
+			return res.status(404).json({ success: false, error: 'Bài viết không tồn tại' });
+		}
+		if (post.locked) {
+			return res.status(403).json({ success: false, error: 'Bài viết đã bị khóa, không thể bình luận' });
+		}
+		
 		let attachmentIds = [];
 		if (req.files?.length > 0) {
 			attachmentIds = await Promise.all(req.files.map(async (file) => {
@@ -38,8 +49,8 @@ exports.createComment = async (req, res) => {
 		});
 
 		// Cập nhật số bình luận cho Post
-		const Post = require('../../models/Post');
-		const post = await Post.findByIdAndUpdate(postId, { $inc: { commentsCount: 1 } }, { new: true }).populate('authorId');
+		await Post.findByIdAndUpdate(postId, { $inc: { commentsCount: 1 } });
+		await post.populate('authorId');
 
 		// Cập nhật số bình luận cho User
 		const User = require('../../models/User');
@@ -377,6 +388,13 @@ exports.likeComment = async (req, res) => {
 		const comment = await Comment.findById(commentId).populate('authorId');
 		if (!comment) {
 			return res.status(404).json({ success: false, error: 'Comment not found' });
+		}
+
+		// Kiểm tra bài viết có bị khóa không
+		const Post = require('../../models/Post');
+		const post = await Post.findById(comment.postId);
+		if (post && post.locked) {
+			return res.status(403).json({ success: false, error: 'Bài viết đã bị khóa, không thể thích bình luận' });
 		}
 
 		// Kiểm tra đã like chưa

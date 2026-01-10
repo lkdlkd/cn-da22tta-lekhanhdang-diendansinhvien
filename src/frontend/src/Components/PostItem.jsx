@@ -523,17 +523,22 @@ const PostItem = ({
         {/* Actions */}
         <div className="post-item-actions">
           <button
-            onClick={() => handleLike(post._id)}
-            className={`post-item-action-btn ${isLiked ? 'active' : ''}`}
+            onClick={() => !post.locked && handleLike(post._id)}
+            className={`post-item-action-btn ${isLiked ? 'active' : ''} ${post.locked ? 'disabled' : ''}`}
+            disabled={post.locked}
+            title={post.locked ? 'Bài viết đã bị khóa' : ''}
           >
-            <i className={`bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'} post-item-action-icon`}></i>
-            <span>Thích</span>
+            <i className={`bi ${post.locked ? 'bi-lock-fill' : isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'} post-item-action-icon`}></i>
+            <span>{post.locked ? 'Bị khóa' : 'Thích'}</span>
           </button>
           <button
-            onClick={() => toggleComments(post._id)}
-            className={`post-item-action-btn ${isCommentsExpanded ? 'active' : ''}`}
+            onClick={() => !post.locked && toggleComments(post._id)}
+            className={`post-item-action-btn ${isCommentsExpanded ? 'active' : ''} ${post.locked ? 'disabled' : ''}`}
+            disabled={post.locked}
+            title={post.locked ? 'Bài viết đã bị khóa' : ''}
           >
-            <i className="bi bi-chat me-2"></i>Bình luận
+            <i className={`bi ${post.locked ? 'bi-lock-fill' : 'bi-chat'} me-2`}></i>
+            {post.locked ? 'Bị khóa' : 'Bình luận'}
           </button>
           <button
             className="post-item-action-btn"
@@ -614,97 +619,108 @@ const PostItem = ({
                 className="post-item-comment-avatar"
               />
               <div className="post-item-comment-input-container">
-                <div className="post-item-comment-textarea-wrapper">
-                  <textarea
-                    value={commentTexts[post._id] || ''}
-                    onChange={e => handleCommentChange(post._id, e.target.value)}
-                    placeholder={`Bình luận dưới tên ${user?.displayName || user?.username || 'bạn'}...`}
-                    className="post-item-comment-textarea"
-                    rows={1}
-                    onInput={e => {
-                      e.target.style.height = 'auto';
-                      e.target.style.height = e.target.scrollHeight + 'px';
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        if ((commentTexts[post._id] && commentTexts[post._id].trim()) || 
-                            (commentAttachments[post._id] && commentAttachments[post._id].length > 0)) {
-                          handleSubmitComment(post._id);
-                        }
-                      }
-                    }}
-                  />
-                </div>
-
-                {/* Icon toolbar */}
-                <div className="post-item-comment-icons">
-                  <label className="post-item-comment-icon-btn" title="Hình ảnh">
-                    <i className="bi bi-image"></i>
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={e => handleAttachmentChange(post._id, e.target.files)}
-                      style={{ display: "none" }}
-                    />
-                  </label>
-                  <label className="post-item-comment-icon-btn" title="Đính kèm file">
-                    <i className="bi bi-paperclip"></i>
-                    <input
-                      type="file"
-                      multiple
-                      accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar"
-                      onChange={e => handleAttachmentChange(post._id, e.target.files)}
-                      style={{ display: "none" }}
-                    />
-                  </label>
-                </div>
-
-                {/* Attachment Previews */}
-                {commentAttachments[post._id] && commentAttachments[post._id].length > 0 && (
-                  <div className="post-item-comment-previews">
-                    {commentAttachments[post._id].map((item, idx) => (
-                      <div key={idx} className="post-item-comment-preview">
-                        {item.preview ? (
-                          <img
-                            src={item.preview}
-                            alt="preview"
-                            className="post-item-comment-preview-image"
-                          />
-                        ) : (
-                          <div className="post-item-comment-preview-file">
-                            <i className="bi bi-paperclip post-item-comment-preview-file-icon"></i>
-                            <span className="post-item-comment-preview-file-name">{item.name}</span>
-                          </div>
-                        )}
-                        <button
-                          onClick={() => removeAttachment(post._id, idx)}
-                          className="post-item-comment-preview-remove"
-                        >×</button>
-                      </div>
-                    ))}
+                {post.locked ? (
+                  <div className="post-item-comment-locked-message">
+                    <i className="bi bi-lock-fill me-2"></i>
+                    <span>Bài viết đã bị khóa, không thể bình luận</span>
                   </div>
+                ) : (
+                  <>
+                    <div className="post-item-comment-textarea-wrapper">
+                      <textarea
+                        value={commentTexts[post._id] || ''}
+                        onChange={e => handleCommentChange(post._id, e.target.value)}
+                        placeholder={`Bình luận dưới tên ${user?.displayName || user?.username || 'bạn'}...`}
+                        className="post-item-comment-textarea"
+                        rows={1}
+                        onInput={e => {
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            if ((commentTexts[post._id] && commentTexts[post._id].trim()) || 
+                                (commentAttachments[post._id] && commentAttachments[post._id].length > 0)) {
+                              handleSubmitComment(post._id);
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {/* Icon toolbar */}
+                    <div className="post-item-comment-icons">
+                      <label className="post-item-comment-icon-btn" title="Hình ảnh">
+                        <i className="bi bi-image"></i>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={e => handleAttachmentChange(post._id, e.target.files)}
+                          style={{ display: "none" }}
+                        />
+                      </label>
+                      <label className="post-item-comment-icon-btn" title="Đính kèm file">
+                        <i className="bi bi-paperclip"></i>
+                        <input
+                          type="file"
+                          multiple
+                          accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar"
+                          onChange={e => handleAttachmentChange(post._id, e.target.files)}
+                          style={{ display: "none" }}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Attachment Previews */}
+                    {commentAttachments[post._id] && commentAttachments[post._id].length > 0 && (
+                      <div className="post-item-comment-previews">
+                        {commentAttachments[post._id].map((item, idx) => (
+                          <div key={idx} className="post-item-comment-preview">
+                            {item.preview ? (
+                              <img
+                                src={item.preview}
+                                alt="preview"
+                                className="post-item-comment-preview-image"
+                              />
+                            ) : (
+                              <div className="post-item-comment-preview-file">
+                                <i className="bi bi-paperclip post-item-comment-preview-file-icon"></i>
+                                <span className="post-item-comment-preview-file-name">{item.name}</span>
+                              </div>
+                            )}
+                            <button
+                              onClick={() => removeAttachment(post._id, idx)}
+                              className="post-item-comment-preview-remove"
+                            >×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
               {/* Send Button - Always visible on the right */}
-              <button
-                onClick={() => handleSubmitComment(post._id)}
-                disabled={
-                  isSubmittingComment || 
-                  ((!commentTexts[post._id] || !commentTexts[post._id].trim()) && 
-                   (!commentAttachments[post._id] || commentAttachments[post._id].length === 0))
-                }
-                className="post-item-comment-send-btn"
-                title="Gửi"
-              >
-                {isSubmittingComment ? (
-                  <div className="post-item-comment-spinner" />
-                ) : (
-                  <i className="bi bi-send-fill"></i>
-                )}
-              </button>
+              {!post.locked && (
+                <button
+                  onClick={() => handleSubmitComment(post._id)}
+                  disabled={
+                    isSubmittingComment || 
+                    ((!commentTexts[post._id] || !commentTexts[post._id].trim()) && 
+                     (!commentAttachments[post._id] || commentAttachments[post._id].length === 0))
+                  }
+                  className="post-item-comment-send-btn"
+                  title="Gửi"
+                >
+                  {isSubmittingComment ? (
+                    <div className="post-item-comment-spinner" />
+                  ) : (
+                    <i className="bi bi-send-fill"></i>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         )}
